@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Infrastructure\Console\Commands;
 
-use App\Models\User;
+use App\Infrastructure\Models\User;
 use Illuminate\Console\Command;
 
 final class PromoteAdminCommand extends Command

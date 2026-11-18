@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Infrastructure\Filament\Resources\Pages;
 
-use App\Application\Cms\ContentExporter;
-use App\Infrastructure\Cms\PublicMedia;
+use App\Application\Contract\Cms\PublicMediaStore;
+use App\Domain\Cms\ContentExport;
 use App\Infrastructure\Filament\Resources\Pages\Pages\CreatePage;
 use App\Infrastructure\Filament\Resources\Pages\Pages\EditPage;
 use App\Infrastructure\Filament\Resources\Pages\Pages\ListPages;
-use App\Models\Page;
+use App\Infrastructure\Models\Page;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -57,7 +57,7 @@ final class PageResource extends Resource
                 TextInput::make('slug')
                     ->required()
                     ->maxLength(100)
-                    ->regex(ContentExporter::SLUG_PATTERN)
+                    ->regex(ContentExport::SLUG_PATTERN)
                     ->unique(ignoreRecord: true)
                     ->helperText('URL path segment: a-z, 0-9 and single hyphens. Ignored for the home page, which lives at /.'),
                 Textarea::make('description')
@@ -92,7 +92,7 @@ final class PageResource extends Resource
                             ->schema([
                                 FileUpload::make('image')
                                     ->required()
-                                    ->disk(PublicMedia::MEDIA_DISK)
+                                    ->disk(PublicMediaStore::MEDIA_DISK)
                                     ->directory('images')
                                     ->visibility('public')
                                     ->image()

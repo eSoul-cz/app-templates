@@ -24,6 +24,8 @@ services:
             DB_DATABASE: '${DB_DATABASE:-laravel}'
             DB_USERNAME: '${DB_USERNAME:-laravel}'
             DB_PASSWORD: '${DB_PASSWORD:-secret}'
+            MAIL_HOST: mailpit
+            MAIL_PORT: 1025
         volumes:
             - '.:/var/www'
         networks:
@@ -31,6 +33,8 @@ services:
         depends_on:
             mariadb:
                 condition: service_healthy
+            mailpit:
+                condition: service_started
     nginx:
         image: 'nginx:alpine'
         ports:
@@ -61,6 +65,14 @@ services:
             timeout: 5s
             retries: 10
             start_period: 30s
+    # Catches every mail of the application in development: SMTP on mailpit:1025 (published on MAIL_PORT for work outside Docker), inbox UI on MAILPIT_UI_PORT.
+    mailpit:
+        image: 'axllent/mailpit:latest'
+        ports:
+            - '${MAILPIT_UI_PORT:-8025}:8025'
+            - '${MAIL_PORT:-1025}:1025'
+        networks:
+            - dev
 networks:
     dev:
         driver: bridge

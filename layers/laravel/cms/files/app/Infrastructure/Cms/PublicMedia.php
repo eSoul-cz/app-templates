@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Infrastructure\Cms;
 
+use App\Application\Contract\Cms\PublicMediaStore;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
@@ -16,16 +17,8 @@ use RuntimeException;
  * The export writes the files before the build links them and touches every file it references (mtime): the
  * prune command uses that to find files the site no longer uses.
  */
-final class PublicMedia
+final class PublicMedia implements PublicMediaStore
 {
-    /** Private uploads of the admin. */
-    public const string MEDIA_DISK = 'cms-media';
-
-    /** Public content-addressed copy. */
-    public const string DISK = 'cms-public';
-
-    public const string URL_PREFIX = '/_cms/';
-
     /** Same allow-list as the frontend (frontend/src/lib/cms/media.ts): images only, nothing executable. */
     private const array EXTENSIONS = [
         'image/webp' => 'webp',
@@ -35,7 +28,7 @@ final class PublicMedia
     ];
 
     /** File name on the site, or null for a type the site must not serve. */
-    public static function name(string $sha256, ?string $mime): ?string
+    public function name(string $sha256, ?string $mime): ?string
     {
         $extension = self::EXTENSIONS[strtolower((string) $mime)] ?? null;
 

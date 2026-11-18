@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Infrastructure\Filament\Resources\SiteSettings\Pages;
 
 use App\Infrastructure\Filament\Resources\SiteSettings\SiteSettingResource;
-use App\Models\SiteSetting;
+use App\Infrastructure\Models\SiteSetting;
 use Filament\Resources\Pages\ListRecords;
 
 final class ListSiteSettings extends ListRecords

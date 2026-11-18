@@ -182,9 +182,24 @@ For the `astro-laravel-cms` variant the same works unchanged (`frontend/` and `b
     variants record `package_version: dev` while the installer runs from a checkout.
   - `bootstrap/providers.php` is an explicit list owned by the LAST layer of a variant that touches it (base: `AppServiceProvider`;
     filament and `laravel/cms` overwrite it). No provider auto-discovery.
-  - Models stay in `App\Models` (skeleton default); the reference projects use `App\Infrastructure\Models`, which would need `config/auth.php`
-    and factory overrides. Console commands are registered from `app/Infrastructure/Console/Commands` (`bootstrap/app.php`, owned by `laravel/base`
-    and `laravel/inertia-vue`).
+  - Layout follows the `framework/laravel` guideline: Eloquent models (including `User`) in `App\Infrastructure\Models`, controllers in
+    `App\Infrastructure\Http\Controllers`, middleware in `App\Infrastructure\Http\Middleware`, service providers (including the Filament panel
+    provider) in `App\Domain\Providers`. The skeleton's `app/Models`, `app/Http` and `app/Providers` are removed through `delete.txt`;
+    `laravel/base` overrides `config/auth.php`, `UserFactory` and `DatabaseSeeder` (and the skeleton copies of these files, and of `.env.example`,
+    were stripped as `skeleton:sync` does) and the model names its factory with `#[UseFactory]`. Console commands are registered from
+    `app/Infrastructure/Console/Commands` (`bootstrap/app.php`, owned by `laravel/base` and `laravel/inertia-vue`).
+  - `App\Domain\Providers` is the one namespace of the domain that may use the container, facades and the framework.
+    `tests/Unit/Architecture/LayerDependencyTest.php` (helpers in `tests/Support/Architecture`, plain PHPUnit, no app boot) reads every file in
+    `app/` with the tokenizer: `App\Domain` outside `CQRS` and `Providers` must not use `Illuminate\Database`/`Http`/`Support\Facades`, the container,
+    the session, `App\Application` or `App\Infrastructure`; `App\Domain\CQRS` may use `App\Infrastructure\Models` only; `App\Application` must not
+    use `App\Infrastructure`. `LayerRuleDetectionTest` feeds each rule in-memory samples (including the Providers exemption).
+  - `esoul-cz/laravel-cqrs ^1.0` is a runtime dependency of every Laravel template (from `packages.esoul.cz`, already in `repositories`);
+    `config/cqrs.php` is the published config of the reference projects (discovery of `app/Domain/CQRS`), and `app/Domain/CQRS/{Command,Query}`
+    exist (`.gitkeep`) because the buses require them.
+  - Local dev mail: the dev `docker-compose.yml` has a Mailpit service (inbox on `MAILPIT_UI_PORT`, default 8025, SMTP published on `MAIL_PORT`);
+    `.env.example` uses `MAIL_MAILER=smtp`, `127.0.0.1:1025` and the `laravel` service overrides `MAIL_HOST=mailpit`. `laravel/base` ships its
+    own `.env.example` (the skeleton's with the mail block changed) because `append/` cannot change an existing line.
+  - `composer coverage` (alias of `test:coverage`) writes `test-coverage/` (gitignored); `phpstan.neon` includes `bleedingEdge`.
   - Composer `scripts.test` is `artisan test --parallel` (a string, because the builder unions script lists and would keep the skeleton's
     `artisan test`); Pint/Larastan/Infection/PHPUnit versions come from the reference projects (`larastan ^3.0`, `infection ^0.35`, `phpunit ^13.2`).
   - `laravel/boost` is a dev dependency; `boost:update` runs after `composer update` but may fail without a `.env` (`|| true`).
@@ -218,6 +233,12 @@ For the `astro-laravel-cms` variant the same works unchanged (`frontend/` and `b
   - Source Sans 3 (SIL OFL, copied from a reference project's `src/assets/fonts`) is the placeholder local font.
   - Provider list: `laravel/cms` overwrites `bootstrap/providers.php` with `[AppServiceProvider, AdminPanelProvider, CmsServiceProvider]` (the last layer owns the list).
     The `cms-media` / `cms-public` disks are added by `CmsServiceProvider` (config/filesystems.php stays the skeleton's).
+  - The CMS follows the layer rules: `App\Application` holds only contracts (`Contract\Cms\PublicMediaStore`, `BuildTrigger`, implemented by
+    `Infrastructure\Cms\PublicMedia` / `JenkinsClient` and bound in `CmsServiceProvider`), DTOs and `ContentChanges` (a cache stamp). The export
+    and the publish workflow are CQRS: `ExportContentQuery`, `GetPublishOverviewQuery`, and the commands `StartPublish`, `RefreshPublish`,
+    `MarkPublishFailed`, `FinishPublish` under `App\Domain\CQRS`, called through the `QueryBus`/`CommandBus` facades by the controllers and the
+    Filament page. Controllers, middleware and the prune command moved to `Infrastructure\Http\{Controllers,Middleware}` and
+    `Infrastructure\Console\Commands`.
   - Admin uploads sit on a public-visibility `cms-media` disk (served at `/cms-media/` by nginx, images only, CSP sandbox) so Filament can preview them.
   - `pnpm-workspace.yaml` has `minimumReleaseAge: 1440` only; `trustPolicy: no-downgrade` is left out because pnpm 10.20.0 (`packageManager`) predates it.
   - Prettier in `frontend/` follows the baseline (printWidth 150, tabWidth 4); `esoul-guidelines.json` is in `.prettierignore` (written by the builder / installer).

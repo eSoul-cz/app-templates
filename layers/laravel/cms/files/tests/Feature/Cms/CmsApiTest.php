@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Cms;
 
+use App\Application\Contract\Cms\PublicMediaStore;
 use App\Domain\Cms\PublishStatus;
-use App\Infrastructure\Cms\PublicMedia;
-use App\Models\Publish;
+use App\Infrastructure\Models\Publish;
 use Illuminate\Support\Facades\Storage;
 use Tests\Support\SampleContent;
 use Tests\TestCase;
@@ -17,8 +17,8 @@ final class CmsApiTest extends TestCase
     {
         parent::setUp();
 
-        Storage::fake(PublicMedia::MEDIA_DISK);
-        Storage::fake(PublicMedia::DISK);
+        Storage::fake(PublicMediaStore::MEDIA_DISK);
+        Storage::fake(PublicMediaStore::DISK);
     }
 
     public function test_the_export_is_disabled_without_a_token(): void
@@ -48,7 +48,7 @@ final class CmsApiTest extends TestCase
         $url = $response->json('settings.ogImage.url');
         self::assertIsString($url);
         self::assertStringStartsWith('/_cms/', $url);
-        Storage::disk(PublicMedia::DISK)->assertExists(substr($url, strlen('/_cms/')));
+        Storage::disk(PublicMediaStore::DISK)->assertExists(substr($url, strlen('/_cms/')));
     }
 
     public function test_the_export_refuses_content_that_breaks_the_contract(): void

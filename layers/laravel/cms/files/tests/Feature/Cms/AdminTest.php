@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Cms;
 
+use App\Application\Contract\Cms\PublicMediaStore;
 use App\Domain\Cms\PublishStatus;
-use App\Infrastructure\Cms\PublicMedia;
 use App\Infrastructure\Filament\Pages\PublishWebsite;
 use App\Infrastructure\Filament\Resources\Pages\Pages\CreatePage;
 use App\Infrastructure\Filament\Resources\Pages\Pages\EditPage;
-use App\Models\Page;
-use App\Models\Publish;
-use App\Models\SiteSetting;
-use App\Models\User;
+use App\Infrastructure\Models\Page;
+use App\Infrastructure\Models\Publish;
+use App\Infrastructure\Models\SiteSetting;
+use App\Infrastructure\Models\User;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
@@ -26,7 +26,7 @@ final class AdminTest extends TestCase
     {
         parent::setUp();
 
-        Storage::fake(PublicMedia::MEDIA_DISK);
+        Storage::fake(PublicMediaStore::MEDIA_DISK);
         $this->actingAs(User::factory()->create(['is_admin' => true]));
     }
 

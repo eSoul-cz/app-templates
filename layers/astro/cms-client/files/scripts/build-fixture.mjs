@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Generates the committed fixture (src/lib/cms/fixture.json + fixture-media/) from the backend golden export
 // (backend/tests/Fixtures/content-export.golden.json) and the media file it was made from
-// (backend/tests/Fixtures/pixel.png). The data are the unchanged output of `ContentExporter`; only the file
+// (backend/tests/Fixtures/pixel.png). The data are the unchanged output of `ExportContentQuery`; only the file
 // URLs become relative paths into fixture-media/. `pnpm fixture:check` verifies that the two still agree.
 //
 // Run after the golden export changed: `pnpm fixture:build`.

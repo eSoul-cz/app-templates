@@ -29,7 +29,7 @@ CMS_SOURCE=fixture pnpm dev                         # no backend needed
 ## Publish flow
 
 ```text
-editor ── Publish ─▶ PublishService ─▶ Jenkins job (CMS_PUBLISH_ID=<id>) ─▶ frontend build ─▶ deployStaticSite
+editor ── Publish ─▶ StartPublishCommand ─▶ Jenkins job (CMS_PUBLISH_ID=<id>) ─▶ frontend build ─▶ deployStaticSite
    ▲  (Filament)      │ checks the export,    │                              │ GET /cms-api/v1/export             │
    │                  │ writes a `publishes`  │                              │ (bearer token, Zod-validated,       ▼
    │                  │ row (queued)          │                              │  /_cms media HEAD-checked)    web/current -> releases/<id>
@@ -37,7 +37,7 @@ editor ── Publish ─▶ PublishService ─▶ Jenkins job (CMS_PUBLISH_ID=<
 ```
 
 1. An editor saves pages and settings in Filament. Nothing is public yet: the **Publish** page shows "unpublished changes".
-2. **Publish** (`PublishService::publish()`): refuses when a publish is already queued or running, when Jenkins is not
+2. **Publish** (`StartPublishCommand`): refuses when a publish is already queued or running, when Jenkins is not
    configured, or when the export has problems (the same rules as the Zod schema). Otherwise it stores a `publishes` row
    (`queued`) and calls `{CMS_JENKINS_JOB_URL}/buildWithParameters` with `CMS_PUBLISH_ID`.
 3. The Jenkins build fetches `GET /cms-api/v1/export` (bearer `CMS_EXPORT_TOKEN`). While serving it, the backend copies

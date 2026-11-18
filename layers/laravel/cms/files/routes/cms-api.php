@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-use App\Infrastructure\Cms\Http\Controllers\ExportController;
-use App\Infrastructure\Cms\Http\Controllers\PublishCallbackController;
-use App\Infrastructure\Cms\Http\Middleware\AuthenticateCmsToken;
+use App\Infrastructure\Http\Controllers\ExportController;
+use App\Infrastructure\Http\Controllers\PublishCallbackController;
+use App\Infrastructure\Http\Middleware\AuthenticateCmsToken;
 use Illuminate\Support\Facades\Route;
 
 // Prefix /cms-api and the IP allowlist come from CmsServiceProvider. Called by the build of the static site

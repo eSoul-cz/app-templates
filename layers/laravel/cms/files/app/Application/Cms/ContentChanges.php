@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\Application\Cms;
 
-use App\Models\Page;
-use App\Models\SiteSetting;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Cache;
 
-/** Time of the last content change. Content reaches the site only through a publish, so the admin shows pending changes. */
+/**
+ * Time of the last content change, kept in the cache. Content reaches the site only through a publish, so
+ * the admin shows pending changes. An empty cache (new deploy, cleared cache) is estimated from the latest
+ * `updated_at` by the publish overview query.
+ */
 final class ContentChanges
 {
     private const string CACHE_KEY = 'cms.content_changed_at';
@@ -19,20 +21,10 @@ final class ContentChanges
         Cache::forever(self::CACHE_KEY, now()->toIso8601String());
     }
 
-    public static function lastChangedAt(): ?CarbonImmutable
+    public static function cachedAt(): ?CarbonImmutable
     {
         $cached = Cache::get(self::CACHE_KEY);
 
-        if (is_string($cached)) {
-            return CarbonImmutable::parse($cached);
-        }
-
-        // Empty cache (new deploy, cleared cache): estimate from the latest `updated_at`.
-        $latest = collect([Page::query()->max('updated_at'), SiteSetting::query()->max('updated_at')])
-            ->filter(static fn (mixed $value): bool => is_string($value))
-            ->map(static fn (string $value): CarbonImmutable => CarbonImmutable::parse($value))
-            ->max();
-
-        return $latest instanceof CarbonImmutable ? $latest : null;
+        return is_string($cached) ? CarbonImmutable::parse($cached) : null;
     }
 }

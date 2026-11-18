@@ -1,3 +1,9 @@
-# The skeleton's provider is replaced by App\Infrastructure\Providers\AppServiceProvider.
+# Service providers live in App\Domain\Providers (AppServiceProvider replaces the skeleton's).
 app/Providers/AppServiceProvider.php
 app/Providers
+# Eloquent models live in App\Infrastructure\Models, controllers in App\Infrastructure\Http\Controllers.
+app/Models/User.php
+app/Models
+app/Http/Controllers/Controller.php
+app/Http/Controllers
+app/Http

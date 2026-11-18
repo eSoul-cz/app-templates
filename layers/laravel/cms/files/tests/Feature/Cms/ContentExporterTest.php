@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Cms;
 
-use App\Application\Cms\ContentExporter;
-use App\Infrastructure\Cms\PublicMedia;
-use App\Models\Page;
-use App\Models\SiteSetting;
+use App\Application\Contract\Cms\PublicMediaStore;
+use App\Domain\CQRS\Query\Cms\ExportContentQuery;
+use App\Infrastructure\Models\Page;
+use App\Infrastructure\Models\SiteSetting;
+use Esoul\LaravelCqrs\Facades\QueryBus;
 use Illuminate\Support\Facades\Storage;
 use Tests\Support\SampleContent;
 use Tests\TestCase;
@@ -16,7 +17,7 @@ final class ContentExporterTest extends TestCase
 {
     public function test_an_empty_site_cannot_be_exported(): void
     {
-        $problems = resolve(ContentExporter::class)->build()->problems;
+        $problems = QueryBus::execute(new ExportContentQuery())->problems;
 
         self::assertContains('There is no published page.', $problems);
         self::assertContains('Exactly one published page must be the home page.', $problems);
@@ -24,10 +25,10 @@ final class ContentExporterTest extends TestCase
 
     public function test_only_published_pages_are_exported_in_order(): void
     {
-        Storage::fake(PublicMedia::MEDIA_DISK);
+        Storage::fake(PublicMediaStore::MEDIA_DISK);
         SampleContent::create();
 
-        $pages = resolve(ContentExporter::class)->build()->payload['pages'];
+        $pages = QueryBus::execute(new ExportContentQuery())->payload['pages'];
 
         self::assertIsArray($pages);
         self::assertSame(['home', 'about'], array_column($pages, 'slug'));
@@ -35,7 +36,7 @@ final class ContentExporterTest extends TestCase
 
     public function test_marking_a_page_as_home_unsets_the_previous_home(): void
     {
-        Storage::fake(PublicMedia::MEDIA_DISK);
+        Storage::fake(PublicMediaStore::MEDIA_DISK);
         SampleContent::create();
 
         Page::query()->where('slug', 'about')->firstOrFail()->update(['is_home' => true]);
@@ -45,8 +46,8 @@ final class ContentExporterTest extends TestCase
 
     public function test_every_contract_violation_is_reported(): void
     {
-        Storage::fake(PublicMedia::MEDIA_DISK);
-        Storage::disk(PublicMedia::MEDIA_DISK)->put('images/page.html', '<script>alert(1)</script>');
+        Storage::fake(PublicMediaStore::MEDIA_DISK);
+        Storage::disk(PublicMediaStore::MEDIA_DISK)->put('images/page.html', '<script>alert(1)</script>');
 
         SiteSetting::query()->create(['site_name' => 'Example', 'contact_email' => 'not-an-email', 'og_image' => 'images/missing.png']);
         Page::query()->create([
@@ -60,7 +61,7 @@ final class ContentExporterTest extends TestCase
             ],
         ]);
 
-        $problems = implode("\n", resolve(ContentExporter::class)->build()->problems);
+        $problems = implode("\n", QueryBus::execute(new ExportContentQuery())->problems);
 
         foreach (['contact e-mail', 'images/missing.png does not exist', 'single hyphens', 'heading is empty', 'file type text/', 'no alt text', 'unknown block type'] as $expected) {
             self::assertStringContainsString($expected, $problems);

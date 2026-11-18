@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Cms;
 
+use App\Application\Contract\Cms\PublicMediaStore;
 use App\Domain\Cms\PublishStatus;
-use App\Infrastructure\Cms\PublicMedia;
-use App\Models\Publish;
+use App\Infrastructure\Models\Publish;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -14,7 +14,7 @@ final class PrunePublicMediaTest extends TestCase
 {
     public function test_it_deletes_only_files_unused_since_the_anchor_publish(): void
     {
-        $disk = Storage::fake(PublicMedia::DISK);
+        $disk = Storage::fake(PublicMediaStore::DISK);
         $disk->put('old.png', 'a');
         $disk->put('fresh.png', 'b');
         touch($disk->path('old.png'), now()->subDays(20)->getTimestamp());
@@ -29,7 +29,7 @@ final class PrunePublicMediaTest extends TestCase
 
     public function test_without_an_old_successful_publish_nothing_is_deleted(): void
     {
-        $disk = Storage::fake(PublicMedia::DISK);
+        $disk = Storage::fake(PublicMediaStore::DISK);
         $disk->put('old.png', 'a');
         touch($disk->path('old.png'), now()->subDays(20)->getTimestamp());
 
@@ -42,8 +42,8 @@ final class PrunePublicMediaTest extends TestCase
     {
         $hash = hash('sha256', 'x');
 
-        self::assertSame(substr($hash, 0, 20) . '.png', PublicMedia::name($hash, 'image/png'));
-        self::assertNull(PublicMedia::name($hash, 'text/html'));
-        self::assertNull(PublicMedia::name('short', 'image/png'));
+        self::assertSame(substr($hash, 0, 20) . '.png', resolve(PublicMediaStore::class)->name($hash, 'image/png'));
+        self::assertNull(resolve(PublicMediaStore::class)->name($hash, 'text/html'));
+        self::assertNull(resolve(PublicMediaStore::class)->name('short', 'image/png'));
     }
 }

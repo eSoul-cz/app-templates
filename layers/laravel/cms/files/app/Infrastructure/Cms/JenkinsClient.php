@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Infrastructure\Cms;
 
+use App\Application\Contract\Cms\BuildTrigger;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
@@ -15,7 +16,7 @@ use RuntimeException;
  * Jenkins answers are validated: an unexpected shape (login page of a proxy, `null`, a list) is a protocol error,
  * not "queued" or "failed". Credentials go only to the origin of `cms.jenkins.job_url`.
  */
-final class JenkinsClient
+final class JenkinsClient implements BuildTrigger
 {
     /**
      * Build results after which the site is deployed. `UNSTABLE` = deployed with a warning (e.g. a dependency

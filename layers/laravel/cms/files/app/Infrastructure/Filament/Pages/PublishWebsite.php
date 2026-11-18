@@ -4,13 +4,18 @@ declare(strict_types=1);
 
 namespace App\Infrastructure\Filament\Pages;
 
-use App\Application\Cms\ContentExporter;
-use App\Application\Cms\PublishBlocked;
-use App\Application\Cms\PublishService;
+use App\Application\Dto\Cms\PublishOverview;
+use App\Domain\Cms\PublishBlocked;
 use App\Domain\Cms\PublishStatus;
-use App\Models\Publish;
-use App\Models\User;
+use App\Domain\CQRS\Command\Cms\MarkPublishFailedCommand;
+use App\Domain\CQRS\Command\Cms\RefreshPublishCommand;
+use App\Domain\CQRS\Command\Cms\StartPublishCommand;
+use App\Domain\CQRS\Query\Cms\GetPublishOverviewQuery;
+use App\Infrastructure\Models\Publish;
+use App\Infrastructure\Models\User;
 use BackedEnum;
+use Esoul\LaravelCqrs\Facades\CommandBus;
+use Esoul\LaravelCqrs\Facades\QueryBus;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
@@ -43,7 +48,7 @@ final class PublishWebsite extends Page implements HasTable
 
     public static function getNavigationBadge(): ?string
     {
-        return app(PublishService::class)->hasUnpublishedChanges() ? '!' : null;
+        return self::overview()->hasUnpublishedChanges ? '!' : null;
     }
 
     public static function getNavigationBadgeColor(): string
@@ -58,18 +63,17 @@ final class PublishWebsite extends Page implements HasTable
 
     public function content(Schema $schema): Schema
     {
-        $publishing = app(PublishService::class);
-        $problems = $publishing->current() === null ? app(ContentExporter::class)->build()->problems : [];
+        $overview = self::overview(withProblems: true);
 
         return $schema->components([
             Section::make('Status')
                 ->description('Builds the static site from the content saved here and deploys it. Until then visitors see the previous version.')
                 ->schema([
-                    Text::make(fn (): string => $this->statusLine($publishing))->weight('bold'),
-                    Text::make(fn (): string => $publishing->hasUnpublishedChanges() ? 'There are unpublished changes.' : 'The site is up to date.')
-                        ->color(fn (): string => $publishing->hasUnpublishedChanges() ? 'warning' : 'success'),
-                    Text::make('The content cannot be published yet:')->color('danger')->visible($problems !== []),
-                    ...array_map(static fn (string $problem): Text => Text::make("• {$problem}")->color('danger'), $problems),
+                    Text::make($this->statusLine($overview))->weight('bold'),
+                    Text::make($overview->hasUnpublishedChanges ? 'There are unpublished changes.' : 'The site is up to date.')
+                        ->color($overview->hasUnpublishedChanges ? 'warning' : 'success'),
+                    Text::make('The content cannot be published yet:')->color('danger')->visible($overview->problems !== []),
+                    ...array_map(static fn (string $problem): Text => Text::make("• {$problem}")->color('danger'), $overview->problems),
                 ]),
             EmbeddedTable::make(),
         ]);
@@ -102,23 +106,21 @@ final class PublishWebsite extends Page implements HasTable
     /** @return array<Action> */
     protected function getHeaderActions(): array
     {
-        $publishing = app(PublishService::class);
-
         return [
             Action::make('refreshStatus')
                 ->label('Refresh status')
                 ->icon(Heroicon::OutlinedArrowPath)
                 ->color('gray')
-                ->visible(static fn (): bool => $publishing->current() !== null)
-                ->action(static function () use ($publishing): void {
-                    $current = $publishing->current();
+                ->visible(static fn (): bool => self::overview()->currentId !== null)
+                ->action(static function (): void {
+                    $currentId = self::overview()->currentId;
 
-                    if ($current === null) {
+                    if ($currentId === null) {
                         return;
                     }
 
                     try {
-                        $publishing->refresh($current);
+                        CommandBus::dispatch(new RefreshPublishCommand($currentId));
                     } catch (Throwable $exception) {
                         // The technical text goes to the log only; the admin gets a readable message.
                         report($exception);
@@ -131,13 +133,13 @@ final class PublishWebsite extends Page implements HasTable
                 ->color('danger')
                 ->requiresConfirmation()
                 ->modalDescription('Use this when the build is stuck. A late result from Jenkins is still recorded.')
-                ->visible(static fn (): bool => $publishing->current() !== null)
-                ->action(static function () use ($publishing): void {
-                    $current = $publishing->current();
+                ->visible(static fn (): bool => self::overview()->currentId !== null)
+                ->action(static function (): void {
+                    $currentId = self::overview()->currentId;
                     $user = auth()->user();
 
-                    if ($current !== null && $user instanceof User) {
-                        $publishing->markFailed($current, $user);
+                    if ($currentId !== null && $user instanceof User) {
+                        CommandBus::dispatch(new MarkPublishFailedCommand($currentId, $user));
                         Notification::make()->success()->title('The publish was marked as failed')->send();
                     }
                 }),
@@ -147,8 +149,8 @@ final class PublishWebsite extends Page implements HasTable
                 ->requiresConfirmation()
                 ->modalHeading('Publish the site?')
                 ->modalDescription('The static site is rebuilt from the saved content and deployed. This takes a few minutes.')
-                ->disabled(static fn (): bool => $publishing->current() !== null)
-                ->action(static function () use ($publishing): void {
+                ->disabled(static fn (): bool => self::overview()->currentId !== null)
+                ->action(static function (): void {
                     $user = auth()->user();
 
                     if ( ! $user instanceof User) {
@@ -156,32 +158,33 @@ final class PublishWebsite extends Page implements HasTable
                     }
 
                     try {
-                        $publish = $publishing->publish($user);
+                        $outcome = CommandBus::dispatch(new StartPublishCommand($user));
                     } catch (PublishBlocked $blocked) {
                         Notification::make()->danger()->title('The site cannot be published')->body(implode("\n", $blocked->problems))->persistent()->send();
 
                         return;
                     }
 
-                    $publish->status === PublishStatus::Failed
-                        ? Notification::make()->danger()->title('Jenkins could not be started')->body($publish->message)->send()
+                    $outcome->status === PublishStatus::Failed
+                        ? Notification::make()->danger()->title('Jenkins could not be started')->body($outcome->message)->send()
                         : Notification::make()->success()->title('The publish was started')->send();
                 }),
         ];
     }
 
-    private function statusLine(PublishService $publishing): string
+    private static function overview(bool $withProblems = false): PublishOverview
     {
-        $current = $publishing->current();
+        return QueryBus::execute(new GetPublishOverviewQuery($withProblems));
+    }
 
-        if ($current !== null) {
-            return 'A publish is running since ' . $current->started_at?->format('Y-m-d H:i') . '.';
+    private function statusLine(PublishOverview $overview): string
+    {
+        if ($overview->currentId !== null) {
+            return 'A publish is running since ' . $overview->currentStartedAt?->format('Y-m-d H:i') . '.';
         }
 
-        $last = $publishing->lastSuccessful();
-
-        return $last === null
+        return $overview->lastPublishedAt === null
             ? 'The site has not been published yet.'
-            : 'Last published ' . ($last->finished_at ?? $last->started_at)?->format('Y-m-d H:i') . ' by ' . ($last->user->name ?? '—') . '.';
+            : 'Last published ' . $overview->lastPublishedAt->format('Y-m-d H:i') . ' by ' . ($overview->lastPublishedBy ?? '—') . '.';
     }
 }

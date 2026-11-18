@@ -3,7 +3,7 @@
 // the build fails on a mismatch on purpose.
 import { z } from 'astro/zod';
 
-/** Same rule as the backend (`ContentExporter::SLUG_PATTERN`): the slug is a path segment of the page URL. */
+/** Same rule as the backend (`ContentExport::SLUG_PATTERN`): the slug is a path segment of the page URL. */
 const SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
 /**

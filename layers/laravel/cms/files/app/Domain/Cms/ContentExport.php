@@ -10,6 +10,11 @@ namespace App\Domain\Cms;
  */
 final readonly class ContentExport
 {
+    public const int SCHEMA_VERSION = 1;
+
+    /** Same rule as the Zod `pageSchema.slug`. */
+    public const string SLUG_PATTERN = '/^[a-z0-9]+(-[a-z0-9]+)*$/';
+
     /**
      * @param  array<string, mixed>  $payload
      * @param  array<string, array{path: string, sha256: string}>  $files  public name => source file on the media disk

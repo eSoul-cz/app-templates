@@ -1,4 +1,4 @@
-// Path and reader of the backend golden export: the real output of `ContentExporter` over test data.
+// Path and reader of the backend golden export: the real output of `ExportContentQuery` over test data.
 import { readFile } from 'node:fs/promises';
 
 export const goldenPath = new URL('../../backend/tests/Fixtures/content-export.golden.json', import.meta.url);

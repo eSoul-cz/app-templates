@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Infrastructure\Filament\Resources\SiteSettings;
 
-use App\Infrastructure\Cms\PublicMedia;
+use App\Application\Contract\Cms\PublicMediaStore;
 use App\Infrastructure\Filament\Resources\SiteSettings\Pages\EditSiteSetting;
 use App\Infrastructure\Filament\Resources\SiteSettings\Pages\ListSiteSettings;
-use App\Models\SiteSetting;
+use App\Infrastructure\Models\SiteSetting;
 use BackedEnum;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Textarea;
@@ -41,7 +41,7 @@ final class SiteSettingResource extends Resource
             FileUpload::make('og_image')
                 ->label('Social image')
                 ->helperText('Open Graph image used when sharing the site (1200 x 630 px recommended).')
-                ->disk(PublicMedia::MEDIA_DISK)
+                ->disk(PublicMediaStore::MEDIA_DISK)
                 ->directory('images')
                 ->visibility('public')
                 ->image()

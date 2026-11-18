@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Cms;
 
-use App\Application\Cms\ContentExporter;
-use App\Infrastructure\Cms\PublicMedia;
+use App\Application\Contract\Cms\PublicMediaStore;
+use App\Domain\CQRS\Query\Cms\ExportContentQuery;
+use Esoul\LaravelCqrs\Facades\QueryBus;
 use Illuminate\Support\Facades\Storage;
 use Tests\Support\SampleContent;
 use Tests\TestCase;
@@ -25,11 +26,11 @@ final class GoldenExportTest extends TestCase
 
     public function test_it_matches_the_committed_golden_export(): void
     {
-        Storage::fake(PublicMedia::MEDIA_DISK);
+        Storage::fake(PublicMediaStore::MEDIA_DISK);
         $this->travelTo('2026-11-18 08:00:00');
         SampleContent::create();
 
-        $export = resolve(ContentExporter::class)->build();
+        $export = QueryBus::execute(new ExportContentQuery());
 
         self::assertSame([], $export->problems);
 
@@ -45,13 +46,13 @@ final class GoldenExportTest extends TestCase
 
     public function test_the_hash_does_not_depend_on_the_generation_time(): void
     {
-        Storage::fake(PublicMedia::MEDIA_DISK);
+        Storage::fake(PublicMediaStore::MEDIA_DISK);
         SampleContent::create();
 
         $this->travelTo('2026-11-18 08:00:00');
-        $first = resolve(ContentExporter::class)->build()->payload;
+        $first = QueryBus::execute(new ExportContentQuery())->payload;
         $this->travelTo('2026-11-19 09:30:00');
-        $second = resolve(ContentExporter::class)->build()->payload;
+        $second = QueryBus::execute(new ExportContentQuery())->payload;
 
         self::assertNotSame($first['generatedAt'], $second['generatedAt']);
         self::assertSame($first['contentHash'], $second['contentHash']);

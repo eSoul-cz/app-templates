@@ -1,10 +1,11 @@
 {
-    "name": "esoul/app-templates",
+    "name": "esoul-cz/app-templates",
     "description": "Layered source of the eSoul application templates and the builder that assembles the template variants.",
     "type": "project",
     "license": "MIT",
     "require": {
         "php": "^8.4",
+        "esoul-cz/guidelines": "^0.1",
         "symfony/console": "^7.3 || ^8.0",
         "symfony/filesystem": "^7.3 || ^8.0",
         "symfony/finder": "^7.3 || ^8.0",

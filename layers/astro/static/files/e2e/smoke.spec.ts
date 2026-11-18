@@ -20,6 +20,25 @@ test('head carries canonical, robots and the page is not a placeholder', async (
     await expect(page.locator('body')).not.toContainText(/\bTODO\b/);
 });
 
+test('CSP meta tag is present and the page runs without console errors or violations', async ({ page }) => {
+    const problems: string[] = [];
+    page.on('console', (message) => {
+        if (message.type() === 'error') problems.push(message.text());
+    });
+    page.on('pageerror', (error) => problems.push(error.message));
+    await page.addInitScript(() => {
+        document.addEventListener('securitypolicyviolation', (event) =>
+            console.error(`CSP violation: ${event.violatedDirective} ${event.blockedURI}`),
+        );
+    });
+
+    await page.goto('/');
+    const csp = await page.locator('meta[http-equiv="content-security-policy"]').getAttribute('content');
+    expect(csp).toContain("default-src 'self'");
+    expect(csp).not.toMatch(/'unsafe-(inline|eval)'/);
+    expect(problems).toEqual([]);
+});
+
 test('robots.txt answers and states the switch', async ({ request }) => {
     const response = await request.get('/robots.txt');
     expect(response.status()).toBe(200);

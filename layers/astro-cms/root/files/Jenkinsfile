@@ -11,8 +11,10 @@
 //    website and reports back.
 //  - Backend (docker/production/Dockerfile): composer install, pint, phpstan, php artisan test, composer audit;
 //    on main build + push the multi-arch image and deploy the Komodo stack. Same stages as laravelPipeline.
-//  - Frontend checks (no backend needed): pnpm install --frozen-lockfile, format:check, fixture:check, then with
-//    an explicit CMS_SOURCE=fixture: check, build, verify; pnpm audit.
+//  - Frontend checks (no backend needed): pnpm install --frozen-lockfile, then the default Astro check set:
+//    pnpm audit, pnpm lint (ESLint), pnpm format:check, pnpm fixture:check, pnpm check (astro check; plus
+//    vue-tsc --noEmit when the site has Vue islands), pnpm build, pnpm verify, pnpm test:e2e (Playwright smoke,
+//    desktop + mobile). check, build, verify and test:e2e run with an explicit CMS_SOURCE=fixture.
 //  - Website build (main / publish): backend is deployed first, then pnpm install --frozen-lockfile, check, build,
 //    verify with CMS_SOURCE=api, CMS_API_URL, CMS_API_TOKEN (credential) and SITE_URL. The fixture is never allowed
 //    here: the build fails when the export is unreachable. CONTENT_HASH is read from node_modules/.astro/cms/source.json.

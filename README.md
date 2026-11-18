@@ -240,7 +240,11 @@ For the `astro-laravel-cms` variant the same works unchanged (`frontend/` and `b
     Filament page. Controllers, middleware and the prune command moved to `Infrastructure\Http\{Controllers,Middleware}` and
     `Infrastructure\Console\Commands`.
   - Admin uploads sit on a public-visibility `cms-media` disk (served at `/cms-media/` by nginx, images only, CSP sandbox) so Filament can preview them.
-  - `pnpm-workspace.yaml` has `minimumReleaseAge: 1440` only; `trustPolicy: no-downgrade` is left out because pnpm 10.20.0 (`packageManager`) predates it.
+  - `pnpm-workspace.yaml` has `minimumReleaseAge: 1440`, and both `onlyBuiltDependencies` and `allowBuilds` (pnpm 10.20.0 reads only the former); `trustPolicy: no-downgrade` is left out because pnpm 10.20.0 (`packageManager`) predates it.
+  - ESLint (`eslint.config.js`, flat config: ESLint recommended + typescript-eslint + eslint-plugin-astro, `no-explicit-any` as error) ships in `astro/static`
+    with `pnpm lint` / `pnpm lint:fix`; there are no Vue rules because the layers have no `.vue` files (a project with Vue islands adds `eslint-plugin-vue` and `vue-tsc`).
+    The default CI check set is `pnpm audit`, `lint`, `format:check`, `check`, `build`, `verify`, `test:e2e`. The CSP is Astro's `security.csp` (a `<meta>` tag with hashes);
+    `frame-ancestors` / `X-Frame-Options` and the other response headers stay in nginx. `smoke.spec.ts` asserts the CSP tag and a console free of errors and violations.
   - Prettier in `frontend/` follows the baseline (printWidth 150, tabWidth 4); `esoul-guidelines.json` is in `.prettierignore` (written by the builder / installer).
   - `astroCmsPipeline` is planned only; the root `Jenkinsfile` documents the intended configuration with example names (`example-project`).
   - The monorepo has ONE guideline config at its root (`general`, `framework/astro`, `framework/laravel`, `package/mutation-testing`), so

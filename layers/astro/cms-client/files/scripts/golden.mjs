@@ -9,6 +9,7 @@ export async function readGolden() {
     } catch (error) {
         throw new Error(
             `Cannot read the backend golden export (${goldenPath.pathname}): ${error.message}. Generate it: cd backend && GOLDEN_UPDATE=1 php artisan test --filter=GoldenExportTest`,
+            { cause: error },
         );
     }
 }

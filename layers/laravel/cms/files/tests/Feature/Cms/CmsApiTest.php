@@ -7,15 +7,12 @@ namespace Tests\Feature\Cms;
 use App\Domain\Cms\PublishStatus;
 use App\Infrastructure\Cms\PublicMedia;
 use App\Models\Publish;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Tests\Support\SampleContent;
 use Tests\TestCase;
 
 final class CmsApiTest extends TestCase
 {
-    use RefreshDatabase;
-
     protected function setUp(): void
     {
         parent::setUp();

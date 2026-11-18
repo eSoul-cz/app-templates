@@ -7,14 +7,11 @@ namespace Tests\Feature\Cms;
 use App\Domain\Cms\PublishStatus;
 use App\Infrastructure\Cms\PublicMedia;
 use App\Models\Publish;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 final class PrunePublicMediaTest extends TestCase
 {
-    use RefreshDatabase;
-
     public function test_it_deletes_only_files_unused_since_the_anchor_publish(): void
     {
         $disk = Storage::fake(PublicMedia::DISK);

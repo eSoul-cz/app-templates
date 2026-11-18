@@ -5,13 +5,10 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 final class AdminPanelTest extends TestCase
 {
-    use RefreshDatabase;
-
     public function test_guests_are_redirected_to_the_admin_login(): void
     {
         $this->get('/admin')->assertRedirect('/admin/login');

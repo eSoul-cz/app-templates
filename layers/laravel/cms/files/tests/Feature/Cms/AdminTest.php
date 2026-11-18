@@ -13,7 +13,6 @@ use App\Models\Page;
 use App\Models\Publish;
 use App\Models\SiteSetting;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
@@ -23,8 +22,6 @@ use Tests\TestCase;
 
 final class AdminTest extends TestCase
 {
-    use RefreshDatabase;
-
     protected function setUp(): void
     {
         parent::setUp();

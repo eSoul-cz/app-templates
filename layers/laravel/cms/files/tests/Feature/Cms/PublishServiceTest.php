@@ -10,7 +10,6 @@ use App\Domain\Cms\PublishStatus;
 use App\Infrastructure\Cms\PublicMedia;
 use App\Models\Publish;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
@@ -19,8 +18,6 @@ use Tests\TestCase;
 
 final class PublishServiceTest extends TestCase
 {
-    use RefreshDatabase;
-
     private const string JOB = 'https://jenkins.example.com/job/site';
 
     protected function setUp(): void

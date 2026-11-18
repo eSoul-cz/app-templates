@@ -8,15 +8,12 @@ use App\Application\Cms\ContentExporter;
 use App\Infrastructure\Cms\PublicMedia;
 use App\Models\Page;
 use App\Models\SiteSetting;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Tests\Support\SampleContent;
 use Tests\TestCase;
 
 final class ContentExporterTest extends TestCase
 {
-    use RefreshDatabase;
-
     public function test_an_empty_site_cannot_be_exported(): void
     {
         $problems = resolve(ContentExporter::class)->build()->problems;

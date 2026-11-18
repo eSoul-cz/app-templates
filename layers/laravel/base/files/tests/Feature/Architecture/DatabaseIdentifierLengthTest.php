@@ -9,10 +9,10 @@ use Closure;
 use Illuminate\Database\Connection;
 use Illuminate\Database\QueryException;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Foundation\Testing\TestCase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schema;
 use LogicException;
-use Tests\TestCase;
 
 /**
  * MariaDB and MySQL reject identifiers longer than 64 characters; SQLite accepts them. Laravel
@@ -20,6 +20,9 @@ use Tests\TestCase;
  * the suite on SQLite and fail in production. This test records every name the migrations really
  * use (explicit or generated) while they run. Fix a hit by passing a short name to index(),
  * unique(), foreign() or constrained(indexName: ...).
+ *
+ * It extends Laravel's TestCase directly, not Tests\TestCase: it runs migrate:fresh itself, which a
+ * test wrapped in the shared base class's transaction cannot do.
  */
 final class DatabaseIdentifierLengthTest extends TestCase
 {

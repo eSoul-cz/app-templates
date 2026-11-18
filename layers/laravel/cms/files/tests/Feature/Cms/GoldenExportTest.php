@@ -6,7 +6,6 @@ namespace Tests\Feature\Cms;
 
 use App\Application\Cms\ContentExporter;
 use App\Infrastructure\Cms\PublicMedia;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Tests\Support\SampleContent;
 use Tests\TestCase;
@@ -22,8 +21,6 @@ use Tests\TestCase;
  */
 final class GoldenExportTest extends TestCase
 {
-    use RefreshDatabase;
-
     private const string GOLDEN = __DIR__ . '/../../Fixtures/content-export.golden.json';
 
     public function test_it_matches_the_committed_golden_export(): void

@@ -5,7 +5,7 @@ shared piece (editor config, Laravel base, Inertia/Vue, Filament, ...) lives onc
 layers; the builder overlays them into a ready-to-use project.
 
 Future home: GitHub repo `eSoul-cz/app-templates`. Inside `esoul-infrastructure` it is a local repo at `templates/source/`.
-The built variants are published as `eSoul-cz/template-<variant>` (Composer `esoul/template-<variant>`) and attached to the
+The built variants are published as `eSoul-cz/template-<variant>` (Packagist `esoul-cz/template-<variant>`) and attached to the
 infrastructure repo as submodules at `templates/<variant>/`.
 
 | Variant | Layers |
@@ -21,12 +21,10 @@ infrastructure repo as submodules at `templates/<variant>/`.
 
 ```bash
 composer install
-# Until esoul/guidelines is published on packages.esoul.cz, point builds at the sibling checkout:
-#   bin/templates build <variant> --guidelines-bin=../../guidelines/bin/esoul-guidelines
 bin/templates list                          # variants and their layers
 bin/templates build laravel-inertia         # → build/laravel-inertia/
 bin/templates build --all --out=build       # every variant
-bin/templates build laravel-inertia --release=1.4.0   # also writes .esoul/template.json
+bin/templates build laravel-inertia --commit=<sha>    # record another source commit in .esoul/template.json (default: HEAD of this repository)
 bin/templates skeleton:sync                 # refresh laravel/skeleton from upstream (default ^13)
 vendor/bin/phpunit                          # builder tests
 ```
@@ -72,12 +70,20 @@ subdirectory; `exclude` globs are relative to the layer's `files/`, `merge/` and
 
 After all layers, the builder **stamps the root `composer.json`** with the variant's `name` and `description` (the file is created
 with `type: project` if no layer ships one, which is the case for the `astro-laravel-cms` monorepo unless `astro-cms/root` adds it).
-With `--release=X.Y.Z` it writes `.esoul/template.json` (`{"variant": "...", "version": "X.Y.Z"}`).
+It also writes `.esoul/template.json` (`{"variant": "...", "commit": "<sha>"}`): `commit` is the app-templates source commit the variant was
+built from, `--commit=<sha>` (7 to 40 hex characters) or, by default, `git rev-parse HEAD` of this repository. When this directory is not
+the top level of a git checkout (and no `--commit` is given) nothing is recorded.
 
-Finally it **renders the project guidelines**: it runs `esoul-guidelines sync --no-interaction` (the esoul/guidelines installer,
-default `vendor/bin/esoul-guidelines`, override with `--guidelines-bin`) in the variant root. Every variant therefore ships
+The stamp also **prepends two steps to `scripts.post-create-project-cmd`** (list-union with the layers' own steps, e.g. Laravel's
+`key:generate`, which keep running after them), because a project created from a template is no longer the MIT template (see
+"Licence of created projects"): `LICENSE` is moved to `.esoul/template-LICENSE` and `composer config license proprietary` runs. For each
+`into` subdirectory that has its own `composer.json` (the `backend/` of `astro-laravel-cms`) an extra
+`@composer config --working-dir=<dir> license proprietary` step is added. Composer writes the value as `"license": ["proprietary"]`.
+
+Finally it **renders the project guidelines**: it runs `esoul-guidelines sync --no-interaction` (the esoul-cz/guidelines installer,
+a dependency of this repository: `vendor/bin/esoul-guidelines`, override with `--guidelines-bin`) in the variant root. Every variant therefore ships
 `docs/project_guidelines/`, the guidelines block in `AGENTS.md` and `esoul-guidelines.lock` ready-made; a project created from it
-updates them later with `composer update esoul/guidelines` + `vendor/bin/esoul-guidelines sync`. A missing installer, an unknown
+updates them later with `composer update esoul-cz/guidelines` + `vendor/bin/esoul-guidelines sync`. A missing installer, an unknown
 guideline layer or a failing `sync` fails the build.
 
 ### The `common` layer
@@ -110,51 +116,60 @@ about `composer.json`, `package.json`, `.gitignore`, `.env.example`, ... goes th
 
 ## Adding a variant
 
-1. Add `variants/<name>.json` (`name` must equal the file name, `package` is `esoul/template-<name>`, `description`, `layers`).
+1. Add `variants/<name>.json` (`name` must equal the file name, `package` is `esoul-cz/template-<name>`, `description`, `layers`).
 2. `bin/templates list` shows it; CI picks it up through `build --all` automatically.
-3. Create the empty target repo `eSoul-cz/template-<name>` and register it in Satis (`satis.json` in `esoul-packages`).
+3. Create the empty target repo `eSoul-cz/template-<name>` and submit it on Packagist (`esoul-cz/template-<name>`); the Satis mirror is optional.
 
 ## Publishing flow
 
-1. A change to a layer is a PR against `eSoul-cz/app-templates`; the PR title follows the commit convention.
+There are no template version tags: **the `main` HEAD of a variant repository is the latest template**.
+
+1. A change to a layer is a PR against `eSoul-cz/app-templates`; the PR title follows the commit convention. Every change is
+   recorded in [`CHANGELOG.md`](CHANGELOG.md) (see below).
 2. CI on the PR builds every variant (`bin/templates build --all`) and runs each variant's checks (composer install, Pint, Larastan,
    PHPUnit, pnpm lint/test/build as applicable).
-3. On merge to `main` CI builds every variant again with `--release=X.Y.Z` and **force-syncs `build/<variant>` into
-   `eSoul-cz/template-<variant>` as one commit** whose message is the source PR title, then tags it `vX.Y.Z`. The version is one
-   semver line for the whole source repo, so every variant repo gets the same tag (a variant whose built content is unchanged
-   except for `.esoul/template.json` is still tagged, which keeps the version numbers aligned).
-4. Satis at `packages.esoul.cz` picks up the tags (add the `template-*` repos to `satis.json`, rebuilt by the Jenkins job), making
-   them installable:
+3. On merge to `main` CI builds every variant again (the recorded `commit` is the merge commit) and **force-syncs `build/<variant>`
+   into the `main` branch of `eSoul-cz/template-<variant>` as one commit** whose message is the source PR title. Nothing is tagged.
+4. Packagist (vendor `esoul-cz`, packages `esoul-cz/template-<variant>`) is the primary distribution; it serves `dev-main` of each
+   variant repository. `packages.esoul.cz` (Satis) stays a secondary mirror for private packages only. Install:
 
    ```bash
-   composer create-project esoul/template-laravel-inertia my-app --repository=https://packages.esoul.cz
+   composer create-project esoul-cz/template-laravel-inertia:dev-main my-app
+   laravel new my-app --using=esoul-cz/template-laravel-inertia     # Laravel variants; the installer passes --stability=dev
    ```
 
-   Do not put a `version` key in the generated `composer.json`; Composer derives it from the tag.
+   Do not put a `version` key in the generated `composer.json`; Composer derives `dev-main` from the branch.
+
+### Licence of created projects
+
+The variant repositories are public and MIT (`LICENSE`, `"license": "MIT"`). A project created from one is the client's or eSoul's own
+work, so the `post-create-project-cmd` steps stamped by the builder switch its root `composer.json` to `"license": "proprietary"` and keep
+the template's MIT text only as attribution in `.esoul/template-LICENSE`. Nothing needs to be done by hand.
+
+### The changelog
+
+`CHANGELOG.md` is the update interface: newest entry first, one dated heading per change (`## YYYY-MM-DD: title`), each naming the
+**affected variants and layers** and carrying **migration notes** for projects created earlier. Every PR that changes `layers/`,
+`variants/` or the builder adds an entry; without one the PR is not complete.
 
 ## Updating existing projects
 
-A project records where it came from in `.esoul/template.json` (`{"variant": "laravel-inertia", "version": "1.4.0"}`; written by the
-build when `--release` is passed, so every tagged template already contains it). To update:
-
-```bash
-git remote add template git@github.com:eSoul-cz/template-laravel-inertia.git   # once
-git fetch template --tags
-git diff v1.4.0 v1.5.0 | git apply --3way            # the template's own change between the two versions
-```
-
-Review the conflicts, bump `version` in `.esoul/template.json`, and open a PR. Because the diff is taken between two template tags
-(not against the project), only template changes are applied and project customisations show up as conflicts to resolve by hand.
-For the `astro-laravel-cms` variant the same works unchanged (`frontend/` and `backend/` paths are part of the diff).
+A project records where it came from in `.esoul/template.json` (`{"variant": "laravel-inertia", "commit": "<sha>"}`, written by every
+build). Updating is done by an agent skill (planned, to be written in `eSoul-cz/skills`): it reads `CHANGELOG.md` of the template since the
+recorded `commit` (the changelog of the variant repository `main`, or of this repository at that commit), pulls the latest template,
+applies the entries that affect the project's variant and layers, follows their migration notes, and writes the new `commit` into
+`.esoul/template.json`. Project customisations stay the project's; the skill resolves conflicts with them, it does not overwrite them.
 
 ## Draft assumptions
 
-- Composer name, namespace and PHP constraint of the builder: `esoul/app-templates`, `ESoul\AppTemplates`, PHP `^8.4` (dev runs 8.5).
+- Composer name, namespace and PHP constraint of the builder: `esoul-cz/app-templates`, `ESoul\AppTemplates`, PHP `^8.4` (dev runs 8.5).
   Symfony components are allowed `^7.3 || ^8.0`; PHPUnit `^12.0 || ^13.0`. `symfony/process` was added for `skeleton:sync`.
-- The builder additionally stamps the root `composer.json` (`name`, `description`, `type`, `license: MIT`) and optionally writes
-  `.esoul/template.json` (`--release`). Neither is in the original contract; both are needed for `create-project` and the update flow.
-  Variant repositories are public and MIT-licensed (`common` ships `LICENSE`); whether a project created from a template keeps
-  the MIT metadata is an open decision.
+- The builder additionally stamps the root `composer.json` (`name`, `description`, `type`, `license: MIT`, the licence-handover
+  `post-create-project-cmd` steps) and writes `.esoul/template.json` (`{variant, commit}`). None of it is in the original contract; all of
+  it is needed for `create-project` and the update flow. Variant repositories are public and MIT-licensed (`common` ships `LICENSE`);
+  projects created from them become `proprietary` (decision D-23).
+- The composer package names stamped from `variants/*.json` are being renamed to the Packagist vendor `esoul-cz` (`esoul-cz/template-<variant>`);
+  the docs here already use the new names.
 - `skeleton:sync` option is `--constraint` (not `--version`, reserved by Symfony Console). It also strips files shipped by `common`
   and `laravel/base` (not only `laravel/base`), because `common` comes before the skeleton in the variant order and its
   `.editorconfig` / `.gitattributes` would otherwise be overwritten by the upstream ones.
@@ -168,18 +183,15 @@ For the `astro-laravel-cms` variant the same works unchanged (`frontend/` and `b
   schedule with dev-tooling grouping, `.gitattributes` diff drivers) are condensed from the reference projects; the PR template's
   Definition of Done assumes the guideline package ships the rules and the composer/pnpm script names of the Laravel base.
   `inheritance: true` in `.coderabbit.yaml` assumes the eSoul GitHub organisation has a central CodeRabbit policy.
-- Versioning: one semver line for the whole source repo, all variants tagged together; no per-variant changelog yet.
+- No versions: variants are consumed as `dev-main`, changes are tracked in one `CHANGELOG.md` for the whole source repo (decision D-12).
+  A change is traceable to the source commit through `.esoul/template.json` of the built variant.
 - Publishing and CI are described, not implemented: no Jenkinsfile or GitHub workflow exists in this repo yet.
 - `astro-laravel-cms` has no root `composer.json` from the builder's point of view except the stamped stub; if the monorepo should
   not be installable through Satis, drop the stamping for variants without a root composer file.
 - `skeleton:sync` formats the synced skeleton with Pint using `layers/laravel/base/files/pint.json` (Pint is installed into a temp dir),
   so untouched upstream files pass the base layer's `composer cs`; it skips the step when that file does not exist.
 - Laravel layers (`laravel/base`, `inertia-vue`, `filament`, `lunar`):
-  - `esoul/guidelines` (`require-dev ^0.1`, matching its first tag) is not published at `packages.esoul.cz` yet, so `composer install`
-    of a built variant fails until it is; verification removed it from the built `composer.json`. It is not a Composer plugin.
-  - This repository does not `require` `esoul/guidelines` yet (it is unpublished, so `composer install` here would fail); builds pass
-    `--guidelines-bin` until it is, then the dependency is added and the default `vendor/bin/esoul-guidelines` applies. Locks in built
-    variants record `package_version: dev` while the installer runs from a checkout.
+  - `esoul-cz/guidelines` (`require-dev ^0.1`) comes from Packagist (packages.esoul.cz mirrors it). It is not a Composer plugin.
   - `bootstrap/providers.php` is an explicit list owned by the LAST layer of a variant that touches it (base: `AppServiceProvider`;
     filament and `laravel/cms` overwrite it). No provider auto-discovery.
   - Layout follows the `framework/laravel` guideline: Eloquent models (including `User`) in `App\Infrastructure\Models`, controllers in
@@ -217,11 +229,17 @@ For the `astro-laravel-cms` variant the same works unchanged (`frontend/` and `b
     only, from a build dir that already had lock files; the dev compose stack was not started.
   - Dev compose runs MariaDB `12.3` and overrides `DB_*` for the `laravel` service only; the dev image runs php-fpm, queue, scheduler and Vite as the
     host user (`WWWUSER`/`WWWGROUP`). Vite is reached directly on `VITE_PORT` (no nginx proxy).
-  - pnpm is pinned to `10.20.0` (`packageManager`); the skeleton's `.npmrc` (`ignore-scripts=true`) is kept, so no `pnpm-workspace.yaml` allow-list.
+  - pnpm is pinned to `12.21.0` (`packageManager`); pnpm 12 reads only auth settings from `.npmrc`, so `ignoreScripts: true` and the
+    Inertia `publicHoistPattern` live in `pnpm-workspace.yaml`. Node 26 ships without corepack: the Dockerfiles install pnpm with
+    `npm install --global pnpm@${PNPM_VERSION}`.
   - Frontend packages follow the reference versions (Vite 8, Vitest 5, ESLint 10, TypeScript 6, Tailwind 4.3); `components.json` uses the
     `new-york` shadcn-vue style and the `@/design-system/ui` alias, but no shadcn component is added yet.
 - `lsr/base`: assumptions, verification and open questions are in [`layers/lsr/base/README.md`](layers/lsr/base/README.md).
 - `astro-laravel-cms` layers (`astro/static`, `astro/cms-client`, `laravel/cms`, `astro-cms/root`):
+  - The admin lives on the site's domain under `/admin` (default) or on `admin.<domain>`; `docker/nginx.example` holds both server layouts
+    (Mode B commented) and the root README explains how to choose (decision D-17). No code differs: only nginx, `APP_URL`, `cmsApiUrl`.
+    `SESSION_DOMAIN` stays `null` in both, CORS is not needed because the static build fetches the export server-side. The Jenkinsfile
+    example still shows the same-domain `cmsApiUrl`.
   - `astro/cms-client` replaces `astro.config.mjs` of `astro/static` (it registers the media integration) and deletes `src/pages/index.astro`
     (the home page is rendered from the export by `[...slug].astro`). `scripts/verify-dist.mjs` loads an optional `scripts/verify-extra.mjs`.
   - Content model is minimal and generic: pages (slug, title, `isHome`, description, blocks `heading` / `text` / `image`) and one settings
@@ -240,7 +258,7 @@ For the `astro-laravel-cms` variant the same works unchanged (`frontend/` and `b
     Filament page. Controllers, middleware and the prune command moved to `Infrastructure\Http\{Controllers,Middleware}` and
     `Infrastructure\Console\Commands`.
   - Admin uploads sit on a public-visibility `cms-media` disk (served at `/cms-media/` by nginx, images only, CSP sandbox) so Filament can preview them.
-  - `pnpm-workspace.yaml` has `minimumReleaseAge: 1440`, and both `onlyBuiltDependencies` and `allowBuilds` (pnpm 10.20.0 reads only the former); `trustPolicy: no-downgrade` is left out because pnpm 10.20.0 (`packageManager`) predates it.
+  - `pnpm-workspace.yaml` has `minimumReleaseAge: 1440` and `allowBuilds` (pnpm 12 ignores `onlyBuiltDependencies`).
   - ESLint (`eslint.config.js`, flat config: ESLint recommended + typescript-eslint + eslint-plugin-astro, `no-explicit-any` as error) ships in `astro/static`
     with `pnpm lint` / `pnpm lint:fix`; there are no Vue rules because the layers have no `.vue` files (a project with Vue islands adds `eslint-plugin-vue` and `vue-tsc`).
     The default CI check set is `pnpm audit`, `lint`, `format:check`, `check`, `build`, `verify`, `test:e2e`. The CSP is Astro's `security.csp` (a `<meta>` tag with hashes);
@@ -249,4 +267,4 @@ For the `astro-laravel-cms` variant the same works unchanged (`frontend/` and `b
   - `astroCmsPipeline` is planned only; the root `Jenkinsfile` documents the intended configuration with example names (`example-project`).
   - The monorepo has ONE guideline config at its root (`general`, `framework/astro`, `framework/laravel`, `package/mutation-testing`), so
     same-named topics merge across frontend and backend (e.g. one `frontend.md` with Astro and Laravel sections). Per-directory guideline
-    sets would need installer support; open question. The root `composer.json` requires `esoul/guidelines` for `sync`/`check` there.
+    sets would need installer support; open question. The root `composer.json` requires `esoul-cz/guidelines` for `sync`/`check` there.

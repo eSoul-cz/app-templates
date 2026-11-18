@@ -11,7 +11,7 @@
 // `stack: '<komodo stack>'` to the deploy rule. Without `stack` nothing is deployed.
 laravelPipeline(
     image: 'replace-with-app-name',
-    nodeImage: 'node:24',
+    nodeImage: 'node:26',
 
     // Release images are built and pushed from these branches.
     deploy: [[branches: ['main', 'master']]],

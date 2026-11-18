@@ -15,6 +15,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Symfony\Component\Process\Process;
 
 #[AsCommand(name: 'build', description: 'Build one variant (or all with --all) into <out>/<variant>')]
 final class BuildCommand extends Command
@@ -30,7 +31,12 @@ final class BuildCommand extends Command
             ->addArgument('variant', InputArgument::OPTIONAL, 'Variant name, see `templates list`')
             ->addOption('all', null, InputOption::VALUE_NONE, 'Build every variant')
             ->addOption('out', null, InputOption::VALUE_REQUIRED, 'Output directory (relative paths resolve against the repository root)', 'build')
-            ->addOption('release', null, InputOption::VALUE_REQUIRED, 'Write .esoul/template.json with this version into every built variant')
+            ->addOption(
+                'commit',
+                null,
+                InputOption::VALUE_REQUIRED,
+                'app-templates source commit recorded in .esoul/template.json of every built variant (default: HEAD of this repository; no record when it is not a git checkout)',
+            )
             ->addOption(
                 'guidelines-bin',
                 null,
@@ -56,7 +62,13 @@ final class BuildCommand extends Command
         if (!str_starts_with($out, '/')) {
             $out = $this->root . '/' . $out;
         }
-        $version = $input->getOption('release');
+        $commit = $input->getOption('commit');
+        if ($commit !== null && (!is_string($commit) || preg_match('/^[0-9a-f]{7,40}$/', $commit) !== 1)) {
+            $io->error('--commit must be a git commit hash (7 to 40 lowercase hex characters).');
+
+            return self::INVALID;
+        }
+        $commit ??= $this->headCommit();
 
         $names = $input->getOption('all') ? $catalog->variantNames() : [(string) $variant];
         $guidelinesBin = (string) $input->getOption('guidelines-bin');
@@ -67,7 +79,7 @@ final class BuildCommand extends Command
 
         try {
             foreach ($names as $name) {
-                $path = $builder->build($name, $out, is_string($version) ? $version : null);
+                $path = $builder->build($name, $out, $commit);
                 $io->writeln(sprintf('Built <info>%s</info> → %s', $name, $path));
             }
         } catch (TemplateException $e) {
@@ -77,5 +89,20 @@ final class BuildCommand extends Command
         }
 
         return self::SUCCESS;
+    }
+
+    /** HEAD of the source repository, or null when `root` is not the top level of a git checkout (a parent repository must not leak in). */
+    private function headCommit(): ?string
+    {
+        $top = new Process(['git', 'rev-parse', '--show-toplevel'], $this->root);
+        $top->run();
+        if (!$top->isSuccessful() || realpath(trim($top->getOutput())) !== realpath($this->root)) {
+            return null;
+        }
+
+        $head = new Process(['git', 'rev-parse', 'HEAD'], $this->root);
+        $head->run();
+
+        return $head->isSuccessful() ? trim($head->getOutput()) : null;
     }
 }

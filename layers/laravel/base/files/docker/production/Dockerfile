@@ -48,18 +48,18 @@ RUN composer dump-autoload --no-dev --optimize --no-interaction \
     && php artisan storage:link
 
 
-# Node 24 bundles corepack (Node 25+ dropped it)
-FROM node:24-alpine AS node_build
+FROM node:26-alpine AS node_build
 
 # Keep in sync with "packageManager" in package.json
-ARG PNPM_VERSION=10.20.0
+ARG PNPM_VERSION=12.21.0
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate
+# Node 25+ no longer bundles corepack, pnpm comes from npm
+RUN npm install --global pnpm@${PNPM_VERSION}
 
 WORKDIR /var/www
 
-COPY package.json pnpm-lock.yaml* .npmrc ./
+COPY package.json pnpm-lock.yaml* pnpm-workspace.yaml .npmrc ./
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 
 # Application code with the generated Wayfinder files. The Vite plugin would call PHP to generate them

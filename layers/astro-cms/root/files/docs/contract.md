@@ -102,6 +102,6 @@ cd ../frontend && pnpm fixture:build
 
 ## 5. Routes
 
-Pages: `/` for the home page, `/<slug>/` for the others (`build.format: 'directory'`). One domain for both halves
-(`docker/nginx.example`): the static site and `/_cms/` media from the web server; `/admin`, `/cms-api`, `/livewire*`
-and `/up` from the backend.
+Pages: `/` for the home page, `/<slug>/` for the others (`build.format: 'directory'`). The admin is on the same
+domain under `/admin` or on `admin.<domain>` (`docker/nginx.example`, README "Where the admin lives"). The static site and
+`/_cms/` media come from the web server; `/admin`, `/cms-api`, `/livewire*` and `/up` from the backend.

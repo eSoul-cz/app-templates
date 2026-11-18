@@ -4,8 +4,52 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "47482f2cc25de647af8f8d6e86deb2b4",
+    "content-hash": "86bb4569bfdf14bd622a762c4f6dd6dc",
     "packages": [
+        {
+            "name": "esoul-cz/guidelines",
+            "version": "v0.1.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/eSoul-cz/guidelines.git",
+                "reference": "421d24507177d23d7c93e4f8d87288ebcd3a87eb"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/eSoul-cz/guidelines/zipball/421d24507177d23d7c93e4f8d87288ebcd3a87eb",
+                "reference": "421d24507177d23d7c93e4f8d87288ebcd3a87eb",
+                "shasum": ""
+            },
+            "require": {
+                "php": "^8.4",
+                "symfony/console": "^7.4 || ^8.0",
+                "symfony/filesystem": "^7.4 || ^8.0",
+                "symfony/yaml": "^7.4 || ^8.0"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "^12.0 || ^13.0"
+            },
+            "bin": [
+                "bin/esoul-guidelines"
+            ],
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Esoul\\Guidelines\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "description": "Layered, mergeable project guidelines for eSoul projects (Laravel, LSR, Astro) with drift detection.",
+            "support": {
+                "issues": "https://github.com/eSoul-cz/guidelines/issues",
+                "source": "https://github.com/eSoul-cz/guidelines/tree/v0.1.0"
+            },
+            "time": "2026-11-18T22:55:45+00:00",
+            "published-time": "2026-11-18T22:56:20+00:00"
+        },
         {
             "name": "psr/container",
             "version": "2.0.2",
@@ -1038,6 +1082,83 @@
             ],
             "time": "2026-10-23T17:06:53+00:00",
             "published-time": "2026-10-28T18:24:27+00:00"
+        },
+        {
+            "name": "symfony/yaml",
+            "version": "v8.1.11",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/symfony/yaml.git",
+                "reference": "e8266f55160f674f290a5f567cb55e11e21f921b"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/symfony/yaml/zipball/e8266f55160f674f290a5f567cb55e11e21f921b",
+                "reference": "e8266f55160f674f290a5f567cb55e11e21f921b",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=8.4.1",
+                "symfony/polyfill-ctype": "^1.8"
+            },
+            "conflict": {
+                "symfony/console": "<7.4"
+            },
+            "require-dev": {
+                "symfony/console": "^7.4|^8.0",
+                "yaml/yaml-test-suite": "*"
+            },
+            "bin": [
+                "Resources/bin/yaml-lint"
+            ],
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Symfony\\Component\\Yaml\\": ""
+                },
+                "exclude-from-classmap": [
+                    "/Tests/"
+                ]
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Fabien Potencier",
+                    "email": "fabien@symfony.com"
+                },
+                {
+                    "name": "Symfony Community",
+                    "homepage": "https://symfony.com/contributors"
+                }
+            ],
+            "description": "Loads and dumps YAML files",
+            "homepage": "https://symfony.com",
+            "support": {
+                "source": "https://github.com/symfony/yaml/tree/v8.1.11"
+            },
+            "funding": [
+                {
+                    "url": "https://symfony.com/sponsor",
+                    "type": "custom"
+                },
+                {
+                    "url": "https://github.com/fabpot",
+                    "type": "github"
+                },
+                {
+                    "url": "https://github.com/nicolas-grekas",
+                    "type": "github"
+                },
+                {
+                    "url": "https://tidelift.com/funding/github/packagist/symfony/symfony",
+                    "type": "tidelift"
+                }
+            ],
+            "time": "2026-11-04T08:39:20+00:00",
+            "published-time": "2026-11-04T11:31:03+00:00"
         }
     ],
     "packages-dev": [

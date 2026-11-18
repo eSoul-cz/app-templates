@@ -1,6 +1,7 @@
 ARG PHP_BASE_VERSION=8.5
-# Pinned to a major that still bundles corepack (Node 25+ dropped it).
-ARG NODE_BASE_VERSION=24-alpine
+ARG NODE_BASE_VERSION=26-alpine
+# Keep in sync with "packageManager" in package.json
+ARG PNPM_VERSION=12.21.0
 
 FROM rg.fr-par.scw.cloud/esoul-starters/php-cli-roadrunner:${PHP_BASE_VERSION} AS base
 
@@ -8,16 +9,19 @@ WORKDIR /app
 
 FROM node:${NODE_BASE_VERSION} AS node_base
 
+ARG PNPM_VERSION
+
 WORKDIR /app
 
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 
-RUN corepack enable
+# Node 25+ no longer bundles corepack, pnpm comes from npm (the version "packageManager" pins)
+RUN npm install --global pnpm@${PNPM_VERSION}
 
 FROM node_base AS node_dependencies
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc /app/
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml /app/
 
 RUN --mount=type=cache,id=lsr-app-pnpm,target=/pnpm/store \
     pnpm config set store-dir /pnpm/store \

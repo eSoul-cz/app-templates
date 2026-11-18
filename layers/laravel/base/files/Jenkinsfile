@@ -10,7 +10,7 @@
 // `stack: '<komodo stack>'` to the deploy rule. Without `stack` nothing is deployed.
 laravelPipeline(
     image: 'replace-with-app-name',
-    nodeImage: 'node:24',
+    nodeImage: 'node:26',
 
     // This variant has no JavaScript linting or unit tests, only the asset build. The step runs
     // it with the Wayfinder routes pre-generated; the production image runs the same build.

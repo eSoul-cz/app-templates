@@ -1,0 +1,3 @@
+# Hoisted to the root node_modules so that tools and editors resolve `@inertiajs/core` (a dependency of @inertiajs/vue3).
+publicHoistPattern:
+    - '@inertiajs/core'

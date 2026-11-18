@@ -39,8 +39,8 @@ astroCmsPipeline(
     backendImage: 'example-project-be',
     backendStack: 'example-project',
 
-    // Frontend: Node image of the checks and of the production build, pinned by version and digest.
-    nodeImage: 'node:24',
+    // Frontend: Node image of the checks and of the production build (Node major; Playwright needs a Debian-based image).
+    nodeImage: 'node:26',
 
     // Static site: release root on the server (current/, releases/, shared/) and the public origin.
     deployPath: '/data/apps/example-project/web',

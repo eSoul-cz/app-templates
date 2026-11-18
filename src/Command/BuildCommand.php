@@ -6,6 +6,7 @@ namespace ESoul\AppTemplates\Command;
 
 use ESoul\AppTemplates\Builder;
 use ESoul\AppTemplates\Catalog;
+use ESoul\AppTemplates\GuidelinesRenderer;
 use ESoul\AppTemplates\TemplateException;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -29,7 +30,14 @@ final class BuildCommand extends Command
             ->addArgument('variant', InputArgument::OPTIONAL, 'Variant name, see `templates list`')
             ->addOption('all', null, InputOption::VALUE_NONE, 'Build every variant')
             ->addOption('out', null, InputOption::VALUE_REQUIRED, 'Output directory (relative paths resolve against the repository root)', 'build')
-            ->addOption('release', null, InputOption::VALUE_REQUIRED, 'Write .esoul/template.json with this version into every built variant');
+            ->addOption('release', null, InputOption::VALUE_REQUIRED, 'Write .esoul/template.json with this version into every built variant')
+            ->addOption(
+                'guidelines-bin',
+                null,
+                InputOption::VALUE_REQUIRED,
+                'esoul-guidelines installer used to render the guidelines into each variant (relative paths resolve against the repository root)',
+                'vendor/bin/esoul-guidelines',
+            );
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -51,7 +59,11 @@ final class BuildCommand extends Command
         $version = $input->getOption('release');
 
         $names = $input->getOption('all') ? $catalog->variantNames() : [(string) $variant];
-        $builder = new Builder($catalog);
+        $guidelinesBin = (string) $input->getOption('guidelines-bin');
+        if (!str_starts_with($guidelinesBin, '/')) {
+            $guidelinesBin = $this->root . '/' . $guidelinesBin;
+        }
+        $builder = new Builder($catalog, new GuidelinesRenderer($guidelinesBin));
 
         try {
             foreach ($names as $name) {

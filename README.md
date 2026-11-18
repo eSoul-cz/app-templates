@@ -21,6 +21,8 @@ infrastructure repo as submodules at `templates/<variant>/`.
 
 ```bash
 composer install
+# Until esoul/guidelines is published on packages.esoul.cz, point builds at the sibling checkout:
+#   bin/templates build <variant> --guidelines-bin=../../guidelines/bin/esoul-guidelines
 bin/templates list                          # variants and their layers
 bin/templates build laravel-inertia         # → build/laravel-inertia/
 bin/templates build --all --out=build       # every variant
@@ -56,7 +58,8 @@ Per layer, in this order, relative to the entry's `into` directory:
    (files and directories; a matched directory is removed recursively). Globs: `*`/`?` stay within a path segment, `**` crosses
    segments, `**/` also matches zero directories, dotfiles match; no brace expansion.
 2. **`files/**`**: copied, overwriting earlier layers (executable bit is preserved).
-3. **`merge/**/*.json`**: merged into the same relative path (created when missing). Objects merge recursively, later wins for
+3. **`merge/**/*.json`**: merged into the same relative path (created when missing); `merge/esoul-guidelines.json` always merges
+   into the variant root, whatever the entry's `into`, so a monorepo has one guideline config. Objects merge recursively, later wins for
    scalars, lists of scalars are unioned keeping first-seen order, other lists are replaced. Output is pretty-printed with 4
    spaces, unescaped slashes and a trailing newline. Non-JSON files in `merge/` are an error.
 4. **`append/**`**: text lines appended to the same relative path (created when missing). A non-blank line already present in
@@ -70,13 +73,20 @@ After all layers, the builder **stamps the root `composer.json`** with the varia
 with `type: project` if no layer ships one, which is the case for the `astro-laravel-cms` monorepo unless `astro-cms/root` adds it).
 With `--release=X.Y.Z` it writes `.esoul/template.json` (`{"variant": "...", "version": "X.Y.Z"}`).
 
+Finally it **renders the project guidelines**: it runs `esoul-guidelines sync --no-interaction` (the esoul/guidelines installer,
+default `vendor/bin/esoul-guidelines`, override with `--guidelines-bin`) in the variant root. Every variant therefore ships
+`docs/project_guidelines/`, the guidelines block in `AGENTS.md` and `esoul-guidelines.lock` ready-made; a project created from it
+updates them later with `composer update esoul/guidelines` + `vendor/bin/esoul-guidelines sync`. A missing installer, an unknown
+guideline layer or a failing `sync` fails the build.
+
 ### The `common` layer
 
 Repo-root files for every variant: `.editorconfig`, `.gitattributes` (Git LFS for `assets/**`), `.coderabbit.yaml`, `CONTEXT.md`
 (commit convention copied from `esoul-infrastructure/CONTEXT.md`, empty project profile and tasking sections), minimal
 `AGENTS.md` (the guidelines installer manages its block), `CLAUDE.md` (`@AGENTS.md`), `.github/PULL_REQUEST_TEMPLATE.md`,
 `renovate.json5` and `merge/esoul-guidelines.json` = `{"layers": ["general"]}`. Each stack layer adds its guideline layers
-through its own `merge/esoul-guidelines.json` (e.g. `framework/laravel`, `package/inertia-vue`).
+through its own `merge/esoul-guidelines.json` (e.g. `framework/laravel`, `package/inertia-vue`). Only existing guideline layers
+may be listed: `laravel/filament` and `laravel/lunar` add `package/filament` / `package/lunar` once those are written (plan G3).
 
 ### The `laravel/skeleton` layer
 
@@ -166,6 +176,9 @@ For the `astro-laravel-cms` variant the same works unchanged (`frontend/` and `b
 - Laravel layers (`laravel/base`, `inertia-vue`, `filament`, `lunar`):
   - `esoul/guidelines` (`require-dev ^0.1`, matching its first tag) is not published at `packages.esoul.cz` yet, so `composer install`
     of a built variant fails until it is; verification removed it from the built `composer.json`. It is not a Composer plugin.
+  - This repository does not `require` `esoul/guidelines` yet (it is unpublished, so `composer install` here would fail); builds pass
+    `--guidelines-bin` until it is, then the dependency is added and the default `vendor/bin/esoul-guidelines` applies. Locks in built
+    variants record `package_version: dev` while the installer runs from a checkout.
   - `bootstrap/providers.php` is an explicit list owned by the LAST layer of a variant that touches it (base: `AppServiceProvider`;
     filament and `laravel/cms` overwrite it). No provider auto-discovery.
   - Models stay in `App\Models` (skeleton default); the reference projects use `App\Infrastructure\Models`, which would need `config/auth.php`
@@ -208,3 +221,6 @@ For the `astro-laravel-cms` variant the same works unchanged (`frontend/` and `b
   - `pnpm-workspace.yaml` has `minimumReleaseAge: 1440` only; `trustPolicy: no-downgrade` is left out because pnpm 10.20.0 (`packageManager`) predates it.
   - Prettier in `frontend/` follows the baseline (printWidth 150, tabWidth 4); `esoul-guidelines.json` is in `.prettierignore` (written by the builder / installer).
   - `astroCmsPipeline` is planned only; the root `Jenkinsfile` documents the intended configuration with example names (`example-project`).
+  - The monorepo has ONE guideline config at its root (`general`, `framework/astro`, `framework/laravel`, `package/mutation-testing`), so
+    same-named topics merge across frontend and backend (e.g. one `frontend.md` with Astro and Laravel sections). Per-directory guideline
+    sets would need installer support; open question. The root `composer.json` requires `esoul/guidelines` for `sync`/`check` there.

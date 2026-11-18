@@ -147,6 +147,24 @@ final class BuilderTest extends BuilderTestCase
         self::assertFileDoesNotExist($out . '/Jenkinsfile');
     }
 
+    public function testGuidelineConfigFromSubdirectoryLayersMergesIntoTheVariantRoot(): void
+    {
+        $this->put('layers/root/merge/esoul-guidelines.json', '{"layers": ["general"]}');
+        $this->put('layers/back/merge/esoul-guidelines.json', '{"layers": ["framework/laravel"]}');
+        $this->put('layers/front/merge/esoul-guidelines.json', '{"layers": ["framework/astro"]}');
+        $this->variant([
+            ['layer' => 'root'],
+            ['layer' => 'back', 'into' => 'backend'],
+            ['layer' => 'front', 'into' => 'frontend'],
+        ]);
+
+        $out = $this->build();
+
+        self::assertSame(['general', 'framework/laravel', 'framework/astro'], $this->json($out, 'esoul-guidelines.json')['layers']);
+        self::assertFileDoesNotExist($out . '/backend/esoul-guidelines.json');
+        self::assertFileDoesNotExist($out . '/frontend/esoul-guidelines.json');
+    }
+
     public function testRootComposerJsonIsStampedWithThePackageName(): void
     {
         $this->put('layers/a/files/composer.json', '{"name": "laravel/laravel", "description": "upstream", "type": "project", "require": {"php": "^8.5"}}');

@@ -12,13 +12,18 @@ use Symfony\Component\Finder\Finder;
  * Assembles a variant by overlaying its layers, in order, onto an empty directory.
  *
  * Per layer (inside the entry's `into` directory): `delete.txt`, then `files/`, then `merge/`, then `append/`.
+ * `merge/esoul-guidelines.json` always merges into the variant root, so a monorepo has one guideline config.
  * Afterwards the root `composer.json` is stamped with the variant's package name.
  */
 final readonly class Builder
 {
+    /** Project config of the esoul/guidelines installer; one per variant, at its root. */
+    public const string GUIDELINES_CONFIG = 'esoul-guidelines.json';
+
     private Filesystem $fs;
 
-    public function __construct(private Catalog $catalog)
+    /** @param GuidelinesRenderer|null $guidelines renders the project guidelines after layering; null skips it (builder tests only) */
+    public function __construct(private Catalog $catalog, private ?GuidelinesRenderer $guidelines = null)
     {
         $this->fs = new Filesystem();
     }
@@ -45,10 +50,11 @@ final readonly class Builder
         foreach ($variant->layers as $index => $entry) {
             $entryTarget = $entry->into === '' ? $target : $target . '/' . $entry->into;
             $this->fs->mkdir($entryTarget);
-            $this->applyLayer($paths[$index], $entryTarget, $entry->exclude);
+            $this->applyLayer($paths[$index], $entryTarget, $entry->exclude, $target);
         }
 
         $this->stampComposer($variant, $target);
+        $this->guidelines?->render($target);
 
         if ($version !== null) {
             $this->fs->dumpFile(
@@ -61,7 +67,7 @@ final readonly class Builder
     }
 
     /** @param list<string> $exclude */
-    private function applyLayer(string $layerPath, string $target, array $exclude): void
+    private function applyLayer(string $layerPath, string $target, array $exclude, string $root): void
     {
         $this->applyDeletes($layerPath, $target);
 
@@ -73,7 +79,8 @@ final readonly class Builder
             if (!str_ends_with($relative, '.json')) {
                 throw new TemplateException(sprintf('Only .json files can be merged, found %s.', $source));
             }
-            $this->mergeJson($source, $target . '/' . $relative);
+            $destination = $relative === self::GUIDELINES_CONFIG ? $root : $target;
+            $this->mergeJson($source, $destination . '/' . $relative);
         }
 
         foreach ($this->relativeFiles($layerPath . '/append', $exclude) as $relative => $source) {

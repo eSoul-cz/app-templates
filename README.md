@@ -83,7 +83,7 @@ guideline layer or a failing `sync` fails the build.
 ### The `common` layer
 
 Repo-root files for every variant: `.editorconfig`, `.gitattributes` (Git LFS for `assets/**`), `.coderabbit.yaml`, `CONTEXT.md`
-(commit convention copied from `esoul-infrastructure/CONTEXT.md`, empty project profile and tasking sections), minimal
+(conventions only: commit convention copied from `esoul-infrastructure/CONTEXT.md`, empty project profile and tasking sections), `GLOSSARY.md` (domain vocabulary, filled in as the domain is modelled), minimal
 `AGENTS.md` (the guidelines installer manages its block), `CLAUDE.md` (`@AGENTS.md`), `.github/PULL_REQUEST_TEMPLATE.md`,
 `renovate.json5` and `merge/esoul-guidelines.json` = `{"layers": ["general"]}`. Each stack layer adds its guideline layers
 through its own `merge/esoul-guidelines.json` (e.g. `framework/laravel`, `package/inertia-vue`). Only existing guideline layers

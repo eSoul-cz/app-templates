@@ -17,3 +17,15 @@ TBD
 ## Tasking convention
 
 TBD
+
+## Business time zone
+
+TBD
+
+## Locales
+
+TBD
+
+## Language per place
+
+TBD

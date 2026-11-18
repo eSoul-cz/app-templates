@@ -19,7 +19,7 @@ Closes #
 - [ ] New or changed behaviour has a test; a bug fix has a regression test that fails without the fix.
 - [ ] Mutation testing was run: every escaped mutant on changed lines is killed or listed under
       Risks as accepted, with a reason. <!-- Delete this line when it was not run. -->
-- [ ] Domain terms match `CONTEXT.md`; a new term is added in this PR.
+- [ ] Domain terms match `GLOSSARY.md`; a new term is added in this PR.
 - [ ] A change to the architecture or an external contract has an ADR in this PR, or links an
       existing `accepted` one.
 - [ ] No new dependency, or the maintainer's approval is stated here:

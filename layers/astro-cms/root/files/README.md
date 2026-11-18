@@ -8,8 +8,34 @@ admin at `/admin`; the public site is a static build that is regenerated and dep
 | `frontend/` | Astro 7 static site, Tailwind 4. Content comes from the CMS export at build time. |
 | `backend/` | Laravel 13 + Filament 5: pages and site settings, the export API, the Publish button. |
 | `docs/contract.md` | The contract between the two halves (versioned, guarded by a golden-file test). |
-| `docker/nginx.example` | One domain: static site + php-fpm routing. |
+| `docker/nginx.example` | Static site + php-fpm routing, for both admin placements (same domain `/admin` or `admin.<domain>`). |
 | `Jenkinsfile` | One Jenkinsfile for the monorepo (`astroCmsPipeline`, see the header comment). |
+
+## Where the admin lives
+
+The CMS supports two placements; the template defaults to the first. Both are written out in `docker/nginx.example`
+(Mode A active, Mode B commented) and differ only in nginx and a few environment values, never in code.
+
+| | Same domain (Mode A, default) | Subdomain (Mode B) |
+| --- | --- | --- |
+| Admin URL | `https://example.com/admin` | `https://admin.example.com/admin` |
+| nginx | one server block: static site + backend routes | site block (static + `/_cms/`), plus an `admin.` block that proxies `/admin`, `/livewire*`, `/cms-api`, `/up` to php-fpm and serves `/cms-media/`, `/_cms/` and the panel assets |
+| `APP_URL` (backend) | `https://example.com` | `https://admin.example.com` |
+| `SESSION_DOMAIN` | `null` | `null` (host-only cookie; never `.example.com`) |
+| `cmsApiUrl` (Jenkinsfile) / `CMS_API_URL` | `https://example.com/cms-api/v1` | `https://admin.example.com/cms-api/v1` |
+| `siteUrl` | `https://example.com` | `https://example.com` |
+| CORS | not needed | not needed |
+
+Choose the **same domain** when one hostname and one certificate are enough: simplest, one server block. Choose the
+**subdomain** when the admin should be separable from the public site: its own cookies and CSP, its own access rules
+(VPN or IP allowlist on `admin.` without touching the site), and a public site that exposes no PHP routes at all.
+
+- CORS is never needed: the static build fetches the export server-side (Node, in Jenkins) and visitors' browsers never call
+  the backend.
+- `CMS_API_ALLOWED_IPS` has to contain the build agent in both modes (see the setup checklist).
+- In Mode B the build HEAD-checks media on the origin of `CMS_API_URL`, so the admin host serves `/_cms/` as well; the site
+  domain serves it too because the HTML refers to `/_cms/<hash>` relatively.
+- Switching later means changing nginx, `APP_URL`, `cmsApiUrl` and the DNS record; the exported media URLs are relative (`/_cms/<hash>`).
 
 ## Local development
 
@@ -61,7 +87,7 @@ deletes files that no build of the last 7 days referenced.
   (= `CMS_JENKINS_CALLBACK_TOKEN`), named in the `Jenkinsfile`.
 - **`CMS_API_ALLOWED_IPS` has to contain the address of the build agent.** The build fetches `/cms-api` over the public
   URL, so a changed agent address makes the export (and so every publish) answer 403 until the list is updated.
-- nginx: `docker/nginx.example`. The static release root and the backend volumes (`storage/app/cms-public`,
+- nginx: `docker/nginx.example` (pick Mode A or B first). The static release root and the backend volumes (`storage/app/cms-public`,
   `storage/app/cms-media`) must be readable by nginx.
 - Staging: build the frontend with `PUBLIC_NOINDEX=true` (noindex meta, `Disallow: /`, no sitemap). Production leaves it unset.
 
@@ -69,8 +95,9 @@ deletes files that no build of the last 7 days referenced.
 
 - `astroCmsPipeline` does not exist yet; the `Jenkinsfile` shows the configuration it is meant to take. Example names
   (`example-project`, `example.com`) must be replaced.
-- One domain for the site and the admin (no separate admin subdomain). The admin panel assets (`/build`, `/css|js|fonts/filament`)
-  are served by nginx from the backend `public/` directory, which has to be copied from the image after each deploy.
+- The admin sits on the site's domain under `/admin` by default or on `admin.<domain>` (see "Where the admin lives"). The admin
+  panel assets (`/build`, `/css|js|fonts/filament`) are served by nginx from the backend `public/` directory, which has to be
+  copied from the image after each deploy.
 - The content model is deliberately minimal (pages with heading / text / image blocks, one settings record). Extend the
   exporter, the Zod schema, `Blocks.astro` and `docs/contract.md` together.
 - Uploads of the admin are served from `/cms-media/` (images only, CSP sandbox) so that Filament can preview them.

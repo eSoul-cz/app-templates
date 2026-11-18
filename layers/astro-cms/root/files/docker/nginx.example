@@ -1,9 +1,31 @@
-# EXAMPLE: example-project.example.com = static site (Astro, frontend/) + backend (Laravel + Filament, backend/) on one
-# domain. Replace the domain, the paths under /data/apps/example-project and the upstream name.
+# EXAMPLE: example-project.example.com = static site (Astro, frontend/) + backend (Laravel + Filament, backend/).
+# Replace the domain, the paths under /data/apps/example-project and the upstream name.
 #
-# Site for the shared nginx of the host (sites-enabled). php-fpm runs in the container of the Komodo stack without
-# a published port; the upstream name is the service name in the compose file. TLS ends on a proxy in front: HTTP
-# with X-Forwarded-* arrives here.
+# TWO MODES, pick one (README.md, "Where the admin lives"). Keep the active part of this file for MODE A or comment it
+# out and uncomment the MODE B part at the end.
+#
+#   MODE A (active below)  one domain, the admin under /admin:  https://example.com/admin
+#   MODE B (commented)     the admin on a subdomain:            https://admin.example.com/admin
+#
+# Environment differences (backend/.env and the Jenkinsfile):
+#                     MODE A                                   MODE B
+#   APP_URL           https://example.com                      https://admin.example.com
+#   SESSION_DOMAIN    null (host-only cookie)                  null  - NEVER `.example.com`: the session cookie of the
+#                                                              admin must not be sent to the public site
+#   cmsApiUrl         https://example.com/cms-api/v1           https://admin.example.com/cms-api/v1
+#                     (Jenkinsfile; CMS_API_URL of the frontend build)
+#   siteUrl           https://example.com                      https://example.com
+#   TRUSTED_PROXIES   the TLS proxy in front of nginx (both modes)
+#   CORS              not needed in either mode: the static build fetches the export server-side (Node, in Jenkins),
+#                     and the browser of a visitor never calls the backend. Do not add CORS headers for /cms-api.
+#   CMS_API_ALLOWED_IPS  both modes: the address of the Jenkins build agent. /cms-api is reachable from the internet
+#                     (Jenkins uses the public URL), so the allowlist is the only gate besides the bearer tokens.
+#
+# The build checks every media file with HEAD against the ORIGIN OF cmsApiUrl, so in MODE B the admin host serves /_cms/
+# too (same alias). The site itself serves /_cms/ on its own domain, because the HTML refers to it with a relative URL.
+#
+# TLS ends on a proxy in front: HTTP with X-Forwarded-* arrives here. php-fpm runs in the container of the Komodo stack
+# without a published port; the upstream name is the service name in the compose file.
 #
 # The backend gets only this:
 #   /admin            Filament admin
@@ -18,6 +40,10 @@
 # the symlink `web/current`, hashed /_astro from the shared directory `web/shared`.
 #
 # Security headers: docker/nginx-security-headers.conf as /etc/nginx/snippets/security-headers.conf.
+
+# ====================================================================================================================
+# MODE A: one domain, admin under /admin
+# ====================================================================================================================
 
 upstream example-project-be {
     server example-project-be:9000;
@@ -165,3 +191,105 @@ server {
         fastcgi_read_timeout 300;
     }
 }
+
+# ====================================================================================================================
+# MODE B: admin on admin.example.com (the site domain serves only the static site and /_cms/)
+# Replace MODE A above with this. The `upstream` and the `map` stay (declare them once). Uncomment everything below.
+# On the site server drop the php location and the admin-only locations; the admin server never serves the static site.
+# ====================================================================================================================
+#
+# server {
+#     listen 80;
+#     listen [::]:80;
+#     server_name example-project.example.com;
+#
+#     server_tokens off;
+#     error_page 404 /404.html;
+#     include /etc/nginx/snippets/security-headers.conf;
+#     absolute_redirect off;
+#
+#     if ($redirect_to_https) {
+#         return 301 https://$server_name$request_uri;
+#     }
+#
+#     root /data/apps/example-project/web/current;
+#     index index.html;
+#
+#     # Same static locations as in MODE A: = /404.html, = /404, dotfiles, /, ^~ /_astro/ ...
+#     # Site media: the HTML refers to /_cms/<hash>.<ext> on this domain, so it is served here too.
+#     location ^~ /_cms/ {
+#         alias /data/apps/example-project/be/storage/app/cms-public/;
+#         try_files $uri =404;
+#         types { image/png png; image/jpeg jpg; image/webp webp; image/avif avif; }
+#         default_type application/octet-stream;
+#         add_header Cache-Control "public, max-age=31536000, immutable";
+#         add_header Content-Security-Policy "default-src 'none'; img-src 'self'; sandbox" always;
+#         include /etc/nginx/snippets/security-headers.conf;
+#     }
+# }
+#
+# server {
+#     listen 80;
+#     listen [::]:80;
+#     server_name admin.example-project.example.com;
+#
+#     server_tokens off;
+#     include /etc/nginx/snippets/security-headers.conf;
+#     client_max_body_size 64M;
+#     absolute_redirect off;
+#
+#     if ($redirect_to_https) {
+#         return 301 https://$server_name$request_uri;
+#     }
+#
+#     # Nothing is served at the root of the admin host; send people to the panel.
+#     location = / {
+#         return 302 /admin;
+#     }
+#
+#     location ~ /\.(?!well-known/) {
+#         deny all;
+#     }
+#
+#     # The export build checks the media on the origin of cmsApiUrl (this host).
+#     location ^~ /_cms/ {
+#         alias /data/apps/example-project/be/storage/app/cms-public/;
+#         try_files $uri =404;
+#         types { image/png png; image/jpeg jpg; image/webp webp; image/avif avif; }
+#         default_type application/octet-stream;
+#         add_header Cache-Control "public, max-age=31536000, immutable";
+#         add_header Content-Security-Policy "default-src 'none'; img-src 'self'; sandbox" always;
+#         include /etc/nginx/snippets/security-headers.conf;
+#     }
+#
+#     # Uploads of the admin (previews in Filament; relative URLs, so they resolve against this host).
+#     location ^~ /cms-media/ {
+#         alias /data/apps/example-project/be/storage/app/cms-media/;
+#         try_files $uri =404;
+#         types { image/png png; image/jpeg jpg jpeg; image/webp webp; image/avif avif; }
+#         default_type application/octet-stream;
+#         add_header Cache-Control "public, max-age=86400";
+#         add_header Content-Security-Policy "default-src 'none'; img-src 'self'; sandbox" always;
+#         include /etc/nginx/snippets/security-headers.conf;
+#     }
+#
+#     # Assets of the admin panel (the same four locations as in MODE A: /build/, /css/filament/, /js/filament/,
+#     # /fonts/filament/, root /data/apps/example-project/be/public).
+#
+#     location ~ ^/(admin|cms-api|livewire[^/]*)(/|$)|^/up$ {
+#         fastcgi_pass example-project-be;
+#         include fastcgi_params;
+#         fastcgi_param SCRIPT_FILENAME /var/www/public/index.php;
+#         fastcgi_hide_header X-Powered-By;
+#         fastcgi_param HTTP_X_FORWARDED_PROTO $http_x_forwarded_proto;
+#         fastcgi_param HTTP_X_FORWARDED_FOR $http_x_forwarded_for;
+#
+#         set $custom_https off;
+#         if ($http_x_forwarded_proto = 'https') {
+#             set $custom_https on;
+#         }
+#         fastcgi_param HTTPS $custom_https;
+#
+#         fastcgi_read_timeout 300;
+#     }
+# }

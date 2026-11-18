@@ -1,6 +1,6 @@
 {
     "require-dev": {
-        "esoul/guidelines": "^0.1"
+        "esoul-cz/guidelines": "^0.1"
     },
     "repositories": [
         {

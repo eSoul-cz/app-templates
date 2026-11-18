@@ -1,6 +1,6 @@
 {
     "name": "astro-laravel-cms",
-    "package": "esoul/template-astro-laravel-cms",
+    "package": "esoul-cz/template-astro-laravel-cms",
     "description": "eSoul monorepo: static Astro frontend (frontend/) with a Laravel and Filament headless CMS (backend/).",
     "layers": [
         {"layer": "common"},

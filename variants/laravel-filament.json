@@ -1,6 +1,6 @@
 {
     "name": "laravel-filament",
-    "package": "esoul/template-laravel-filament",
+    "package": "esoul-cz/template-laravel-filament",
     "description": "eSoul Laravel 13 application with a Filament 5 admin panel.",
     "layers": [
         {"layer": "common"},

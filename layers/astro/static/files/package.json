@@ -3,9 +3,9 @@
     "type": "module",
     "version": "0.1.0",
     "private": true,
-    "packageManager": "pnpm@10.20.0",
+    "packageManager": "pnpm@12.21.0",
     "engines": {
-        "node": ">=24"
+        "node": ">=26"
     },
     "scripts": {
         "dev": "astro dev",
@@ -30,7 +30,7 @@
         "@astrojs/check": "^0.9.10",
         "@eslint/js": "^10.0.1",
         "@playwright/test": "^1.63.0",
-        "@types/node": "^24.0.0",
+        "@types/node": "^26.6.5",
         "eslint": "^10.15.0",
         "eslint-plugin-astro": "^3.2.1",
         "globals": "^17.14.0",

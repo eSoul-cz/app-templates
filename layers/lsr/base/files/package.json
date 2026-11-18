@@ -3,7 +3,7 @@
     "name": "lsr-app",
     "version": "1.0.0",
     "type": "module",
-    "packageManager": "pnpm@10.20.0",
+    "packageManager": "pnpm@12.21.0",
     "license": "proprietary",
     "scripts": {
         "build": "vite build",

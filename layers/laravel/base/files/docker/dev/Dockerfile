@@ -1,18 +1,27 @@
 # Development image: php-fpm + Node/pnpm + Supervisor (php-fpm, queue listener, scheduler, Vite).
 # The application is bind-mounted at /var/www by docker-compose.yml.
+ARG NODE_BASE_VERSION=26-alpine
+# Keep in sync with "packageManager" in package.json
+ARG PNPM_VERSION=12.21.0
+
+FROM node:${NODE_BASE_VERSION} AS node_base
+ARG PNPM_VERSION
+# Node 25+ no longer bundles corepack, pnpm comes from npm
+RUN npm install --global pnpm@${PNPM_VERSION}
+
 FROM rg.fr-par.scw.cloud/esoul-starters/php-fpm-laravel:8.5
 
 # Host user ids: files written to the bind mount belong to the host user (docker-compose.yml passes them from .env)
 ARG WWWUSER=1000
 ARG WWWGROUP=1000
 
-RUN apk add --no-cache supervisor nodejs npm
+RUN apk add --no-cache supervisor libstdc++ libgcc
 
 # Add Composer
 RUN install-php-extensions @composer
 
-# Pinned to match "packageManager" in package.json
-RUN npm install -g pnpm@10.20.0
+# Node and pnpm from the official Node image: the distribution would pick the Node major, this pins it
+COPY --from=node_base /usr/local /usr/local
 
 RUN getent group "${WWWGROUP}" >/dev/null || addgroup -g "${WWWGROUP}" sail; \
     adduser -D -u "${WWWUSER}" -G "$(getent group "${WWWGROUP}" | cut -d: -f1)" sail

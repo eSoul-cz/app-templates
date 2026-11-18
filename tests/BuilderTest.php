@@ -198,19 +198,95 @@ final class BuilderTest extends BuilderTestCase
         $composer = $this->json($this->build(), 'composer.json');
 
         self::assertSame(
-            ['name' => 'esoul/template-demo', 'description' => 'Demo variant.', 'type' => 'project', 'license' => 'MIT'],
+            [
+                'name' => 'esoul/template-demo',
+                'description' => 'Demo variant.',
+                'type' => 'project',
+                'license' => 'MIT',
+                'scripts' => ['post-create-project-cmd' => Builder::POST_CREATE_COMMANDS],
+            ],
             $composer,
         );
     }
 
-    public function testReleaseWritesTemplateRecord(): void
+    public function testPostCreateCommandsHandTheLicenceOverToTheProject(): void
+    {
+        $this->put('layers/a/files/LICENSE', 'MIT');
+        $this->variant([['layer' => 'a']]);
+
+        $out = $this->build();
+        $commands = $this->json($out, 'composer.json')['scripts']['post-create-project-cmd'];
+
+        self::assertSame('MIT', $this->read($out, 'LICENSE'), 'the variant repository itself keeps LICENSE');
+        self::assertSame('MIT', $this->json($out, 'composer.json')['license']);
+        self::assertCount(2, $commands);
+        self::assertStringContainsString("rename('LICENSE', '.esoul/template-LICENSE')", $commands[0]);
+        self::assertSame('@composer config license proprietary', $commands[1]);
+    }
+
+    public function testPostCreateCommandsAlsoCoverNestedComposerFiles(): void
+    {
+        $this->put('layers/a/files/composer.json', '{"license": "MIT"}');
+        $this->put('layers/b/files/README.md', 'no composer here');
+        $this->variant([['layer' => 'a', 'into' => 'backend'], ['layer' => 'b', 'into' => 'frontend']]);
+
+        $composer = $this->json($this->build(), 'composer.json');
+
+        self::assertSame(
+            [...Builder::POST_CREATE_COMMANDS, '@composer config --working-dir=backend license proprietary'],
+            $composer['scripts']['post-create-project-cmd'],
+        );
+    }
+
+    public function testPostCreateCommandsAreMergedBeforeExistingOnes(): void
+    {
+        $this->put('layers/a/files/composer.json', (string) json_encode([
+            'scripts' => [
+                'post-create-project-cmd' => ['@php artisan key:generate --ansi', '@php artisan migrate'],
+                'test' => 'artisan test',
+            ],
+        ]));
+        $this->put('layers/b/merge/composer.json', '{"scripts": {"post-create-project-cmd": ["@php artisan migrate", "@php artisan storage:link"]}}');
+        $this->variant([['layer' => 'a'], ['layer' => 'b']]);
+
+        $scripts = $this->json($this->build(), 'composer.json')['scripts'];
+
+        self::assertSame(
+            [...Builder::POST_CREATE_COMMANDS, '@php artisan key:generate --ansi', '@php artisan migrate', '@php artisan storage:link'],
+            $scripts['post-create-project-cmd'],
+        );
+        self::assertSame('artisan test', $scripts['test']);
+    }
+
+    public function testPostCreateCommandsWrapAScriptGivenAsAString(): void
+    {
+        $this->put('layers/a/files/composer.json', '{"scripts": {"post-create-project-cmd": "@php artisan key:generate"}}');
+        $this->variant([['layer' => 'a']]);
+
+        $scripts = $this->json($this->build(), 'composer.json')['scripts'];
+
+        self::assertSame([...Builder::POST_CREATE_COMMANDS, '@php artisan key:generate'], $scripts['post-create-project-cmd']);
+    }
+
+    public function testCommitWritesTemplateRecord(): void
     {
         $this->put('layers/a/files/x.txt', 'x');
         $this->variant([['layer' => 'a']]);
 
-        $out = (new Builder(new Catalog($this->root)))->build('demo', $this->root . '/build', '1.2.3');
+        $out = (new Builder(new Catalog($this->root)))->build('demo', $this->root . '/build', '0123456789abcdef0123456789abcdef01234567');
 
-        self::assertSame(['variant' => 'demo', 'version' => '1.2.3'], $this->json($out, '.esoul/template.json'));
+        self::assertSame(
+            ['variant' => 'demo', 'commit' => '0123456789abcdef0123456789abcdef01234567'],
+            $this->json($out, '.esoul/template.json'),
+        );
+    }
+
+    public function testNoTemplateRecordWithoutACommit(): void
+    {
+        $this->put('layers/a/files/x.txt', 'x');
+        $this->variant([['layer' => 'a']]);
+
+        self::assertDirectoryDoesNotExist($this->build() . '/.esoul');
     }
 
     public function testBuildCleansTheTargetAndIsDeterministic(): void

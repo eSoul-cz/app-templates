@@ -7,7 +7,7 @@ namespace ESoul\AppTemplates;
 use Symfony\Component\Process\Process;
 
 /**
- * Renders the project guidelines into a built variant by running the esoul/guidelines installer
+ * Renders the project guidelines into a built variant by running the esoul-cz/guidelines installer
  * (`esoul-guidelines sync`) in its root, so a variant repository ships `docs/project_guidelines/`,
  * the AGENTS.md block and `esoul-guidelines.lock` ready-made.
  */
@@ -22,7 +22,7 @@ final readonly class GuidelinesRenderer
     {
         if (!is_file($this->binary)) {
             throw new TemplateException(sprintf(
-                'The guidelines installer was not found at %s. Run `composer install` (it requires esoul/guidelines) or pass --guidelines-bin.',
+                'The guidelines installer was not found at %s. Run `composer install` (it requires esoul-cz/guidelines) or pass --guidelines-bin.',
                 $this->binary,
             ));
         }

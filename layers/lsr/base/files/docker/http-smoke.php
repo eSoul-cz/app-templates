@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 // Runs against the built production image over HTTP, without bootstrapping the application in this process.
-// `--ready` checks only that the home page answers (container health check); no argument runs the full smoke test.
 $baseUrl = rtrim(getenv('HTTP_SMOKE_BASE_URL') ?: 'http://127.0.0.1:8001', '/');
 $client = curl_init();
 if ($client === false) {
@@ -53,12 +52,14 @@ function requireCondition(bool $condition, string $message): void
 }
 
 try {
+    $health = request($client, $baseUrl . '/up');
+    requireCondition($health['status'] === 200, '/up: health check returned HTTP ' . $health['status']);
+    $healthBody = json_decode($health['body'], true, flags: JSON_THROW_ON_ERROR);
+    requireCondition(is_array($healthBody) && ($healthBody['status'] ?? null) === 'ok', '/up: unexpected health payload');
+    echo "/up: health check OK\n";
+
     $html = request($client, $baseUrl . '/', ['Accept: text/html']);
     requireCondition($html['status'] === 200, '/: HTML returned HTTP ' . $html['status']);
-    if (($argv[1] ?? null) === '--ready') {
-        exit(0);
-    }
-
     requireCondition(str_contains($html['headers']['content-type'] ?? '', 'text/html'), '/: response is not HTML');
     requireCondition(
         preg_match('~<script\b(?=[^>]*\bdata-page="app")(?=[^>]*\btype="application/json")[^>]*>(.*?)</script>~s', $html['body'], $pageMatch) === 1,

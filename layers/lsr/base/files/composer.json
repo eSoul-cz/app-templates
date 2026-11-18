@@ -12,7 +12,17 @@
             "./vendor/bin/phpstan --memory-limit=1G analyse --no-progress"
         ],
         "cs": "./vendor/bin/php-cs-fixer fix --config=.php-cs-fixer.php --dry-run --diff",
-        "cs:fix": "./vendor/bin/php-cs-fixer fix --config=.php-cs-fixer.php"
+        "cs:fix": "./vendor/bin/php-cs-fixer fix --config=.php-cs-fixer.php",
+        "mutation": [
+            "Composer\\Config::disableProcessTimeout",
+            "@putenv XDEBUG_MODE=coverage",
+            "@php -d memory_limit=2G vendor/bin/infection --only-covering-test-cases --git-diff-lines --git-diff-base=main --ignore-msi-with-no-mutations --show-mutations @additional_args"
+        ],
+        "mutation:full": [
+            "Composer\\Config::disableProcessTimeout",
+            "@putenv XDEBUG_MODE=coverage",
+            "@php -d memory_limit=2G vendor/bin/infection --only-covering-test-cases --show-mutations @additional_args"
+        ]
     },
     "require": {
         "php": ">=8.5",
@@ -52,6 +62,7 @@
     "require-dev": {
         "brianium/paratest": "^7.24",
         "friendsofphp/php-cs-fixer": "^3.95",
+        "infection/infection": "^0.35",
         "phpstan/extension-installer": "^1.4",
         "phpstan/phpstan": "^2.0",
         "phpstan/phpstan-deprecation-rules": "^2.0",
@@ -76,6 +87,7 @@
         "optimize-autoloader": true,
         "sort-packages": true,
         "allow-plugins": {
+            "infection/extension-installer": true,
             "php-http/discovery": true,
             "phpstan/extension-installer": true
         }

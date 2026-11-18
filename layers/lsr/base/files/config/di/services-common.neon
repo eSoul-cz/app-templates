@@ -24,3 +24,7 @@ di:
 decorator:
 	Lsr\Core\Controllers\Controller:
 		inject: true
+
+services:
+	# Used by GET /up (App\Http\Controllers\Health)
+	health.databaseCheck: App\Http\Health\ConnectionDatabaseCheck

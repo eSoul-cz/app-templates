@@ -45,6 +45,7 @@
 /Jenkinsfile
 /phpunit.xml
 /phpstan*.neon
+/infection.json5
 /.php-cs-fixer.php
 /.dockerignore
 /.gitignore

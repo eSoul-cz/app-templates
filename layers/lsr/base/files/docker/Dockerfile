@@ -88,4 +88,8 @@ COPY docker/http-smoke.php /usr/local/bin/http-smoke.php
 COPY --chmod=755 docker/prepare-runtime.sh /prepare-runtime
 COPY --chmod=755 docker/startProd.sh /start
 
+# GET /up answers 200 only while the database connection works (503 otherwise); `--fail` turns that into the exit code.
+HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=3 \
+    CMD ["curl", "--fail", "--silent", "--output", "/dev/null", "http://127.0.0.1:8001/up"]
+
 ENTRYPOINT ["/start"]

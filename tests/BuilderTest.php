@@ -65,6 +65,18 @@ final class BuilderTest extends BuilderTestCase
         self::assertStringContainsString('"empty": {}', $this->read($out, 'package.json'));
     }
 
+    public function testMergeNullRemovesTheKeyFromTheBase(): void
+    {
+        $this->put('layers/a/files/composer.json', '{"require-dev": {"laravel/pao": "^1.0", "laravel/pint": "^1.27"}}');
+        $this->put('layers/b/merge/composer.json', '{"require-dev": {"laravel/pao": null, "phpunit/phpunit": "^13.2"}}');
+        $this->variant([['layer' => 'a'], ['layer' => 'b']]);
+
+        self::assertSame(
+            ['laravel/pint' => '^1.27', 'phpunit/phpunit' => '^13.2'],
+            $this->json($this->build(), 'composer.json')['require-dev'],
+        );
+    }
+
     public function testMergeCreatesMissingTargetAndSupportsNestedPaths(): void
     {
         $this->put('layers/a/merge/config/settings.json', '{"layers": ["general"]}');

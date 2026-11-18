@@ -8,6 +8,7 @@
         "infection/infection": "^0.35",
         "larastan/larastan": "^3.0",
         "laravel/boost": "^2.5",
+        "laravel/pao": null,
         "laravel/pint": "^1.27",
         "phpunit/phpunit": "^13.2"
     },

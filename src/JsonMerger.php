@@ -11,6 +11,7 @@ use stdClass;
  * Deep JSON merge used by the `merge/` directory of a layer.
  *
  * - objects merge recursively, later wins for scalars,
+ * - a `null` value in the overlay removes that key from the base object (e.g. drop an upstream dependency),
  * - lists of scalars are unioned, keeping the order of first appearance,
  * - any other list is replaced by the later one,
  * - a value of a different type is replaced by the later one.
@@ -22,6 +23,10 @@ final class JsonMerger
     {
         if ($base instanceof stdClass && $overlay instanceof stdClass) {
             foreach (get_object_vars($overlay) as $key => $value) {
+                if ($value === null) {
+                    unset($base->{$key});
+                    continue;
+                }
                 $base->{$key} = property_exists($base, (string) $key) ? self::merge($base->{$key}, $value) : $value;
             }
 

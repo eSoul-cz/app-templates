@@ -60,7 +60,8 @@ Per layer, in this order, relative to the entry's `into` directory:
 2. **`files/**`**: copied, overwriting earlier layers (executable bit is preserved).
 3. **`merge/**/*.json`**: merged into the same relative path (created when missing); `merge/esoul-guidelines.json` always merges
    into the variant root, whatever the entry's `into`, so a monorepo has one guideline config. Objects merge recursively, later wins for
-   scalars, lists of scalars are unioned keeping first-seen order, other lists are replaced. Output is pretty-printed with 4
+   scalars, a `null` value removes the key (`laravel/base` drops the skeleton's `laravel/pao` this way), lists of scalars are
+   unioned keeping first-seen order, other lists are replaced. Output is pretty-printed with 4
    spaces, unescaped slashes and a trailing newline. Non-JSON files in `merge/` are an error.
 4. **`append/**`**: text lines appended to the same relative path (created when missing). A non-blank line already present in
    the file is skipped; blank lines are kept for spacing but never stacked.

@@ -1,0 +1,9 @@
+{
+    "name": "lsr-inertia",
+    "package": "esoul/template-lsr-inertia",
+    "description": "eSoul Lsr (RoadRunner) application with an Inertia and Vue frontend.",
+    "layers": [
+        {"layer": "common"},
+        {"layer": "lsr/base"}
+    ]
+}

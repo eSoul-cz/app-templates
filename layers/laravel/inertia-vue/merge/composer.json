@@ -1,0 +1,6 @@
+{
+    "require": {
+        "inertiajs/inertia-laravel": "^3.0",
+        "laravel/wayfinder": "^0.1.14"
+    }
+}

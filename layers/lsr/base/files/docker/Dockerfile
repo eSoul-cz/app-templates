@@ -1,0 +1,91 @@
+ARG PHP_BASE_VERSION=8.5
+# Pinned to a major that still bundles corepack (Node 25+ dropped it).
+ARG NODE_BASE_VERSION=24-alpine
+
+FROM rg.fr-par.scw.cloud/esoul-starters/php-cli-roadrunner:${PHP_BASE_VERSION} AS base
+
+WORKDIR /app
+
+FROM node:${NODE_BASE_VERSION} AS node_base
+
+WORKDIR /app
+
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+
+RUN corepack enable
+
+FROM node_base AS node_dependencies
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc /app/
+
+RUN --mount=type=cache,id=lsr-app-pnpm,target=/pnpm/store \
+    pnpm config set store-dir /pnpm/store \
+    && pnpm install --frozen-lockfile
+
+FROM node_dependencies AS node_builder
+
+COPY assets /app/assets
+COPY templates /app/templates
+COPY tsconfig.json vite.config.ts /app/
+
+RUN pnpm run build
+
+FROM base AS composer_base
+
+ENV COMPOSER_ALLOW_SUPERUSER=1
+ENV COMPOSER_MAX_PARALLEL_HTTP=4
+
+RUN install-php-extensions @composer
+
+FROM composer_base AS composer_builder
+
+COPY composer.json composer.lock /app/
+COPY src /app/src
+COPY include /app/include
+
+RUN --mount=type=cache,id=lsr-app-composer,target=/tmp/composer-cache \
+    COMPOSER_CACHE_DIR=/tmp/composer-cache composer install \
+        --no-dev \
+        --prefer-dist \
+        --optimize-autoloader \
+        --no-interaction \
+        --no-progress
+
+# ---- development: bind-mounted source, Vite dev server + RoadRunner (docker-compose.yml) ----
+FROM composer_base AS development
+
+RUN apk add --no-cache libstdc++ libgcc
+
+COPY --from=node_base /usr/local /usr/local
+
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+
+COPY --chmod=755 docker/prepare-runtime.sh /prepare-runtime
+COPY --chmod=755 docker/startDev.sh /start
+
+ENTRYPOINT ["/start"]
+
+# ---- production: the last stage is the default build target ----
+FROM base AS production
+
+COPY bin /app/bin
+COPY config /app/config
+COPY include /app/include
+COPY routes /app/routes
+COPY src /app/src
+COPY templates /app/templates
+COPY .rr.yaml psr-worker.php /app/
+COPY --from=composer_builder /app/vendor /app/vendor
+COPY --from=node_builder /app/build /app/build
+
+# Only compiled browser assets are public; the Vite manifest and the application stay private.
+RUN mkdir -p /app/temp/cache /app/temp/latte /app/logs/tracy /app/upload /var/www/public/build \
+    && ln -s /app/build/assets /var/www/public/build/assets
+
+COPY docker/http-smoke.php /usr/local/bin/http-smoke.php
+COPY --chmod=755 docker/prepare-runtime.sh /prepare-runtime
+COPY --chmod=755 docker/startProd.sh /start
+
+ENTRYPOINT ["/start"]

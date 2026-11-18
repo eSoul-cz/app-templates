@@ -1,0 +1,40 @@
+#!/usr/bin/env sh
+
+# Container healthcheck. Supervisor restarts crashed processes; the container is unhealthy when a
+# program it is supposed to run is not RUNNING (crashed for good, stopped by hand, or never
+# started) or when supervisord is unreachable. Programs switched off through RUN_* stay STOPPED
+# and are ignored.
+
+output=$(supervisorctl -c /etc/supervisor/supervisord.conf status 2>&1)
+status=$?
+
+# supervisorctl exits with 3 when some program is not RUNNING; anything else non-zero means
+# supervisord itself is unreachable.
+if [ "$status" -ne 0 ] && [ "$status" -ne 3 ]; then
+    echo "$output"
+    exit 1
+fi
+
+is_required() {
+    case "$1" in
+        php) return 0 ;;
+        laravel-scheduler) [ "${RUN_SCHEDULER:-true}" = "true" ] ;;
+        laravel-queue-worker:*) [ "${RUN_QUEUE_WORKER:-true}" = "true" ] ;;
+        *) return 0 ;;
+    esac
+}
+
+unhealthy=0
+
+while read -r program state _; do
+    [ -n "$program" ] || continue
+
+    if [ "$state" != "RUNNING" ] && is_required "$program"; then
+        echo "${program} is ${state}"
+        unhealthy=1
+    fi
+done <<EOF
+$output
+EOF
+
+exit "$unhealthy"

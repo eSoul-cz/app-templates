@@ -1,0 +1,12 @@
+{
+    "name": "laravel-inertia-filament",
+    "package": "esoul/template-laravel-inertia-filament",
+    "description": "eSoul Laravel 13 application with an Inertia 3 and Vue 3 frontend and a Filament 5 admin panel.",
+    "layers": [
+        {"layer": "common"},
+        {"layer": "laravel/skeleton"},
+        {"layer": "laravel/base"},
+        {"layer": "laravel/inertia-vue"},
+        {"layer": "laravel/filament"}
+    ]
+}

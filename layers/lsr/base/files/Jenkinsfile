@@ -1,0 +1,20 @@
+// Requires lsrPipeline (planned, see esoul-infrastructure docs/plan): libraries pipelines, testing, dockerHelpers, deploy.
+// Parameters mirror laravelPipeline; adjust `image` and `deploy.stack` for the project.
+@Library(['dockerHelpers', 'testing', 'deploy', 'pipelines']) _
+
+lsrPipeline(
+    image: 'lsr-app',
+    images: [[image: 'lsr-app', dockerfile: 'docker/Dockerfile', target: 'production']],
+    prepareCommand: 'php bin/console list --no-interaction',
+    php: [
+        phpstanCommand: 'composer phpstan:ci',
+        testCommand: 'composer test:parallel',
+        tempDirMount: 'temp/tools',
+    ],
+    node: [
+        eslintCommand: 'pnpm run eslint --quiet',
+        prettierCommand: 'pnpm run format:check',
+    ],
+    smoke: [composeFile: 'docker-compose.ci.yml', verificationServices: ['http-smoke']],
+    deploy: [[branches: ['main', 'master'], stack: 'lsr-app']],
+)

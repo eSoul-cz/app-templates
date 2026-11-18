@@ -1,0 +1,3 @@
+# The skeleton's provider is replaced by App\Infrastructure\Providers\AppServiceProvider.
+app/Providers/AppServiceProvider.php
+app/Providers

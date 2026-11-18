@@ -1,0 +1,26 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+use ESoul\AppTemplates\Command\BuildCommand;
+use ESoul\AppTemplates\Command\ListCommand;
+use ESoul\AppTemplates\Command\SkeletonSyncCommand;
+use Symfony\Component\Console\Application;
+
+$autoload = __DIR__ . '/../vendor/autoload.php';
+if (!is_file($autoload)) {
+    fwrite(STDERR, "Dependencies are missing, run `composer install` first.\n");
+    exit(1);
+}
+require $autoload;
+
+$root = dirname(__DIR__);
+
+$application = new Application('eSoul app templates builder');
+$application->addCommands([
+    new ListCommand($root),
+    new BuildCommand($root),
+    new SkeletonSyncCommand($root),
+]);
+$application->run();

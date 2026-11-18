@@ -1,0 +1,9 @@
+# pnpm >= 10.26 reads `allowBuilds`, older pnpm 10 reads `onlyBuiltDependencies`. CI runs the pnpm from
+# `packageManager` (10.20.0), so both are listed for now.
+allowBuilds:
+    esbuild: true
+onlyBuiltDependencies:
+    - esbuild
+# Supply chain: pnpm only takes package versions that are at least one day old (value in minutes).
+# An urgent security fix can bypass it with `minimumReleaseAgeExclude: ['<package>@<version>']`.
+minimumReleaseAge: 1440

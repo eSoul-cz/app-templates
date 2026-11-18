@@ -1,0 +1,167 @@
+# EXAMPLE: example-project.example.com = static site (Astro, frontend/) + backend (Laravel + Filament, backend/) on one
+# domain. Replace the domain, the paths under /data/apps/example-project and the upstream name.
+#
+# Site for the shared nginx of the host (sites-enabled). php-fpm runs in the container of the Komodo stack without
+# a published port; the upstream name is the service name in the compose file. TLS ends on a proxy in front: HTTP
+# with X-Forwarded-* arrives here.
+#
+# The backend gets only this:
+#   /admin            Filament admin
+#   /cms-api          content export for the site build + the callback of Jenkins (IP allowlist in the backend)
+#   /livewire*        Livewire (the script and the update endpoint)
+#   /up               health check
+# Served from the backend volumes, not by php (aliases below):
+#   /_cms/            content-addressed public media (written by the export, pruned by cms:prune-public-media)
+#   /cms-media/       uploads of the admin (previews in Filament)
+#   /build, /css|js|fonts/filament   assets of the admin panel (public/ of the backend)
+# Everything else is the static site that Jenkins deploys with deployStaticSite: HTML from the release behind
+# the symlink `web/current`, hashed /_astro from the shared directory `web/shared`.
+#
+# Security headers: docker/nginx-security-headers.conf as /etc/nginx/snippets/security-headers.conf.
+
+upstream example-project-be {
+    server example-project-be:9000;
+}
+
+# Redirect to HTTPS unless the request came through the TLS proxy, except the internal health check /up.
+map "$http_x_forwarded_proto:$uri" $redirect_to_https {
+    default     1;
+    "~^https:"  0;
+    "~^[^:]*:/up$" 0;
+}
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name example-project.example.com;
+
+    # The real client IP in the access log. Laravel reads X-Forwarded-For itself (TRUSTED_PROXIES), this is for nginx.
+    # set_real_ip_from <address of the TLS proxy>;
+    # real_ip_header X-Forwarded-For;
+
+    server_tokens off;
+
+    # A missing page of the site = the 404.html of the build with status 404. 404s from Laravel (/admin, /cms-api)
+    # stay, because fastcgi_intercept_errors is off.
+    error_page 404 /404.html;
+
+    include /etc/nginx/snippets/security-headers.conf;
+
+    # Image uploads in the admin (Filament).
+    client_max_body_size 64M;
+
+    # TLS ends on the proxy; an absolute redirect would be composed as http://host:port/…
+    absolute_redirect off;
+
+    # Fixed host ($server_name), never $host from a client header.
+    if ($redirect_to_https) {
+        return 301 https://$server_name$request_uri;
+    }
+
+    # ---------------------------------------------------------------- static site
+    # Symlink to the current release; nginx resolves it on every request.
+    root /data/apps/example-project/web/current;
+    index index.html;
+
+    location = /404.html {
+        internal;
+        # `always`: without it nginx drops the headers of a 404 response.
+        add_header Cache-Control "no-cache" always;
+        include /etc/nginx/snippets/security-headers.conf;
+    }
+    # `try_files $uri.html` would return /404 as a page with status 200.
+    location = /404 {
+        return 404;
+    }
+
+    # Dotfiles in the web root (.env, .git, …) never. /.well-known/ stays reachable.
+    location ~ /\.(?!well-known/) {
+        deny all;
+    }
+
+    location / {
+        # Astro generates /page/index.html. `$uri/index.html` instead of `$uri/`, otherwise every link without a
+        # trailing slash would cost a redirect.
+        try_files $uri $uri/index.html $uri.html =404;
+        # HTML must not be cached for long: old HTML with new /_astro assets would break.
+        add_header Cache-Control "no-cache";
+        include /etc/nginx/snippets/security-headers.conf;
+    }
+
+    # Hashed names = immutable files. Shared between releases: a page opened from an older build still finds its
+    # lazily loaded chunks for 7 days after they left the build.
+    location ^~ /_astro/ {
+        root /data/apps/example-project/web/shared;
+        try_files $uri =404;
+        add_header Cache-Control "public, max-age=31536000, immutable";
+        include /etc/nginx/snippets/security-headers.conf;
+    }
+
+    # Site media (name = content hash): the backend writes them when it serves the export (disk cms-public,
+    # persistent volume). They are not in the release. Images only; the sandbox forbids scripts even if something else lands here.
+    location ^~ /_cms/ {
+        alias /data/apps/example-project/be/storage/app/cms-public/;
+        try_files $uri =404;
+        types { image/png png; image/jpeg jpg; image/webp webp; image/avif avif; }
+        default_type application/octet-stream;
+        add_header Cache-Control "public, max-age=31536000, immutable";
+        add_header Content-Security-Policy "default-src 'none'; img-src 'self'; sandbox" always;
+        include /etc/nginx/snippets/security-headers.conf;
+    }
+
+    # ---------------------------------------------------------------- backend (Laravel)
+    # Uploads of the admin: images only, anything else downloads (never a page on the origin of the admin).
+    location ^~ /cms-media/ {
+        alias /data/apps/example-project/be/storage/app/cms-media/;
+        try_files $uri =404;
+        types { image/png png; image/jpeg jpg jpeg; image/webp webp; image/avif avif; }
+        default_type application/octet-stream;
+        add_header Cache-Control "public, max-age=86400";
+        add_header Content-Security-Policy "default-src 'none'; img-src 'self'; sandbox" always;
+        include /etc/nginx/snippets/security-headers.conf;
+    }
+
+    # Assets of the admin panel: copied from public/ of the backend image to the host after each deploy.
+    location ^~ /build/ {
+        root /data/apps/example-project/be/public;
+        try_files $uri =404;
+        add_header Cache-Control "public, max-age=31536000, immutable";
+        include /etc/nginx/snippets/security-headers.conf;
+    }
+
+    location ^~ /css/filament/ {
+        root /data/apps/example-project/be/public;
+        add_header Cache-Control "public, max-age=604800";
+        include /etc/nginx/snippets/security-headers.conf;
+    }
+
+    location ^~ /js/filament/ {
+        root /data/apps/example-project/be/public;
+        add_header Cache-Control "public, max-age=604800";
+        include /etc/nginx/snippets/security-headers.conf;
+    }
+
+    location ^~ /fonts/filament/ {
+        root /data/apps/example-project/be/public;
+        add_header Cache-Control "public, max-age=2592000";
+        include /etc/nginx/snippets/security-headers.conf;
+    }
+
+    location ~ ^/(admin|cms-api|livewire[^/]*)(/|$)|^/up$ {
+        fastcgi_pass example-project-be;
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME /var/www/public/index.php;
+        fastcgi_hide_header X-Powered-By;
+        fastcgi_param HTTP_X_FORWARDED_PROTO $http_x_forwarded_proto;
+        fastcgi_param HTTP_X_FORWARDED_FOR $http_x_forwarded_for;
+
+        set $custom_https off;
+        if ($http_x_forwarded_proto = 'https') {
+            set $custom_https on;
+        }
+        fastcgi_param HTTPS $custom_https;
+
+        # Image uploads and the export (which copies media) can take longer than the default 60 s.
+        fastcgi_read_timeout 300;
+    }
+}

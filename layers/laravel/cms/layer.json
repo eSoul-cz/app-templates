@@ -1,0 +1,1 @@
+{"description": "Headless CMS on top of laravel/base + laravel/filament: Page and SiteSetting models and Filament resources, content export contract v1 (GET /cms-api/v1/export), content-addressed public media, Publish button with Jenkins trigger, poll fallback and callback."}

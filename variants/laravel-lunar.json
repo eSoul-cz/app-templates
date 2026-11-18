@@ -1,0 +1,12 @@
+{
+    "name": "laravel-lunar",
+    "package": "esoul/template-laravel-lunar",
+    "description": "eSoul Laravel 13 e-shop on Lunar with an Inertia 3 and Vue 3 storefront (Lunar owns the admin panel).",
+    "layers": [
+        {"layer": "common"},
+        {"layer": "laravel/skeleton"},
+        {"layer": "laravel/base"},
+        {"layer": "laravel/inertia-vue"},
+        {"layer": "laravel/lunar"}
+    ]
+}

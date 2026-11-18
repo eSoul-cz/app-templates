@@ -1,0 +1,55 @@
+// Requires astroCmsPipeline (planned, see esoul-infrastructure docs/plan)
+//
+// The only Jenkinsfile of the monorepo (multibranch job with the default scriptPath). `astroCmsPipeline` does not
+// exist yet; this is the configuration it is meant to take. Replace the example values with the project's own.
+//
+// What the step is meant to do (frontend/ = Astro static site, backend/ = Laravel + Filament CMS):
+//  - Plan: decide from the changed paths what runs. Pull requests and other branches: backend tests when
+//    backend/ changed, frontend checks when frontend/ or backend/tests/Fixtures/ changed. main: backend tests +
+//    image + Komodo deploy when backend/ changed, website build + static deploy when frontend/ changed, on a
+//    manual start, or on a publish from the admin. A publish (parameter CMS_PUBLISH_ID) builds and deploys only the
+//    website and reports back.
+//  - Backend (docker/production/Dockerfile): composer install, pint, phpstan, php artisan test, composer audit;
+//    on main build + push the multi-arch image and deploy the Komodo stack. Same stages as laravelPipeline.
+//  - Frontend checks (no backend needed): pnpm install --frozen-lockfile, format:check, fixture:check, then with
+//    an explicit CMS_SOURCE=fixture: check, build, verify; pnpm audit.
+//  - Website build (main / publish): backend is deployed first, then pnpm install --frozen-lockfile, check, build,
+//    verify with CMS_SOURCE=api, CMS_API_URL, CMS_API_TOKEN (credential) and SITE_URL. The fixture is never allowed
+//    here: the build fails when the export is unreachable. CONTENT_HASH is read from node_modules/.astro/cms/source.json.
+//  - Static deploy on an agent labelled `deploy`, under a lock: deployStaticSite(sourceDir: 'dist/',
+//    deployPath, sharedDirs: ['_astro']) -> <deployPath>/current -> releases/<id> (docker/nginx.example).
+//  - post { always }: when CMS_PUBLISH_ID is set, POST {cmsApiUrl}/publishes/<id>/status with
+//    `Authorization: Bearer <callback token>` and {result, buildUrl, contentHash}. A failing callback never fails
+//    the build; the admin falls back to polling Jenkins (Publish page, "Refresh status").
+//  - disableConcurrentBuilds(): two publishes would overwrite each other's release.
+//
+// Jenkins parameter (declared by the step): CMS_PUBLISH_ID (string, empty by default, filled by the admin).
+// Credentials: scaleway_secret_key, komodo_deploy_api_key, komodo_deploy_api_secret, deploy_ssh (as in
+// laravelPipeline) plus the two Secret Text credentials below. The export token is CMS_EXPORT_TOKEN of
+// backend/.env, the callback token is CMS_JENKINS_CALLBACK_TOKEN.
+//
+// The build agent fetches /cms-api over the public URL, so its address has to be in CMS_API_ALLOWED_IPS of the
+// backend (README, "Publish flow").
+@Library(['dockerHelpers', 'testing', 'deploy', 'pipelines']) _
+
+astroCmsPipeline(
+    // Backend: image built from backend/docker/production/Dockerfile and the Komodo stack that runs it.
+    backendImage: 'example-project-be',
+    backendStack: 'example-project',
+
+    // Frontend: Node image of the checks and of the production build, pinned by version and digest.
+    nodeImage: 'node:24',
+
+    // Static site: release root on the server (current/, releases/, shared/) and the public origin.
+    deployPath: '/data/apps/example-project/web',
+    sharedDirs: ['_astro'],
+    siteUrl: 'https://example-project.example.com',
+
+    // Publish flow: where the build fetches the export and which credentials it uses.
+    cmsApiUrl: 'https://example-project.example.com/cms-api/v1',
+    exportTokenCredentialsId: 'example-project-cms-export-token',
+    callbackTokenCredentialsId: 'example-project-cms-callback-token',
+    publishParameter: 'CMS_PUBLISH_ID',
+
+    deployBranches: ['main'],
+)

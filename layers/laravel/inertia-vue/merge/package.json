@@ -1,0 +1,47 @@
+{
+    "scripts": {
+        "build": "vite build",
+        "dev": "vite",
+        "eslint": "eslint --cache --cache-location=./tmp/eslint .",
+        "eslint:fix": "eslint --cache --cache-location=./tmp/eslint . --fix",
+        "lint": "pnpm run eslint",
+        "format": "prettier --cache --cache-location=./tmp/prettier --write resources/",
+        "format:check": "prettier --cache --cache-location=./tmp/prettier --check resources/",
+        "tsc": "vue-tsc --noEmit -p tsconfig.json",
+        "test": "vitest run",
+        "test:watch": "vitest"
+    },
+    "dependencies": {
+        "@inertiajs/vue3": "^3.11.0",
+        "@lucide/vue": "^1.52.0",
+        "@vueuse/core": "^15.0.0",
+        "class-variance-authority": "^0.7.1",
+        "clsx": "^2.1.1",
+        "reka-ui": "^2.11.0",
+        "tailwind-merge": "^3.3.1",
+        "tw-animate-css": "^1.4.0",
+        "vue": "^3.5.45"
+    },
+    "devDependencies": {
+        "@eslint/js": "^10.0.1",
+        "@inertiajs/vite": "^3.11.0",
+        "@laravel/vite-plugin-wayfinder": "^0.1.10",
+        "@tailwindcss/vite": "^4.3.3",
+        "@types/node": "^24.0.0",
+        "@vitejs/plugin-vue": "^6.0.9",
+        "@vue/eslint-config-typescript": "^14.9.0",
+        "eslint": "^10.12.0",
+        "eslint-config-prettier": "^10.1.8",
+        "eslint-plugin-vue": "^10.11.1",
+        "laravel-vite-plugin": "^3.2.0",
+        "prettier": "^3.9.9",
+        "prettier-plugin-organize-imports": "^4.3.0",
+        "prettier-plugin-tailwindcss": "^0.8.1",
+        "tailwindcss": "^4.3.3",
+        "typescript": "^6.0.3",
+        "typescript-eslint": "^8.71.1",
+        "vite": "^8.3.3",
+        "vitest": "^5.0.3",
+        "vue-tsc": "^3.3.12"
+    }
+}

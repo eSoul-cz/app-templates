@@ -1,0 +1,11 @@
+{
+    "name": "laravel-inertia",
+    "package": "esoul/template-laravel-inertia",
+    "description": "eSoul Laravel 13 application with Inertia 3 and Vue 3.",
+    "layers": [
+        {"layer": "common"},
+        {"layer": "laravel/skeleton"},
+        {"layer": "laravel/base"},
+        {"layer": "laravel/inertia-vue"}
+    ]
+}

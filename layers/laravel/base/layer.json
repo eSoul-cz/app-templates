@@ -1,0 +1,3 @@
+{
+    "description": "eSoul Laravel base on top of the upstream skeleton: app/{Domain,Application,Infrastructure} layering (service providers in App\\Infrastructure\\Providers), Pint, Larastan level 10, PHPUnit 13 + paratest, Infection, php-fpm production image (RUN_MIGRATIONS/RUN_SCHEDULER/RUN_QUEUE_WORKER) and dev docker-compose (php-fpm, nginx, MariaDB 12), one-call Jenkinsfile (laravelPipeline). bootstrap/providers.php lists AppServiceProvider only: a layer that adds a provider overwrites it, and the LAST layer in a variant owns the full list."
+}

@@ -1,0 +1,4 @@
+# Replaced by the TypeScript/Inertia equivalents of this layer.
+resources/js/app.js
+vite.config.js
+resources/views/welcome.blade.php

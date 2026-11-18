@@ -1,0 +1,19 @@
+{
+    "name": "astro-laravel-cms",
+    "package": "esoul/template-astro-laravel-cms",
+    "description": "eSoul monorepo: static Astro frontend (frontend/) with a Laravel and Filament headless CMS (backend/).",
+    "layers": [
+        {"layer": "common"},
+        {"layer": "astro-cms/root"},
+        {"layer": "astro/static", "into": "frontend"},
+        {"layer": "astro/cms-client", "into": "frontend"},
+        {"layer": "laravel/skeleton", "into": "backend"},
+        {
+            "layer": "laravel/base",
+            "into": "backend",
+            "exclude": ["Jenkinsfile", ".github/**", ".coderabbit.yaml", ".editorconfig"]
+        },
+        {"layer": "laravel/filament", "into": "backend"},
+        {"layer": "laravel/cms", "into": "backend"}
+    ]
+}

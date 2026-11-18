@@ -1,0 +1,4 @@
+{
+    "description": "Upstream laravel/laravel skeleton, refreshed by `bin/templates skeleton:sync`. Do not edit by hand.",
+    "upstream": "13.11.0"
+}

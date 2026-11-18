@@ -1,0 +1,5 @@
+{
+    "require": {
+        "lunarphp/lunar": "^1.5"
+    }
+}

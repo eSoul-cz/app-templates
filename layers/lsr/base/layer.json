@@ -1,0 +1,3 @@
+{
+    "description": "LSR framework + RoadRunner application with Inertia 3 (Vue 3), Latte layout, Neon DI, dibi/MariaDB, Vite 8 and Tailwind 4. No SSR, auth, CQRS or OpenTelemetry."
+}

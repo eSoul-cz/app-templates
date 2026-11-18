@@ -1,0 +1,31 @@
+<?php
+
+declare(strict_types=1);
+
+/**
+ * All basic global constants. Requires ROOT to be defined.
+ */
+
+/** Directory containing log files */
+const LOG_DIR = ROOT . 'logs/';
+/** Directory containing temporary files and caches */
+const TMP_DIR = ROOT . 'temp/';
+/** Directory containing Latte templates */
+const TEMPLATE_DIR = ROOT . 'templates/';
+/** Directory for files hidden from the user (local config overrides) */
+const PRIVATE_DIR = ROOT . 'private/';
+const LANGUAGE_DIR = ROOT . 'languages/';
+const LANGUAGE_FILE_NAME = 'LAC';
+const ASSETS_DIR = ROOT . 'assets/';
+/** App's default language */
+const DEFAULT_LANGUAGE = 'cs';
+
+/** Directory for user uploads; configurable by UPLOAD_DIR (absolute, or relative to ROOT) */
+$uploadDir = (string) ($_ENV['UPLOAD_DIR'] ?? $_SERVER['UPLOAD_DIR'] ?? ROOT . 'upload/');
+if ($uploadDir === '') {
+    $uploadDir = ROOT . 'upload/';
+}
+if ($uploadDir[0] !== '/') {
+    $uploadDir = ROOT . $uploadDir;
+}
+define('UPLOAD_DIR', rtrim($uploadDir, '/') . '/');

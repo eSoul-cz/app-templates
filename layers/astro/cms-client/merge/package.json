@@ -1,0 +1,8 @@
+{
+    "scripts": {
+        "check": "CMS_SOURCE=${CMS_SOURCE:-fixture} astro check",
+        "cms:pull": "CMS_SOURCE=api astro sync",
+        "fixture:build": "node scripts/build-fixture.mjs",
+        "fixture:check": "node scripts/check-fixture.mjs"
+    }
+}

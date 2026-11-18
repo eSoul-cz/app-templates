@@ -1,0 +1,26 @@
+includes:
+	- extensions/search.neon
+	- extensions/roadrunner.neon
+	- extensions/console.neon
+	- extensions/scheduler.neon
+	- extensions/serializer.neon
+	- extensions/cache.neon
+	- extensions/orm.neon
+	- extensions/routing.neon
+	- extensions/assets.neon
+	- extensions/lsr.neon
+	- extensions/latte.neon
+	- extensions/request.neon
+	- extensions/inertia.neon
+	- configs/middleware.neon
+extensions:
+	decorator: Nette\DI\Extensions\DecoratorExtension
+	inject: Nette\DI\Extensions\InjectExtension
+	di: Nette\DI\Extensions\DIExtension
+
+di:
+	lazy: true
+
+decorator:
+	Lsr\Core\Controllers\Controller:
+		inject: true

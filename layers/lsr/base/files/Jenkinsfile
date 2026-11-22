@@ -1,20 +1,143 @@
-// Requires lsrPipeline (planned, see esoul-infrastructure docs/plan): libraries pipelines, testing, dockerHelpers, deploy.
-// Parameters mirror laravelPipeline; adjust `image` and `deploy.stack` for the project.
 @Library(['dockerHelpers', 'testing', 'deploy', 'pipelines']) _
 
-lsrPipeline(
-    image: 'lsr-app',
-    images: [[image: 'lsr-app', dockerfile: 'docker/Dockerfile', target: 'production']],
-    prepareCommand: 'php bin/console list --no-interaction',
-    php: [
-        phpstanCommand: 'composer phpstan:ci',
-        testCommand: 'composer test:parallel',
-        tempDirMount: 'temp/tools',
-    ],
-    node: [
-        eslintCommand: 'pnpm run eslint --quiet',
-        prettierCommand: 'pnpm run format:check',
-    ],
-    smoke: [composeFile: 'docker-compose.ci.yml', verificationServices: ['http-smoke']],
-    deploy: [[branches: ['main', 'master'], stack: 'lsr-app']],
-)
+// The pipeline is composed from the steps the eSoul Jenkins libraries have today (fullPhpTest, fullNodeTest,
+// dockerComposeSmokeTest, dockerBuildMultiArch, deployKomodoStack): `lsrPipeline` does not exist yet (plan J4).
+//
+// PLANNED, not available yet: when `lsrPipeline` is released, this whole file becomes the one call below, the way
+// `laravelPipeline` is one call in the Laravel templates. Until then keep this file; do not call `lsrPipeline`.
+//
+//     lsrPipeline(
+//         image: 'lsr-app',
+//         images: [[image: 'lsr-app', dockerfile: 'docker/Dockerfile', target: 'production']],
+//         prepareCommand: 'php bin/console list --no-interaction',
+//         php: [phpstanCommand: 'composer phpstan:ci', csCommand: 'composer cs', testCommand: 'composer test:parallel'],
+//         node: [eslintCommand: 'pnpm run eslint --quiet', prettierCommand: 'pnpm run format:check'],
+//         smoke: [composeFile: 'docker-compose.ci.yml', verificationServices: ['http-smoke']],
+//         deploy: [[branches: ['main', 'master'], stack: 'lsr-app']],
+//     )
+//
+// Adopting the template: set `image` to the release image name of the application (lowercase letters, digits, `_`,
+// `.`, `-`; it is pushed to the `registry` namespace) and `stack` to the Komodo stack to deploy after the release
+// (empty: no deployment).
+
+String image = 'replace-with-app-name'
+String stack = ''
+String registry = 'rg.fr-par.scw.cloud/app-images'
+String registryHost = 'rg.fr-par.scw.cloud'
+String phpImage = 'rg.fr-par.scw.cloud/testing-images/php:8.5'
+String nodeImage = 'node:26'
+// Release images are built and pushed from these branches.
+boolean release = env.BRANCH_NAME in ['main', 'master']
+
+properties([disableConcurrentBuilds(abortPrevious: env.CHANGE_ID != null)])
+
+node {
+    try {
+        timeout(time: 60, unit: 'MINUTES') {
+            stage('Checkout') {
+                // Large LFS assets are not needed by the build.
+                withEnv(['GIT_LFS_SKIP_SMUDGE=1']) {
+                    checkout scm
+                }
+            }
+
+            stage('Docker Login') {
+                withCredentials([string(credentialsId: 'scaleway_secret_key', variable: 'SECRET')]) {
+                    dockerRegistryLogin(registryUrl: registryHost, password: env.SECRET)
+                }
+            }
+
+            stage('Prepare') {
+                composerInstall(image: phpImage)
+                runCommandInTest(image: phpImage, command: 'php bin/console list --no-interaction')
+            }
+
+            stage('Checks') {
+                parallel(
+                    'PHP': {
+                        stage('PHP checks') {
+                            fullPhpTest(
+                                image: phpImage,
+                                install: false,
+                                phpstanCommand: 'composer phpstan:ci',
+                                csCommand: 'composer cs',
+                                testCommand: 'composer test:parallel',
+                                additionalTests: [[name: 'Composer audit', command: 'composer audit --locked']],
+                            )
+                        }
+                    },
+                    'JS': {
+                        stage('JS checks') {
+                            fullNodeTest(
+                                image: nodeImage,
+                                eslintCommand: 'pnpm run eslint --quiet',
+                                prettierCommand: 'pnpm run format:check',
+                                typecheck: true,
+                                test: true,
+                                additionalTests: [
+                                    [name: 'Dependency audit', command: 'pnpm audit'],
+                                    [name: 'Build', command: 'pnpm run build'],
+                                ],
+                            )
+                        }
+                    },
+                )
+            }
+
+            stage('Image smoke test') {
+                // The production image is built locally and started with MariaDB by docker-compose.ci.yml;
+                // `http-smoke` requests it over HTTP and FastCGI.
+                String candidate = "${image}:ci-${env.BUILD_TAG}".toLowerCase().replaceAll(/[^a-z0-9_.-]/, '-')
+                try {
+                    sh "docker build -f docker/Dockerfile --target production -t ${candidate} ."
+                    dockerComposeSmokeTest(
+                        composeFile: 'docker-compose.ci.yml',
+                        environment: ["APP_IMAGE=${candidate}".toString()],
+                        verificationServices: ['http-smoke'],
+                    )
+                } finally {
+                    sh "docker rmi ${candidate} || true"
+                }
+            }
+        }
+    } finally {
+        sh 'sudo /usr/local/sbin/jenkins-fix-workspace "$WORKSPACE" || true'
+        cleanWs()
+    }
+}
+
+if (!release) {
+    echo "No release for branch '${env.BRANCH_NAME}': images are built and pushed from main and master."
+    return
+}
+
+stage('Build and push image') {
+    timeout(time: 60, unit: 'MINUTES') {
+        withCredentials([string(credentialsId: 'scaleway_secret_key', variable: 'SECRET')]) {
+            dockerBuildMultiArch(
+                registry: registry,
+                registryHost: registryHost,
+                registryPassword: env.SECRET,
+                image: image,
+                contextDir: '.',
+                dockerfile: 'docker/Dockerfile',
+                target: 'production',
+                tags: ['latest'],
+            )
+        }
+    }
+}
+
+if (stack) {
+    stage('Deploy') {
+        node {
+            echo "Deploying stack ${stack}..."
+            withCredentials([
+                string(credentialsId: 'komodo_deploy_api_key', variable: 'API_KEY'),
+                string(credentialsId: 'komodo_deploy_api_secret', variable: 'API_SECRET'),
+            ]) {
+                deployKomodoStack(apiKey: env.API_KEY, apiSecret: env.API_SECRET, deployStackName: stack)
+            }
+        }
+    }
+}

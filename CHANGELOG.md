@@ -50,9 +50,10 @@ Affects: `astro-laravel-cms` / layer `astro-cms/root` (`docker/nginx.example`, `
 
 `docker/nginx.example` documents both placements: the admin on the same domain under `/admin` (the existing, still default layout) and
 on `admin.<domain>` (a second server block that proxies `/admin`, `/livewire*`, `/cms-api`, `/up` to php-fpm and serves `/cms-media/`, `/_cms/`
-and the panel assets). The environment differences (`APP_URL`, `SESSION_DOMAIN=null`, `cmsApiUrl`), why CORS is not needed (the static build
-fetches the export server-side) and the `CMS_API_ALLOWED_IPS` requirement are written down; the root README has a "Where the admin lives"
-section on how to choose. No backend or frontend code changed.
+and the panel assets; the Mode B blocks are complete, so uncommenting them gives a working configuration). The environment differences
+(`APP_URL`, `SESSION_DOMAIN=null`, `cmsApiUrl`), why CORS is not needed (the static build fetches the export server-side) and the
+`CMS_API_ALLOWED_IPS` requirement are written down; the root README has a "Where the admin lives" section on how to choose. No backend or
+frontend code changed.
 
 Migration: none for projects staying on one domain. To move the admin to a subdomain, take the Mode B blocks from `docker/nginx.example`, set
 `APP_URL` to the admin host, point `cmsApiUrl` (Jenkinsfile) and `CMS_API_URL` at `https://admin.<domain>/cms-api/v1`, keep `SESSION_DOMAIN=null`

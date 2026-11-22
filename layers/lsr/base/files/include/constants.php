@@ -21,10 +21,8 @@ const ASSETS_DIR = ROOT . 'assets/';
 const DEFAULT_LANGUAGE = 'cs';
 
 /** Directory for user uploads; configurable by UPLOAD_DIR (absolute, or relative to ROOT) */
-$uploadDir = (string) ($_ENV['UPLOAD_DIR'] ?? $_SERVER['UPLOAD_DIR'] ?? ROOT . 'upload/');
-if ($uploadDir === '') {
-    $uploadDir = ROOT . 'upload/';
-}
+$configuredUploadDir = $_ENV['UPLOAD_DIR'] ?? $_SERVER['UPLOAD_DIR'] ?? '';
+$uploadDir = is_string($configuredUploadDir) && $configuredUploadDir !== '' ? $configuredUploadDir : ROOT . 'upload/';
 if ($uploadDir[0] !== '/') {
     $uploadDir = ROOT . $uploadDir;
 }

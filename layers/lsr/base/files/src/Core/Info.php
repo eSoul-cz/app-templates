@@ -99,7 +99,7 @@ class Info
         );
         $cache = App::getService('cache');
         assert($cache instanceof Cache);
-        $cache->save('info.' . $key, $serialized, [$cache::Tags => ['info', 'info/' . $key]]);
+        $cache->save('info.' . $key, $serialized, [Cache::Tags => ['info', 'info/' . $key]]);
     }
 
     public static function clearStaticCache(): void {

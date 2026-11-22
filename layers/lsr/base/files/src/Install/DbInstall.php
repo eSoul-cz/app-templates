@@ -13,8 +13,6 @@ use Lsr\Db\DB;
 use Lsr\Exceptions\FileException;
 use Lsr\Orm\Model;
 use Nette\Utils\AssertionException;
-use ReflectionClass;
-use ReflectionException;
 use Symfony\Component\Console\Output\OutputInterface;
 
 /**
@@ -56,8 +54,9 @@ class DbInstall
         try {
             if ($fresh) {
                 self::printWarning('Dropping all tables', $output);
-                // Published-revision pointers form cycles with their owning mockup.
-                $foreignKeyChecks = (int) $connection->query('SELECT @@SESSION.FOREIGN_KEY_CHECKS')->fetchSingle();
+                // Foreign keys can reference each other in cycles, so they are not checked while the tables are dropped.
+                $foreignKeyChecksValue = $connection->query('SELECT @@SESSION.FOREIGN_KEY_CHECKS')->fetchSingle();
+                $foreignKeyChecks = is_numeric($foreignKeyChecksValue) ? (int) $foreignKeyChecksValue : 1;
                 $connection->query('SET SESSION FOREIGN_KEY_CHECKS = 0');
                 try {
                     foreach (array_reverse($tables) as $tableName => $definition) {
@@ -224,6 +223,7 @@ class DbInstall
                             $foreignKey->refColumn,
                         )
                         ->fetchPairs();
+                    $fks = array_values(array_filter($fks, is_string(...)));
                     $count = count($fks);
                     if ($count === 1) {
                         // FK already exists
@@ -276,9 +276,13 @@ class DbInstall
                 $indexes = $connection->query("SHOW INDEX FROM %n WHERE key_name NOT IN %in;", $tableName, $indexNames)
                     ->fetchAll();
                 foreach ($indexes as $row) {
+                    $indexName = $row->Key_name;
+                    if ( ! is_string($indexName)) {
+                        continue;
+                    }
                     try {
-                        self::printDebug('DROPPING index on: ' . $tableName . ' - ' . $row->Key_name, $output);
-                        $connection->query('DROP INDEX %n ON %n;', $row->Key_name, $tableName);
+                        self::printDebug('DROPPING index on: ' . $tableName . ' - ' . $indexName, $output);
+                        $connection->query('DROP INDEX %n ON %n;', $indexName, $tableName);
                     } catch (Exception $e) {
                         if (str_contains($e->getMessage(), 'needed in a foreign key')) {
                             continue; // Ignore
@@ -319,25 +323,12 @@ class DbInstall
             return static::$classTables[$className];
         }
 
-        // Try to get table name from reflection
-        try {
-            $reflection = new ReflectionClass($className);
-        } catch (ReflectionException) { // @phpstan-ignore-line
-            // Class not found
+        // Only Model subclasses define a table
+        if ( ! is_subclass_of($className, Model::class)) {
             return null;
         }
 
-        // Check if the class is instance of Model
-        while ($parent = $reflection->getParentClass()) {
-            if ($parent->getName() === Model::class) {
-                // Cache result
-                static::$classTables[$className] = $className::TABLE;
-                return $className::TABLE;
-            }
-            $reflection = $parent;
-        }
-
-        // Class is not a Model
-        return null;
+        static::$classTables[$className] = $className::TABLE;
+        return $className::TABLE;
     }
 }

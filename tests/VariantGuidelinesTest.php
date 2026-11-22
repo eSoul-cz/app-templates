@@ -33,8 +33,8 @@ final class VariantGuidelinesTest extends TestCase
         yield 'laravel-inertia' => ['laravel-inertia', [...$laravel, 'package/inertia-vue', 'package/laravel-inertia']];
         yield 'laravel-filament' => ['laravel-filament', [...$laravel, 'package/filament']];
         yield 'laravel-inertia-filament' => ['laravel-inertia-filament', [...$laravel, 'package/inertia-vue', 'package/laravel-inertia', 'package/filament']];
-        // package/lunar is not written yet and Lunar owns its own Filament panel, so there is no package/filament.
-        yield 'laravel-lunar' => ['laravel-lunar', [...$laravel, 'package/inertia-vue', 'package/laravel-inertia']];
+        // Lunar owns a Filament panel, which package/filament covers; package/lunar adds the Lunar rules.
+        yield 'laravel-lunar' => ['laravel-lunar', [...$laravel, 'package/inertia-vue', 'package/laravel-inertia', 'package/filament', 'package/lunar']];
         yield 'laravel-cms' => ['laravel-cms', [...$laravel, 'package/filament']];
         yield 'lsr-inertia' => ['lsr-inertia', ['general', 'framework/lsr', 'package/inertia-vue', 'package/mutation-testing']];
 

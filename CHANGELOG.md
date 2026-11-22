@@ -26,6 +26,19 @@ Migration: what an existing project must do (or "none").
 
 ## Unreleased
 
+### 2026-11-23: Guidelines 0.3 and the Lunar guideline layers
+
+Affects: `laravel-inertia`, `laravel-filament`, `laravel-inertia-filament`, `laravel-lunar`, `laravel-cms`, `lsr-inertia`, `astro-cms` / layers `laravel/base`, `lsr/base`, `astro-cms/root`, `laravel/lunar`; the builder.
+
+The builder renders with `esoul-cz/guidelines` `^0.3` (v0.3.0), and the layers require it in `require-dev`, so `composer update` keeps the
+rendered docs and the installed installer in step. `laravel-lunar` declares `package/filament` (Lunar owns a Filament panel) and the new
+`package/lunar` (`merge/esoul-guidelines.json`), so its `docs/project_guidelines/` gain the Lunar sections of architecture, testing and
+integrations.
+
+Migration: in `composer.json` raise `esoul-cz/guidelines` to `^0.3`, run `composer update esoul-cz/guidelines` (its `post-update-cmd` runs
+`esoul-guidelines sync`) and commit the result. A `laravel-lunar` project that is still on `^0.2` adds `package/filament` and
+`package/lunar` to `esoul-guidelines.json` first.
+
 ### 2026-11-23: `laravel-lunar` calculates cart lines in integer minor units; the "no Lunar guideline layer" note is dropped
 
 Affects: `laravel-lunar` / layer `laravel/lunar` (`config/lunar/cart.php`, `app/Infrastructure/Lunar/Cart/CalculateLines.php`, `tests`, `README.md`, `layer.json`).

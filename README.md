@@ -109,10 +109,10 @@ the `No test:` line and the Deploy notes line the workflow guideline asks for),
 explicitly by an internal repository, never by a template). There is no `CODEOWNERS` and no `CONTRIBUTING` (the guidelines carry the
 rules). Each stack layer adds its guideline layers through its own `merge/esoul-guidelines.json` (e.g. `framework/laravel`,
 `package/laravel-inertia`, `package/filament`, `package/mutation-testing`), so what a variant declares is the union of its layers' lists.
-Only existing guideline layers may be listed: `package/lunar` is not written yet (plan G3).
+Only existing guideline layers may be listed (`laravel-lunar` lists `package/filament` and `package/lunar`).
 
 Every layer that ships a framework `composer.json` (the Laravel layers, `lsr/base`, the Astro CMS root) requires `esoul-cz/guidelines`
-`^0.2` and adds `"esoul-guidelines sync"` to `scripts.post-update-cmd`, after Laravel Boost's `boost:update` where there is one, so
+`^0.3` and adds `"esoul-guidelines sync"` to `scripts.post-update-cmd`, after Laravel Boost's `boost:update` where there is one, so
 `composer update` re-renders `docs/project_guidelines/` (the installer README, "Sync on `composer update`").
 
 ### The `laravel/skeleton` layer

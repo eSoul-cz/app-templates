@@ -3,9 +3,11 @@
 declare(strict_types=1);
 
 use App\Infrastructure\Http\Middleware\HandleInertiaRequests;
+use App\Infrastructure\Http\Middleware\TrustProxies;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Middleware\TrustProxies as FrameworkTrustProxies;
 use Illuminate\Http\Request;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -17,6 +19,9 @@ return Application::configure(basePath: dirname(__DIR__))
     // Console commands live in the Infrastructure layer, not in app/Console/Commands.
     ->withCommands([__DIR__ . '/../app/Infrastructure/Console/Commands'])
     ->withMiddleware(function (Middleware $middleware): void {
+        // Forwarded headers are trusted only from the TRUSTED_PROXIES setting (empty trusts nobody).
+        $middleware->replace(FrameworkTrustProxies::class, TrustProxies::class);
+
         $middleware->web(append: [
             HandleInertiaRequests::class,
         ]);

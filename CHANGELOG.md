@@ -133,6 +133,14 @@ and `./temp/queue/tasks.db`).
 Migration: `composer require --dev esoul-cz/guidelines:^0.2`, add the `post-update-cmd`, add `package/mutation-testing` to `esoul-guidelines.json` and run
 `esoul-guidelines sync`; remove the `repositories` entry and run `composer update --lock`; use `mariadb:12.3` in both compose files; append the two lines to
 `.gitattributes` (files already committed to LFS stay there until `git lfs migrate export --include="assets/js/**,assets/css/**"`); write the operations README.
+### 2026-11-23: Laravel variants: `TRUSTED_PROXIES` is wired
+
+Affects: `laravel-inertia`, `laravel-filament`, `laravel-inertia-filament`, `laravel-lunar` (and the backend of `laravel-cms`) / layers `laravel/base` (`bootstrap/app.php`, `config/proxy.php`, `app/Infrastructure/Http/Middleware/TrustProxies.php`, `.env.example`) and `laravel/inertia-vue` (`bootstrap/app.php`).
+
+The deployment guideline names a `TRUSTED_PROXIES` setting, but nothing read it. `App\Infrastructure\Http\Middleware\TrustProxies` now reads `config('proxy.trusted')` (fed by `TRUSTED_PROXIES`: addresses or CIDR ranges, comma-separated) and replaces the framework middleware in `bootstrap/app.php`. Empty trusts nobody, which is what the host NGINX with FastCGI needs; `*` is refused. A feature test checks that forwarded headers from any other address are ignored.
+
+Migration: copy `TrustProxies.php`, `config/proxy.php` and `tests/Feature/Http/TrustProxiesTest.php`, add `$middleware->replace(\Illuminate\Http\Middleware\TrustProxies::class, TrustProxies::class)` to `withMiddleware()` in `bootstrap/app.php`, and add `TRUSTED_PROXIES=` to `.env.example`. A stack behind the host NGINX sets nothing; a stack behind another proxy lists its address.
+
 ### 2026-11-23: Laravel variants: hardened pnpm installs, unfiltered audit, pnpm in the setup script
 
 Affects: `laravel-inertia`, `laravel-filament`, `laravel-inertia-filament`, `laravel-lunar` / layers `laravel/base` (`pnpm-workspace.yaml`, `.npmrc`, `composer.json`, `Jenkinsfile`) and `laravel/inertia-vue` (`Jenkinsfile`).

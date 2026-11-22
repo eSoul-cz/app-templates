@@ -37,6 +37,10 @@ final class VariantGuidelinesTest extends TestCase
         yield 'laravel-lunar' => ['laravel-lunar', [...$laravel, 'package/inertia-vue', 'package/laravel-inertia']];
         yield 'laravel-cms' => ['laravel-cms', [...$laravel, 'package/filament']];
         yield 'lsr-inertia' => ['lsr-inertia', ['general', 'framework/lsr', 'package/inertia-vue', 'package/mutation-testing']];
+
+        foreach (['astro-static', 'astro-cms-frontend', 'astro-cms', 'astro-ssr'] as $astro) {
+            yield $astro => [$astro, ['general', 'framework/astro']];
+        }
     }
 
     /** @param list<string> $expected */

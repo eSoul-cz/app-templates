@@ -8,10 +8,10 @@
     "scripts": {
         "build": "vite build",
         "dev": "vite",
+        "eslint": "eslint .",
+        "eslint:fix": "eslint . --fix",
         "format": "prettier --write assets/",
         "format:check": "prettier --check assets/",
-        "lint": "eslint . --fix",
-        "eslint": "eslint .",
         "tsc": "vue-tsc --noEmit -p tsconfig.json",
         "test": "vitest run"
     },

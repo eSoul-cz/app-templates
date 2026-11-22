@@ -1,0 +1,9 @@
+{
+    "name": "astro-ssr",
+    "package": "esoul-cz/template-astro-ssr",
+    "description": "eSoul Astro SSR application on Node (archetype B-admin): SQLite, migrations and seeds, admin sign-in, Docker image and Jenkins pipeline.",
+    "layers": [
+        {"layer": "common"},
+        {"layer": "astro/ssr"}
+    ]
+}

@@ -1,0 +1,147 @@
+@Library(['dockerHelpers', 'testing', 'deploy']) _
+
+// PLANNED: a one-call `astroPipeline` step in the eSoul Jenkins libraries (jenkins-libraries, plan J5/J8). It does not exist
+// yet, so this file composes the existing steps (`fullNodeTest`, `runCommandInTest`, `dockerBuildMultiArch`,
+// `deployKomodoStack`) in a scripted pipeline, in the stage and credential style of `laravelPipeline`. When `astroPipeline`
+// ships, this file shrinks to one call with the values below.
+//
+// Adopting the template: set `appImage` (lowercase letters, digits, `_`, `.`, `-`; pushed to `registry`) and, per deploy rule,
+// the Komodo `stack` and the public `siteUrl` of that environment. `siteUrl` is a build argument (it is baked into
+// `security.allowedDomains`), so every environment gets its own image tag: `main` pushes `latest`, any other deploy branch
+// pushes a tag of its own, so a stack that redeploys on every new `latest` never runs staging code.
+// Credentials: scaleway_secret_key, komodo_deploy_api_key, komodo_deploy_api_secret (as in laravelPipeline).
+
+def nodeImage = 'rg.fr-par.scw.cloud/testing-images/node:26'
+def testRegistry = 'rg.fr-par.scw.cloud/testing-images'
+def registry = 'rg.fr-par.scw.cloud/app-images'
+def registryHost = 'rg.fr-par.scw.cloud'
+def appImage = 'replace-with-app-name'
+
+// Branches that build and push an image. `stack` is deployed after the push; without it nothing is deployed.
+def deployRules = [
+    [branches: ['main', 'master'], tags: ['latest'], stack: 'replace-with-komodo-stack', siteUrl: 'https://replace-with-domain.example'],
+]
+
+// Playwright needs a Debian-based image with the browsers; empty skips the e2e specs (they run on demand: RUN_E2E).
+def playwrightImage = ''
+
+properties([
+    disableConcurrentBuilds(abortPrevious: env.CHANGE_ID != null),
+    parameters([booleanParam(name: 'RUN_E2E', defaultValue: false, description: 'Run the Playwright specs against the built server (needs playwrightImage).')]),
+])
+
+def rule = null
+for (candidate in deployRules) {
+    if (candidate.branches.contains(env.BRANCH_NAME)) {
+        rule = candidate
+        break
+    }
+}
+def imageTags = []
+
+node {
+    try {
+        timeout(time: 45, unit: 'MINUTES') {
+            stage('Checkout') {
+                // Large LFS assets are not needed by the build.
+                withEnv(['GIT_LFS_SKIP_SMUDGE=1']) {
+                    checkout scm
+                }
+            }
+
+            stage('Docker Login') {
+                withCredentials([string(credentialsId: 'scaleway_secret_key', variable: 'SECRET')]) {
+                    dockerRegistryLogin(registryUrl: testRegistry, password: env.SECRET)
+                }
+            }
+
+            // The mandatory Checks stage of the Astro guidelines, before any image is built. CI=true makes pnpm install
+            // with --frozen-lockfile. A project with Vue islands adds `vue-tsc --noEmit` to `pnpm check`.
+            stage('Checks') {
+                // pnpm install, then in parallel: pnpm eslint, pnpm format:check, pnpm check (astro check), pnpm test (Vitest)
+                fullNodeTest(
+                    image: nodeImage,
+                    eslintCommand: 'pnpm eslint',
+                    prettierCommand: 'pnpm format:check',
+                    typecheck: true,
+                    typecheckCommand: 'pnpm check',
+                    test: true,
+                    testCommand: 'pnpm test',
+                    additionalTests: [[name: 'Audit', command: 'pnpm audit']],
+                )
+                // The build and its verification need the install, and the specs need the build: one after the other.
+                stage('Build') {
+                    runCommandInTest(image: nodeImage, env: [CI: 'true', SITE_URL: rule?.siteUrl ?: 'http://localhost:4321'], command: 'pnpm build')
+                }
+                stage('Verify') {
+                    runCommandInTest(image: nodeImage, env: [CI: 'true', SITE_URL: rule?.siteUrl ?: 'http://localhost:4321'], command: 'pnpm verify')
+                }
+                if (params.RUN_E2E) {
+                    if (!playwrightImage) {
+                        error('RUN_E2E needs playwrightImage in the Jenkinsfile.')
+                    }
+                    stage('E2E') {
+                        runCommandInTest(image: playwrightImage, env: [CI: 'true'], command: 'pnpm exec playwright install chromium && pnpm test:e2e')
+                    }
+                }
+            }
+
+            if (rule != null) {
+                stage('Resolve image tags') {
+                    imageTags = new ArrayList(rule.tags)
+                    // Every Git tag on the commit is a tag of the image too (never `latest`: only `main` pushes it).
+                    for (String line : sh(returnStdout: true, script: 'git tag --points-at HEAD').trim().split('\n')) {
+                        def gitTag = line.trim()
+                        if (gitTag && gitTag != 'latest' && !imageTags.contains(gitTag)) {
+                            imageTags << gitTag
+                        }
+                    }
+                }
+            }
+        }
+    } finally {
+        sh 'sudo /usr/local/sbin/jenkins-fix-workspace "$WORKSPACE" || true'
+        cleanWs()
+    }
+}
+
+if (rule == null) {
+    echo "No deploy rule matches branch '${env.BRANCH_NAME}': the checks ran, no image is built"
+    return
+}
+
+// dockerBuildMultiArch allocates its own architecture nodes and logs in by itself, so it runs outside the node above.
+stage('Build and push image') {
+    timeout(time: 40, unit: 'MINUTES') {
+        withCredentials([string(credentialsId: 'scaleway_secret_key', variable: 'SECRET')]) {
+            echo "Building the multi-platform image ${appImage}..."
+            dockerBuildMultiArch(
+                registry: registry,
+                registryHost: registryHost,
+                registryPassword: env.SECRET,
+                image: appImage,
+                contextDir: '.',
+                tags: imageTags,
+                dockerfile: 'Dockerfile',
+                target: 'production',
+                dockerfileArgs: [SITE_URL: rule.siteUrl],
+            )
+        }
+    }
+}
+
+if (rule.stack) {
+    stage('Deploy') {
+        node {
+            timeout(time: 15, unit: 'MINUTES') {
+                echo "Deploying stack ${rule.stack}..."
+                withCredentials([
+                    string(credentialsId: 'komodo_deploy_api_key', variable: 'API_KEY'),
+                    string(credentialsId: 'komodo_deploy_api_secret', variable: 'API_SECRET'),
+                ]) {
+                    deployKomodoStack(apiKey: env.API_KEY, apiSecret: env.API_SECRET, deployStackName: rule.stack)
+                }
+            }
+        }
+    }
+}

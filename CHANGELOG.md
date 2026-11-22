@@ -228,6 +228,19 @@ Affects: `laravel-inertia`, `laravel-filament`, `laravel-inertia-filament`, `lar
 The `repositories` entry for `https://packages.esoul.cz` is gone: `esoul-cz/laravel-cqrs`, `esoul-cz/cqrs` and `esoul-cz/guidelines` resolve from Packagist (the Satis repository only mirrored them). A project adds the entry back when it takes a private package.
 
 Migration: remove the `repositories` entry from `composer.json` and run `composer update --lock`.
+### 2026-11-23: New variant `astro-ssr`
+
+Affects: new variant `astro-ssr` / layer `astro/ssr`, `variants/astro-ssr.json`.
+
+A minimal Astro 7 SSR application on Node for archetype `B-admin` (`common` and `astro/ssr`, self-contained: it does not use `astro/static`
+or `astro/cms-client`): `@astrojs/node` standalone, SQLite through `node:sqlite`, numbered migrations that refuse to start on a skipped id,
+run-once seeds, admin sign-in with scrypt hashes, server-side sessions and a login throttle, the first admin created with
+`pnpm admin:create` (no seeded credentials), Zod-validated settings, middleware with security headers and a body limit, `/healthz`,
+a multi-stage `Dockerfile` (tini, uid 10001, healthcheck, graceful SIGTERM), `docker-compose.yml`, a `Jenkinsfile` composed from the
+existing steps (a one-call `astroPipeline` is planned), Vitest and Playwright specs and `pnpm verify`. No React, Effect, enquiries or
+image handling: a project adds those itself.
+
+Migration: none, new variant.
 
 ### 2026-11-23: Form endpoint in `laravel-cms`
 

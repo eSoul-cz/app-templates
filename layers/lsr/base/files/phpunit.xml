@@ -14,6 +14,16 @@
             <directory>tests</directory>
         </testsuite>
     </testsuites>
+    <groups>
+        <exclude>
+            <group>sandbox</group>
+            <group>quarantine</group>
+        </exclude>
+    </groups>
+    <extensions>
+        <!-- Fails the test on an http(s) stream request to anything but localhost (see tests/Support/Network). -->
+        <bootstrap class="Tests\Support\Network\NetworkGuardExtension"/>
+    </extensions>
     <source>
         <include>
             <directory suffix=".php">src</directory>

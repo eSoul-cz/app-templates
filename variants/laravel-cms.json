@@ -1,0 +1,12 @@
+{
+    "name": "laravel-cms",
+    "package": "esoul-cz/template-laravel-cms",
+    "description": "eSoul Laravel 13 headless CMS: a Filament 5 admin that edits pages and site settings, the content export for an Astro site, the Publish button and the form endpoint.",
+    "layers": [
+        {"layer": "common"},
+        {"layer": "laravel/skeleton"},
+        {"layer": "laravel/base"},
+        {"layer": "laravel/filament"},
+        {"layer": "laravel/cms"}
+    ]
+}

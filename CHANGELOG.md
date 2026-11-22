@@ -19,6 +19,18 @@ What changed, in one or two sentences.
 Migration: what an existing project must do (or "none").
 ```
 
+## Unreleased
+
+### 2026-11-23: New variant `laravel-cms`
+
+Affects: new variant `laravel-cms` / layers `laravel/cms`, `variants/laravel-cms.json`.
+
+The Laravel + Filament headless CMS that used to live in `backend/` of `astro-laravel-cms` is its own variant (`common`, `laravel/skeleton`,
+`laravel/base`, `laravel/filament`, `laravel/cms`): a normal Laravel repository with its own `Jenkinsfile`, guidelines and image. It is also
+the small Laravel backend that a static site without a CMS uses for forms.
+
+Migration: none for existing Laravel projects. A project created from `astro-laravel-cms` keeps its `backend/` as it is (see the entry that retires that variant).
+
 ## 2026-11-22: LSR requires PHP ^8.5
 
 Affects: `lsr-inertia` / layer `lsr/base` (`composer.json`).

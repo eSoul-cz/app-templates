@@ -25,7 +25,9 @@ final class GuidelinesRendererTest extends BuilderTestCase
 
         [$arguments, $config] = explode("\n", $this->read($out, 'rendered.txt'), 2);
         self::assertSame('sync --no-interaction', $arguments);
-        self::assertSame(['general'], json_decode($config, true, 512, JSON_THROW_ON_ERROR)['layers']);
+        $decoded = json_decode($config, true, 512, JSON_THROW_ON_ERROR);
+        self::assertIsArray($decoded);
+        self::assertSame(['general'], $decoded['layers']);
     }
 
     public function testFailingInstallerFailsTheBuildWithItsOutput(): void
@@ -35,7 +37,7 @@ final class GuidelinesRendererTest extends BuilderTestCase
         $this->variant([['layer' => 'a']]);
 
         $this->expectException(TemplateException::class);
-        $this->expectExceptionMessage('Refusing: drift');
+        $this->expectExceptionMessageContaining('Refusing: drift');
 
         $this->buildWith($this->root . '/fake-guidelines');
     }
@@ -46,7 +48,7 @@ final class GuidelinesRendererTest extends BuilderTestCase
         $this->variant([['layer' => 'a']]);
 
         $this->expectException(TemplateException::class);
-        $this->expectExceptionMessage('The guidelines installer was not found');
+        $this->expectExceptionMessageContaining('The guidelines installer was not found');
 
         $this->buildWith($this->root . '/missing');
     }

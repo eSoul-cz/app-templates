@@ -8,7 +8,6 @@ use ESoul\AppTemplates\Builder;
 use ESoul\AppTemplates\Catalog;
 use ESoul\AppTemplates\GuidelinesRenderer;
 use ESoul\AppTemplates\TemplateException;
-use LogicException;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -58,7 +57,7 @@ final class BuildCommand extends Command
             return self::INVALID;
         }
 
-        $out = $this->stringOption($input, 'out');
+        $out = StringOption::get($input, 'out');
         if ( ! str_starts_with($out, '/')) {
             $out = $this->root . '/' . $out;
         }
@@ -71,7 +70,7 @@ final class BuildCommand extends Command
         $commit ??= $this->headCommit();
 
         $names = $variant === null ? $catalog->variantNames() : [$variant];
-        $guidelinesBin = $this->stringOption($input, 'guidelines-bin');
+        $guidelinesBin = StringOption::get($input, 'guidelines-bin');
         if ( ! str_starts_with($guidelinesBin, '/')) {
             $guidelinesBin = $this->root . '/' . $guidelinesBin;
         }
@@ -89,16 +88,6 @@ final class BuildCommand extends Command
         }
 
         return self::SUCCESS;
-    }
-
-    /** Value of an option that is always a string: it takes a value and has a default. */
-    private function stringOption(InputInterface $input, string $name): string {
-        $value = $input->getOption($name);
-        if ( ! is_string($value)) {
-            throw new LogicException(sprintf('Option --%s must have a string value.', $name));
-        }
-
-        return $value;
     }
 
     /** HEAD of the source repository, or null when `root` is not the top level of a git checkout (a parent repository must not leak in). */

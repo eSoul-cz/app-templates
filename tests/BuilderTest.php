@@ -7,6 +7,7 @@ namespace ESoul\AppTemplates\Tests;
 use ESoul\AppTemplates\Builder;
 use ESoul\AppTemplates\Catalog;
 use ESoul\AppTemplates\TemplateException;
+use PHPUnit\Framework\Attributes\TestWith;
 
 final class BuilderTest extends BuilderTestCase
 {
@@ -348,10 +349,12 @@ final class BuilderTest extends BuilderTestCase
         $this->build();
     }
 
-    public function testIntoRejectsCharactersThatWouldSplitTheComposerScript(): void
+    #[TestWith(['backend app'])]
+    #[TestWith(["backend\n"])]
+    public function testIntoRejectsCharactersThatWouldSplitTheComposerScript(string $into): void
     {
         $this->put('layers/a/files/composer.json', '{}');
-        $this->variant([['layer' => 'a', 'into' => 'backend app']]);
+        $this->variant([['layer' => 'a', 'into' => $into]]);
 
         $this->expectException(TemplateException::class);
         $this->expectExceptionMessage('"into" must be a relative path');

@@ -6,7 +6,6 @@ namespace ESoul\AppTemplates\Command;
 
 use ESoul\AppTemplates\SkeletonSync;
 use ESoul\AppTemplates\TemplateException;
-use LogicException;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -28,10 +27,7 @@ final class SkeletonSyncCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int {
         $io = new SymfonyStyle($input, $output);
 
-        $constraint = $input->getOption('constraint');
-        if ( ! is_string($constraint)) {
-            throw new LogicException('Option --constraint must have a string value.');
-        }
+        $constraint = StringOption::get($input, 'constraint');
 
         try {
             $result = new SkeletonSync($this->root)->sync($constraint, $io->writeln(...));

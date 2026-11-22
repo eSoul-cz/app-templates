@@ -1521,16 +1521,16 @@
         },
         {
             "name": "esoul-cz/coding-standard",
-            "version": "v0.1.0",
+            "version": "v0.1.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/eSoul-cz/coding-standard.git",
-                "reference": "759e1bcaa693f1534de3f84cf996cb248cacba09"
+                "reference": "fed34c010baee3c4649851820ba4222e39e1a661"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/eSoul-cz/coding-standard/zipball/759e1bcaa693f1534de3f84cf996cb248cacba09",
-                "reference": "759e1bcaa693f1534de3f84cf996cb248cacba09",
+                "url": "https://api.github.com/repos/eSoul-cz/coding-standard/zipball/fed34c010baee3c4649851820ba4222e39e1a661",
+                "reference": "fed34c010baee3c4649851820ba4222e39e1a661",
                 "shasum": ""
             },
             "require": {
@@ -1563,10 +1563,10 @@
             ],
             "support": {
                 "issues": "https://github.com/eSoul-cz/coding-standard/issues",
-                "source": "https://github.com/eSoul-cz/coding-standard/tree/v0.1.0"
+                "source": "https://github.com/eSoul-cz/coding-standard/tree/v0.1.1"
             },
-            "time": "2026-11-22T12:11:38+00:00",
-            "published-time": "2026-11-22T12:14:33+00:00"
+            "time": "2026-11-22T14:50:18+00:00",
+            "published-time": "2026-11-22T14:54:34+00:00"
         },
         {
             "name": "evenement/evenement",

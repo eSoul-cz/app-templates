@@ -19,6 +19,15 @@ What changed, in one or two sentences.
 Migration: what an existing project must do (or "none").
 ```
 
+## 2026-11-22: Guidelines 0.1.1
+
+Affects: all variants / the builder (`composer.lock`).
+
+The builder renders the project guidelines with `esoul-cz/guidelines` 0.1.1. It describes pnpm without corepack and names the
+settings pnpm 12 still reads from `.npmrc` (auth, registry, TLS, proxy, `local-address`).
+
+Migration: `composer update esoul-cz/guidelines` and `vendor/bin/esoul-guidelines sync`.
+
 ## 2026-11-19: Packages move to the esoul-cz vendor on Packagist
 
 Affects: all variants / layers `laravel/base`, `lsr/base`, `astro-cms/root`, `variants/*.json`, the builder.

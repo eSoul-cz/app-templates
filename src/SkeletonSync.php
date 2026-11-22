@@ -21,8 +21,7 @@ final readonly class SkeletonSync
 
     private Filesystem $fs;
 
-    public function __construct(private string $root)
-    {
+    public function __construct(private string $root) {
         $this->fs = new Filesystem();
     }
 
@@ -31,8 +30,7 @@ final readonly class SkeletonSync
      *
      * @return array{version: string, files: int, stripped: int}
      */
-    public function sync(string $constraint = '^13', ?callable $log = null): array
-    {
+    public function sync(string $constraint = '^13', ?callable $log = null): array {
         $log ??= static function (string $message): void {
         };
 
@@ -48,7 +46,7 @@ final readonly class SkeletonSync
             $process->run();
             $output = $process->getOutput() . $process->getErrorOutput();
 
-            if (!$process->isSuccessful()) {
+            if ( ! $process->isSuccessful()) {
                 throw new TemplateException('composer create-project failed:' . "\n" . $output);
             }
             if (preg_match('/Installing laravel\/laravel \(v?([0-9][^)\s]*)\)/', $output, $matches) !== 1) {
@@ -66,7 +64,7 @@ final readonly class SkeletonSync
 
             $stripped = $this->strip($files);
             $this->format($files, $tmp . '/pint', $log);
-            $count = iterator_count((new Finder())->files()->in($files)->ignoreDotFiles(false)->ignoreVCS(false));
+            $count = iterator_count(new Finder()->files()->in($files)->ignoreDotFiles(false)->ignoreVCS(false));
 
             $this->fs->dumpFile($layerDir . '/layer.json', JsonMerger::encode([
                 'description' => 'Upstream laravel/laravel skeleton, refreshed by `bin/templates skeleton:sync`. Do not edit by hand.',
@@ -84,10 +82,9 @@ final readonly class SkeletonSync
      *
      * @param callable(string): void $log
      */
-    private function format(string $skeletonFiles, string $pintDir, callable $log): void
-    {
+    private function format(string $skeletonFiles, string $pintDir, callable $log): void {
         $config = $this->root . '/layers/laravel/base/files/pint.json';
-        if (!is_file($config)) {
+        if ( ! is_file($config)) {
             $log('layers/laravel/base/files/pint.json not found, skipping Pint.');
 
             return;
@@ -100,24 +97,22 @@ final readonly class SkeletonSync
     }
 
     /** @param list<string> $command */
-    private function run(array $command, ?string $cwd, string $what): void
-    {
+    private function run(array $command, ?string $cwd, string $what): void {
         $process = new Process($command, $cwd, timeout: 300);
         $process->run();
-        if (!$process->isSuccessful()) {
+        if ( ! $process->isSuccessful()) {
             throw new TemplateException($what . ' failed:' . "\n" . $process->getOutput() . $process->getErrorOutput());
         }
     }
 
-    private function strip(string $skeletonFiles): int
-    {
+    private function strip(string $skeletonFiles): int {
         $stripped = 0;
         foreach (self::SHADOWING_LAYERS as $layer) {
             $dir = $this->root . '/layers/' . $layer . '/files';
-            if (!is_dir($dir)) {
+            if ( ! is_dir($dir)) {
                 continue;
             }
-            foreach ((new Finder())->files()->in($dir)->ignoreDotFiles(false)->ignoreVCS(false) as $file) {
+            foreach (new Finder()->files()->in($dir)->ignoreDotFiles(false)->ignoreVCS(false) as $file) {
                 $path = $skeletonFiles . '/' . $file->getRelativePathname();
                 if (is_file($path)) {
                     $this->fs->remove($path);
@@ -127,9 +122,9 @@ final readonly class SkeletonSync
         }
 
         // Drop directories emptied by stripping.
-        $dirs = iterator_to_array((new Finder())->directories()->in($skeletonFiles)->ignoreDotFiles(false)->ignoreVCS(false)->sortByName(), false);
+        $dirs = iterator_to_array(new Finder()->directories()->in($skeletonFiles)->ignoreDotFiles(false)->ignoreVCS(false)->sortByName(), false);
         foreach (array_reverse($dirs) as $dir) {
-            if (!(new Finder())->in($dir->getPathname())->ignoreDotFiles(false)->ignoreVCS(false)->hasResults()) {
+            if ( ! new Finder()->in($dir->getPathname())->ignoreDotFiles(false)->ignoreVCS(false)->hasResults()) {
                 $this->fs->remove($dir->getPathname());
             }
         }

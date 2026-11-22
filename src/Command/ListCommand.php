@@ -14,13 +14,11 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 #[AsCommand(name: 'list', description: 'List the template variants and their layers')]
 final class ListCommand extends Command
 {
-    public function __construct(private readonly string $root)
-    {
+    public function __construct(private readonly string $root) {
         parent::__construct();
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output): int
-    {
+    protected function execute(InputInterface $input, OutputInterface $output): int {
         $io = new SymfonyStyle($input, $output);
         $catalog = new Catalog($this->root);
 

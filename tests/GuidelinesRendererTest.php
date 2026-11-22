@@ -11,8 +11,7 @@ use ESoul\AppTemplates\TemplateException;
 
 final class GuidelinesRendererTest extends BuilderTestCase
 {
-    public function testBuildRunsTheInstallerInTheVariantRootAfterLayering(): void
-    {
+    public function test_build_runs_the_installer_in_the_variant_root_after_layering(): void {
         // A stand-in installer that records its arguments and the config it found, as `sync` would read it.
         $this->put('fake-guidelines', <<<'PHP'
             <?php
@@ -30,8 +29,7 @@ final class GuidelinesRendererTest extends BuilderTestCase
         self::assertSame(['general'], $decoded['layers']);
     }
 
-    public function testFailingInstallerFailsTheBuildWithItsOutput(): void
-    {
+    public function test_failing_installer_fails_the_build_with_its_output(): void {
         $this->put('fake-guidelines', "<?php\nfwrite(STDERR, 'Refusing: drift');\nexit(1);\n");
         $this->put('layers/a/merge/esoul-guidelines.json', '{"layers": ["general"]}');
         $this->variant([['layer' => 'a']]);
@@ -42,8 +40,7 @@ final class GuidelinesRendererTest extends BuilderTestCase
         $this->buildWith($this->root . '/fake-guidelines');
     }
 
-    public function testMissingInstallerFailsTheBuild(): void
-    {
+    public function test_missing_installer_fails_the_build(): void {
         $this->put('layers/a/merge/esoul-guidelines.json', '{"layers": ["general"]}');
         $this->variant([['layer' => 'a']]);
 
@@ -53,8 +50,7 @@ final class GuidelinesRendererTest extends BuilderTestCase
         $this->buildWith($this->root . '/missing');
     }
 
-    private function buildWith(string $binary): string
-    {
-        return (new Builder(new Catalog($this->root), new GuidelinesRenderer($binary)))->build('demo', $this->root . '/build');
+    private function buildWith(string $binary): string {
+        return new Builder(new Catalog($this->root), new GuidelinesRenderer($binary))->build('demo', $this->root . '/build');
     }
 }

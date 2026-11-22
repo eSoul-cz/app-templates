@@ -19,8 +19,7 @@ use stdClass;
 final class JsonMerger
 {
     /** Merge two decoded values (decode with `decode()` so empty objects survive). */
-    public static function merge(mixed $base, mixed $overlay): mixed
-    {
+    public static function merge(mixed $base, mixed $overlay): mixed {
         if ($base instanceof stdClass && $overlay instanceof stdClass) {
             foreach (get_object_vars($overlay) as $key => $value) {
                 if ($value === null) {
@@ -35,7 +34,7 @@ final class JsonMerger
 
         if (is_array($base) && is_array($overlay) && self::isScalarList($base) && self::isScalarList($overlay)) {
             foreach ($overlay as $value) {
-                if (!in_array($value, $base, true)) {
+                if ( ! in_array($value, $base, true)) {
                     $base[] = $value;
                 }
             }
@@ -46,8 +45,7 @@ final class JsonMerger
         return $overlay;
     }
 
-    public static function decode(string $json, string $source): mixed
-    {
+    public static function decode(string $json, string $source): mixed {
         try {
             return json_decode($json, false, 512, JSON_THROW_ON_ERROR);
         } catch (JsonException $e) {
@@ -55,16 +53,14 @@ final class JsonMerger
         }
     }
 
-    public static function encode(mixed $value): string
-    {
+    public static function encode(mixed $value): string {
         return json_encode($value, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR) . "\n";
     }
 
     /** @param array<mixed> $list */
-    private static function isScalarList(array $list): bool
-    {
+    private static function isScalarList(array $list): bool {
         foreach ($list as $item) {
-            if (!is_scalar($item) && $item !== null) {
+            if ( ! is_scalar($item) && $item !== null) {
                 return false;
             }
         }

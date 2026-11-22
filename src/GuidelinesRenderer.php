@@ -14,19 +14,17 @@ use Symfony\Component\Process\Process;
 final readonly class GuidelinesRenderer
 {
     /** @param string $binary path to the `esoul-guidelines` PHP script (usually `vendor/bin/esoul-guidelines`) */
-    public function __construct(private string $binary)
-    {
+    public function __construct(private string $binary) {
     }
 
-    public function render(string $target): void
-    {
-        if (!is_file($this->binary)) {
+    public function render(string $target): void {
+        if ( ! is_file($this->binary)) {
             throw new TemplateException(sprintf(
                 'The guidelines installer was not found at %s. Run `composer install` (it requires esoul-cz/guidelines) or pass --guidelines-bin.',
                 $this->binary,
             ));
         }
-        if (!is_file($target . '/' . Builder::GUIDELINES_CONFIG)) {
+        if ( ! is_file($target . '/' . Builder::GUIDELINES_CONFIG)) {
             throw new TemplateException(sprintf('%s has no %s; add the guideline layers through a layer\'s merge/.', $target, Builder::GUIDELINES_CONFIG));
         }
 
@@ -34,7 +32,7 @@ final readonly class GuidelinesRenderer
         $process->setTimeout(120);
         $process->run();
 
-        if (!$process->isSuccessful()) {
+        if ( ! $process->isSuccessful()) {
             throw new TemplateException(sprintf(
                 'esoul-guidelines sync failed in %s (exit %d):%s%s',
                 $target,

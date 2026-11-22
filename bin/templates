@@ -9,7 +9,7 @@ use ESoul\AppTemplates\Command\SkeletonSyncCommand;
 use Symfony\Component\Console\Application;
 
 $autoload = __DIR__ . '/../vendor/autoload.php';
-if (!is_file($autoload)) {
+if ( ! is_file($autoload)) {
     fwrite(STDERR, "Dependencies are missing, run `composer install` first.\n");
     exit(1);
 }

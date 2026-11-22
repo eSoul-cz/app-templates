@@ -11,8 +11,7 @@ use PHPUnit\Framework\TestCase;
 final class GlobTest extends TestCase
 {
     /** @return iterable<string, array{string, string, bool}> */
-    public static function cases(): iterable
-    {
+    public static function cases(): iterable {
         yield 'literal' => ['Jenkinsfile', 'Jenkinsfile', true];
         yield 'literal is anchored' => ['Jenkinsfile', 'sub/Jenkinsfile', false];
         yield 'star stays in directory' => ['*.json', 'a/b.json', false];
@@ -26,8 +25,7 @@ final class GlobTest extends TestCase
     }
 
     #[DataProvider('cases')]
-    public function testMatches(string $pattern, string $path, bool $expected): void
-    {
+    public function test_matches(string $pattern, string $path, bool $expected): void {
         self::assertSame($expected, Glob::matches($pattern, $path));
     }
 }

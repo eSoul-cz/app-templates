@@ -87,6 +87,18 @@ final class MoneyTest extends TestCase
         yield 'all zero' => [[0, 0]];
     }
 
+    /** @return iterable<string, array{int, int, int, int}> */
+    public static function proportions(): iterable
+    {
+        yield 'an exact quotient' => [1_000, 3, 2, 1_500];
+        yield 'the unit quantity divides the amount' => [1_999, 100, 100, 1_999];
+        yield 'a tie rounds away from zero' => [5, 1, 2, 3];
+        yield 'a negative tie rounds away from zero' => [-5, 1, 2, -3];
+        yield 'below a tie rounds down' => [10, 1, 3, 3];
+        yield 'above a tie rounds up' => [20, 1, 3, 7];
+        yield 'a large product does not overflow' => [PHP_INT_MAX, 2, 4, 4_611_686_018_427_387_904];
+    }
+
     public function test_it_holds_integer_minor_units_and_a_currency(): void
     {
         $money = Money::of(12_345, Currency::EUR);
@@ -203,6 +215,19 @@ final class MoneyTest extends TestCase
         $this->expectException(ArithmeticError::class);
 
         Money::of(PHP_INT_MAX, Currency::EUR)->multiply(2);
+    }
+
+    #[DataProvider('proportions')]
+    public function test_it_takes_an_exact_fraction_and_rounds_once(int $minor, int $numerator, int $denominator, int $expected): void
+    {
+        self::assertSame($expected, Money::of($minor, Currency::EUR)->proportion($numerator, $denominator)->minor);
+    }
+
+    public function test_a_proportion_needs_a_positive_denominator(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        Money::of(100, Currency::EUR)->proportion(1, 0);
     }
 
     public function test_it_refuses_a_factor_that_is_not_a_number(): void

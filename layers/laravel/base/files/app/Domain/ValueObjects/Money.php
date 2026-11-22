@@ -117,6 +117,23 @@ final readonly class Money
     }
 
     /**
+     * The amount times an exact fraction (`$numerator / $denominator`, for example a quantity of a pack
+     * price that covers several units), rounded once to whole minor units with `Money::ROUNDING`. The
+     * division keeps 40 digits, far more than two 64-bit integers can produce, so the rounding sees the
+     * exact quotient.
+     */
+    public function proportion(int $numerator, int $denominator, RoundingMode $rounding = self::ROUNDING): self
+    {
+        if ($denominator <= 0) {
+            throw new InvalidArgumentException('The denominator of a proportion is positive.');
+        }
+
+        $quotient = new Number($this->minor)->mul($numerator)->div($denominator, 40)->round(0, $rounding);
+
+        return new self(self::toMinor($quotient), $this->currency);
+    }
+
+    /**
      * Splits the amount in proportion to the ratios without losing or creating a minor unit: every part
      * is the floor of its share and the leftover units go one each to the first parts. The parts always
      * add up to this amount. A negative amount is split as its absolute value and negated.

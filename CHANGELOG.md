@@ -26,6 +26,14 @@ Migration: what an existing project must do (or "none").
 
 ## Unreleased
 
+### 2026-11-23: `Money::proportion()`
+
+Affects: `laravel-inertia`, `laravel-filament`, `laravel-inertia-filament`, `laravel-lunar` (and the backend of `laravel-cms`) / layer `laravel/base` (`app/Domain/ValueObjects/Money.php`).
+
+`Money::proportion($numerator, $denominator)` takes an exact fraction of an amount (a pack price bought in quantities) and rounds once with `Money::ROUNDING`; the division keeps 40 digits so no float and no early rounding is involved.
+
+Migration: optional; copy the method (and its tests) from the template's `Money`.
+
 ### 2026-11-23: Laravel variants write a JUnit log of the PHP tests
 
 Affects: `laravel-inertia`, `laravel-filament`, `laravel-inertia-filament`, `laravel-lunar` (and the backend of `laravel-cms`) / layer `laravel/base` (`phpunit.xml`, `.gitignore`, `.dockerignore`).

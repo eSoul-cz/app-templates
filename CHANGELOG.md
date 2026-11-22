@@ -251,6 +251,77 @@ existing steps (a one-call `astroPipeline` is planned), Vitest and Playwright sp
 image handling: a project adds those itself.
 
 Migration: none, new variant.
+### 2026-11-23: `astro-laravel-cms` is split into `laravel-cms`, `astro-cms-frontend` and `astro-cms`; new `astro-static`
+
+Affects: variants `laravel-cms` (new), `astro-cms-frontend` (new), `astro-cms` (new, the thin root), `astro-static` (new); variant `astro-laravel-cms` is removed /
+layers `astro/static`, `astro/cms-client`, `astro-cms/root`, `laravel/cms`, `variants/*.json`.
+
+The monorepo with `frontend/` and `backend/` directories is replaced by three repositories, as the Astro guidelines describe (a monorepo with two git submodules, each
+half built and deployed on its own): `laravel-cms` (the backend, a normal Laravel variant), `astro-cms-frontend` (the Astro site, own `Jenkinsfile`, guideline layers and a
+`FROM scratch` image) and `astro-cms` (README, `docs/contract.md`, `docker/nginx.example` and `bin/add-submodules`, which runs `git submodule add` for the two
+repositories). Each has its own `esoul-guidelines.json`. The contract check no longer needs `../backend`: the frontend keeps a copy of the golden export in `contract/`
+and compares it with `../backend/tests/Fixtures/` only when that directory exists, otherwise only the schema version. `astro-static` is the same site without a CMS
+(`deployStaticSite`, pages listed in `src/lib/site-pages.ts`); if it needs a form it starts its small backend from `laravel-cms`. The monorepo `Jenkinsfile`
+(`astroCmsPipeline`) is gone: nothing is built from the root. The new Jenkinsfiles compose `fullNodeTest`, `buildStaticSite`, `dockerBuildMultiArch`, `deployKomodoStack`
+and `deployStaticSite` and carry a marked comment for the planned `astroPipeline` / `staticSitePipeline`.
+
+Migration: a project created from `astro-laravel-cms` keeps working as it is; to adopt the new shape, create `frontend` and `backend` as their own repositories
+(history with `git subtree split --prefix=frontend` / `--prefix=backend`), apply the entries below to each, and replace the monorepo root with the layer `astro-cms/root`
+(`bin/add-submodules`, `docs/contract.md`, the new `docker/nginx.example`; delete the root `Jenkinsfile`). Move `frontend/esoul-guidelines.json` content into each repository
+(`framework/astro` for the frontend, `framework/laravel`, `package/filament`, `package/mutation-testing` for the backend) and run `esoul-guidelines sync` in each.
+
+### 2026-11-23: Backend under a subdomain by default, path mode as an exception
+
+Affects: `astro-cms` (and the monorepo of `astro-laravel-cms`) / layers `astro-cms/root` (`docker/nginx.example`, `README.md`), `laravel/cms` (`config/cms.php`, `CmsServiceProvider`,
+`app/Infrastructure/Cms/AdminPathMode.php`, `append/.env.example`); `astro/cms-client` (`robots.txt`).
+
+The NGINX example serves the site and the backend from one site definition with the backend on `admin.<domain>` (`APP_URL=https://admin.example.com`, host-only cookie,
+never `.example.com`). The path mode (backend under `/admin` of the site's domain) is a commented exception: `SESSION_PATH=/admin` plus the new `CMS_ADMIN_PATH_MODE=true`,
+which moves Livewire's update endpoint (it used to be `/livewire/update`, outside the cookie's path, so the panel could not work) to `/admin/livewire/update`. The backend
+routes now include `/forms` and Livewire's `/livewire-<hash>/` prefix; `robots.txt` of the frontend disallows `/forms/` and `/livewire`.
+
+Migration: a project on the same domain sets `SESSION_PATH=/admin` and `CMS_ADMIN_PATH_MODE=true` and adds `/forms` to the backend location of nginx; a project that can
+move to a subdomain follows the new example (backend `.env`: `APP_URL`, `CMS_FORMS_ALLOWED_ORIGINS`; frontend: `cmsApiUrl` in the `Jenkinsfile`). Add the new
+`cms.admin_path_mode` key, `AdminPathMode.php` and the provider hook from the layer.
+
+### 2026-11-23: Contract v1 gets optional page fields `updatedAt`, `noindex`, `ogImage`
+
+Affects: `laravel-cms`, `astro-cms-frontend`, `astro-cms` / layers `laravel/cms` (exporter, `Page`, pages migration, `PageResource`, `SampleContent`, golden export),
+`astro/cms-client` (`schema.ts`, fixture, `contract/`), `astro-cms/root` (`docs/contract.md`).
+
+Every exported page carries `updatedAt` (when the page itself was saved, ISO 8601), `noindex` and its own `ogImage` (the site image is the fallback). The frontend schema
+accepts all three as optional, so an older backend still builds. The admin has a "Hide from search engines" switch and a social image upload per page.
+
+Migration: add the columns `noindex` (boolean, default false) and `og_image` (string, nullable) to `pages` in a new migration, copy `Page.php`, the exporter, `PageResource.php`,
+`SampleContent.php` and regenerate the golden export (`GOLDEN_UPDATE=1 php artisan test --filter=GoldenExportTest`); in the frontend copy `schema.ts`, run `pnpm contract:sync`.
+
+### 2026-11-23: Sitemap `lastmod`, `llms.txt`, Markdown versions, SEO spec and a Vue island in the Astro templates
+
+Affects: `astro-static`, `astro-cms-frontend` / layers `astro/static`, `astro/cms-client`.
+
+- The sitemap carries `lastmod` from the page's `updatedAt` (CMS) or `src/lib/site-pages.ts` (static), never the build time; `noindex` pages stay out of the sitemap.
+- `llms.txt` is generated from the same data as the pages (`src/pages/llms.txt.ts`, helper `src/lib/seo/llms.ts`); the CMS frontend also publishes Markdown versions
+  (`/index.md`, `/<slug>.md`, advertised with `<link rel="alternate" type="text/markdown">`) and has one Vue island, the mobile menu (`@astrojs/vue`, `vue-tsc`, `eslint-plugin-vue`,
+  Vitest). `BaseLayout` gets a `header` slot, a default Open Graph image (`public/og-default.png`, replace it) and the `markdownHref` prop.
+- `pnpm verify` also checks `lastmod` on every sitemap entry, `llms.txt` and, with a CMS, the Markdown versions and the `noindex` flags of the export.
+- Playwright gets the network guard (`e2e/fixtures.ts`: every request to another origin is aborted unless a spec routes it) and `e2e/seo.spec.ts` (title at most 60 and
+  description 110-155 characters, one `h1`, canonical, Open Graph with image, `robots.txt`, `llms.txt`).
+
+Migration: copy the changed files of the layers; list every indexable page in `src/lib/site-pages.ts` (static) and give pages descriptions of 110-155 characters; replace
+`import { test } from '@playwright/test'` by `./fixtures` in the specs; with a CMS run `pnpm install` (new dependencies) and `pnpm contract:sync`.
+
+### 2026-11-23: Astro scripts aligned, pnpm hardening, scratch image and Jenkinsfiles
+
+Affects: `astro-static`, `astro-cms-frontend` / layers `astro/static`, `astro/cms-client`.
+
+`lint` / `lint:fix` are now `eslint` / `eslint:fix`, `test` runs Vitest and `check` is `astro check` plus `vue-tsc --noEmit` with a CMS; `pnpm-workspace.yaml` gains `auditConfig.ignoreGhsas`
+(empty; an entry needs a reason and a review date); `.prettierignore` skips the generated guideline files. `astro/cms-client` ships the multi-stage `Dockerfile` (`pnpm build`
+and `pnpm verify` against the real export, final stage `FROM scratch` with `dist/` only) and `.dockerignore`. Both Jenkinsfiles run the `Checks` stage (lint, format, type check,
+Vitest, audit, build and verify, Playwright) and then `deployStaticSite` (`astro-static`) or `dockerBuildMultiArch` + `deployKomodoStack` (CMS, with the Publish callback).
+The image build takes the export token as a build argument (it exists only in the build stage) until `astroPipeline` can pass a BuildKit secret.
+
+Migration: rename the scripts in `package.json`, `Jenkinsfile`, READMEs and any CI; add `auditConfig` to `pnpm-workspace.yaml`; a CMS site replaces its monorepo `deployStaticSite`
+delivery by the image (`Dockerfile`, `.dockerignore`, `Jenkinsfile`); the host NGINX serves `/_astro/` from `current` (the deploy hook of the stack replaces `deployStaticSite`'s shared directory).
 
 ### 2026-11-23: Form endpoint in `laravel-cms`
 
@@ -316,16 +387,6 @@ starts with an uppercase letter (the example is `:sparkles: [checkout] Add deliv
 
 Migration: optional. Copy the changed lines of `.github/PULL_REQUEST_TEMPLATE.md` into the project's template, and add the
 `Tracker` and `Sources of truth` sections to `CONTEXT.md` (fill them in, or keep `TBD`).
-
-### 2026-11-23: New variant `laravel-cms`
-
-Affects: new variant `laravel-cms` / layers `laravel/cms`, `variants/laravel-cms.json`.
-
-The Laravel + Filament headless CMS that used to live in `backend/` of `astro-laravel-cms` is its own variant (`common`, `laravel/skeleton`,
-`laravel/base`, `laravel/filament`, `laravel/cms`): a normal Laravel repository with its own `Jenkinsfile`, guidelines and image. It is also
-the small Laravel backend that a static site without a CMS uses for forms.
-
-Migration: none for existing Laravel projects. A project created from `astro-laravel-cms` keeps its `backend/` as it is (see the entry that retires that variant).
 
 ## 2026-11-22: LSR requires PHP ^8.5
 

@@ -1,0 +1,9 @@
+{
+    "name": "astro-static",
+    "package": "esoul-cz/template-astro-static",
+    "description": "eSoul static website (Astro 7, Tailwind 4) without a CMS, delivered with deployStaticSite.",
+    "layers": [
+        {"layer": "common"},
+        {"layer": "astro/static"}
+    ]
+}

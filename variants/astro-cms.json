@@ -1,0 +1,9 @@
+{
+    "name": "astro-cms",
+    "package": "esoul-cz/template-astro-cms",
+    "description": "eSoul monorepo root of a static Astro site with a headless CMS: README, the contract, one NGINX site, and git submodules for the frontend and the backend.",
+    "layers": [
+        {"layer": "common"},
+        {"layer": "astro-cms/root"}
+    ]
+}

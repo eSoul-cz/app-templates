@@ -1,1 +1,1 @@
-{"description": "Repo-root files of the Astro static frontend + Laravel/Filament CMS monorepo: Jenkinsfile (astroCmsPipeline, planned), docs/contract.md, docker/nginx.example, README with the publish flow."}
+{"description": "Thin root repository of a static Astro site with a headless CMS: README, the contract between the halves (docs/contract.md), one NGINX site for both (docker/nginx.example) and bin/add-submodules, which adds the frontend (astro-cms-frontend) and the backend (laravel-cms) as git submodules. Nothing is built or deployed from it."}

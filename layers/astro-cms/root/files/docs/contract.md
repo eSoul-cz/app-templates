@@ -1,10 +1,12 @@
 # Backend <-> frontend contract (v1)
 
-The single source of truth for the data between `backend/` and `frontend/`. A change is ONE pull request that
-changes the backend (exporter + golden test), the frontend (Zod schema, fixture) and this file.
+The single source of truth for the data between the `backend` (Laravel + Filament, template `laravel-cms`) and the `frontend` (Astro,
+template `astro-cms-frontend`), the two submodules of this repository. A change is ONE pull request in EACH repository, linked to
+each other: the backend (exporter + golden test), the frontend (Zod schema, golden copy, fixture) and this file.
 
 Conventions: JSON keys are **camelCase**, dates are ISO 8601, texts are plain text (never HTML). The version is the
-handshake: the frontend accepts only `schemaVersion: 1` and fails the build otherwise.
+handshake: the frontend accepts only `schemaVersion: 1` and fails the build otherwise. A field added later is **optional** in the
+frontend schema (an older backend does not send it); a field that changes meaning or is removed is `schemaVersion: 2`.
 
 ## 1. Content export: `GET /cms-api/v1/export`
 
@@ -35,11 +37,18 @@ handshake: the frontend accepts only `schemaVersion: 1` and fails the build othe
       "sort": 10,
       "title": "Welcome",                  // string, required
       "description": "…",                  // string | null, meta description
-      "blocks": [ Block ]
+      "blocks": [ Block ],
+      "updatedAt": "2026-11-10T09:00:00+00:00",  // optional: when the page itself was last saved (ISO 8601 with offset)
+      "noindex": false,                    // optional: true = noindex, left out of the sitemap, llms.txt and Markdown versions
+      "ogImage": Image | null              // optional: Open Graph image of this page (the site image is used when null or absent)
     }
   ]
 }
 ```
+
+`updatedAt`, `noindex` and `ogImage` of a page are the **optional fields of v1**: the backend sends all three. The frontend uses `updatedAt`
+as the `lastmod` of the sitemap (never the build time, so a rebuild does not touch the dates of unchanged pages), `noindex` for the robots
+meta tag, the sitemap, `llms.txt` and the Markdown versions, and `ogImage ?? settings.ogImage` as the Open Graph image.
 
 ### Blocks
 
@@ -50,7 +59,7 @@ handshake: the frontend accepts only `schemaVersion: 1` and fails the build othe
 ```
 
 New block types are added to the exporter, to `blockSchema` in `frontend/src/lib/cms/schema.ts`, to
-`frontend/src/components/Blocks.astro` and here, together.
+`frontend/src/components/Blocks.astro`, to the Markdown renderer `frontend/src/lib/cms/markdown.ts` and here, together.
 
 ### Files and media
 
@@ -88,20 +97,46 @@ Jenkins reports the result of a build started by the Publish button.
 parameter `CMS_PUBLISH_ID=<id>`. Jenkins answers `201` with the queue item in `Location`. As a fallback for a missing
 callback the backend polls `<queue item>/api/json`, then `<build>/api/json`.
 
-## 4. Fixture and golden export
+## 4. Golden export, golden copy and fixture
 
 `backend/tests/Fixtures/content-export.golden.json` is the output of the exporter over the sample data of
-`backend/tests/Support/SampleContent.php` (guarded by `GoldenExportTest`). The frontend fixture
-`frontend/src/lib/cms/fixture.json` is generated from it (`pnpm fixture:build`) and `pnpm fixture:check` fails when the two
-differ. After changing the exporter or the sample data:
+`backend/tests/Support/SampleContent.php` (guarded by `GoldenExportTest`; `pixel.png` next to it is the one media file). The frontend keeps a
+**copy** of both in `frontend/contract/` so that it builds and checks on its own, and its fixture `frontend/src/lib/cms/fixture.json` is generated from
+the copy (`pnpm fixture:build`).
+
+`pnpm fixture:check` in the frontend compares:
+
+1. the schema version of the copy with the version the frontend accepts (always);
+2. the copy with the backend originals, byte for byte, **when `../backend` exists** (this monorepo with both submodules checked out);
+3. the fixture with the copy.
+
+Without `../backend` (the frontend repository on its own, for example in Jenkins) only 1 and 3 run, so a backend change that
+was not copied is caught the next time someone works in the monorepo. After changing the exporter or the sample data:
 
 ```sh
 cd backend && GOLDEN_UPDATE=1 php artisan test --filter=GoldenExportTest
-cd ../frontend && pnpm fixture:build
+cd ../frontend && pnpm contract:sync        # copies the golden file and pixel.png into contract/, rebuilds the fixture
 ```
 
 ## 5. Routes
 
-Pages: `/` for the home page, `/<slug>/` for the others (`build.format: 'directory'`). The admin is on the same
-domain under `/admin` or on `admin.<domain>` (`docker/nginx.example`, README "Where the admin lives"). The static site and
-`/_cms/` media come from the web server; `/admin`, `/cms-api`, `/livewire*` and `/up` from the backend.
+Pages: `/` for the home page, `/<slug>/` for the others (`build.format: 'directory'`); Markdown versions at `/index.md` and `/<slug>.md`
+(`noindex` pages have none). The backend is on a **subdomain** (default, `admin.<domain>`) or under `/admin` of the site's domain
+(exception, README "Where the backend lives"). The static site and `/_cms/` media come from the web server; `/admin`, `/cms-api`,
+`/forms`, `/livewire-<hash>` and `/up` from the backend.
+
+## 6. Forms: `POST /forms/contact`
+
+The static site has no server, so the forms of the site post to the backend (described in full in `backend/docs/forms.md`).
+
+- A plain `<form method="post" action="{backend origin}/forms/contact">` from the site (cross-origin is fine: a form post is a navigation, no CORS
+  needed; the backend lists the site in `CMS_FORMS_ALLOWED_ORIGINS` and checks `Origin`). No CSRF token, session or cookie.
+- Fields: `name`, `email`, `message`, the hidden honeypot field `website` (must stay empty), `recaptcha_token` (reCAPTCHA v3, action `contact`) and
+  optionally `return_to` (absolute URL on an allowed origin).
+- A plain post is answered with `303` to `return_to` (default `/` of the posting site) with `?form=<code>#form-result`; with `Accept: application/json` the answer is
+  `{"status": "sent"|"error", "code": "…", "message": "…"}`. Codes: `sent`, `invalid`, `origin_forbidden`, `rate_limited`, `captcha_missing`,
+  `captcha_failed`, `captcha_unavailable`, `unavailable`, `failed`.
+- A post without a reCAPTCHA token is rejected (`captcha_missing`, message "Enable JavaScript or contact us at …"): the page and the contact
+  alternative next to the form render without JavaScript, the form itself needs it.
+- The form's URL is a build argument of the frontend (`PUBLIC_FORM_ENDPOINT`, never read at runtime); the template ships no form component:
+  the first project that needs one adds it.

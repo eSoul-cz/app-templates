@@ -1,11 +1,11 @@
 {
     "require-dev": {
-        "esoul-cz/guidelines": "^0.1"
+        "esoul-cz/guidelines": "^0.2"
     },
-    "repositories": [
-        {
-            "type": "composer",
-            "url": "https://packages.esoul.cz"
-        }
-    ]
+    "scripts": {
+        "post-update-cmd": [
+            "esoul-guidelines sync"
+        ],
+        "submodules": "sh bin/add-submodules"
+    }
 }

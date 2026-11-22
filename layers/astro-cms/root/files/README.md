@@ -1,103 +1,115 @@
 # Project
 
-Static website (Astro, `frontend/`) with a headless CMS (Laravel + Filament, `backend/`). Editors work in the
-admin at `/admin`; the public site is a static build that is regenerated and deployed by the **Publish** button.
+Static website (Astro) with a headless CMS (Laravel + Filament). Editors work in the admin of the backend; the public site is a static
+build that is regenerated and deployed by the **Publish** button.
+
+This repository is the thin **monorepo** of the project: shared documentation and tools, and two git submodules, each its own repository
+with its own pipeline. Nothing is built or deployed from here.
 
 | Path | What |
 | --- | --- |
-| `frontend/` | Astro 7 static site, Tailwind 4. Content comes from the CMS export at build time. |
-| `backend/` | Laravel 13 + Filament 5: pages and site settings, the export API, the Publish button. |
-| `docs/contract.md` | The contract between the two halves (versioned, guarded by a golden-file test). |
-| `docker/nginx.example` | Static site + php-fpm routing, for both admin placements (same domain `/admin` or `admin.<domain>`). |
-| `Jenkinsfile` | One Jenkinsfile for the monorepo (`astroCmsPipeline`, see the header comment). |
+| `frontend/` | Submodule: the Astro 7 static site (created from the `astro-cms-frontend` template). Content comes from the CMS export at build time. |
+| `backend/` | Submodule: Laravel 13 + Filament 5, pages and site settings, the export API, the Publish button, the form endpoint (created from the `laravel-cms` template). |
+| `docs/contract.md` | The contract between the halves (versioned, guarded by the golden export). |
+| `docker/nginx.example` | One NGINX site definition for the site and the backend (backend on a subdomain; the path variant is commented). |
+| `bin/add-submodules` | Adds the two repositories as submodules (`composer submodules -- <frontend-url> <backend-url>` does the same). |
 
-## Where the admin lives
+## Setup
 
-The CMS supports two placements; the template defaults to the first. Both are written out in `docker/nginx.example`
-(Mode A active, Mode B commented) and differ only in nginx and a few environment values, never in code.
+1. Create the two repositories from the templates (`composer create-project esoul-cz/template-astro-cms-frontend` and
+   `composer create-project esoul-cz/template-laravel-cms`, or the Packagist-less equivalent), push each to its own GitHub repository.
+2. In this repository (`git init` first): `sh bin/add-submodules <frontend-repository-url> <backend-repository-url>`, then commit
+   `.gitmodules` and the two pointers. Every other checkout runs `git submodule update --init --recursive`.
+3. Fill `CONTEXT.md` (archetype `C-headless`, where the backend lives, business time zone, tasking) and set up the two repositories
+   as their own READMEs say.
 
-| | Same domain (Mode A, default) | Subdomain (Mode B) |
+The submodule pointers move when a half is released (`git add frontend backend`). A change to the contract is a pull request in each repository.
+
+## Where the backend lives
+
+NGINX serves the frontend and the backend from **one site definition** (`docker/nginx.example`). The default, and the recommendation, is a
+**subdomain**; a path of the site's domain is a documented exception for a project that is forced onto one hostname. Record the choice in
+`CONTEXT.md`.
+
+| | Subdomain (default) | Path `/admin` (exception) |
 | --- | --- | --- |
-| Admin URL | `https://example.com/admin` | `https://admin.example.com/admin` |
-| nginx | one server block: static site + backend routes | site block (static + `/_cms/`), plus an `admin.` block that proxies `/admin`, `/livewire*`, `/cms-api`, `/up` to php-fpm and serves `/cms-media/`, `/_cms/` and the panel assets |
-| `APP_URL` (backend) | `https://example.com` | `https://admin.example.com` |
-| `SESSION_DOMAIN` | `null` | `null` (host-only cookie; never `.example.com`) |
-| `cmsApiUrl` (Jenkinsfile) / `CMS_API_URL` | `https://example.com/cms-api/v1` | `https://admin.example.com/cms-api/v1` |
-| `siteUrl` | `https://example.com` | `https://example.com` |
-| CORS | not needed | not needed |
+| Admin URL | `https://admin.example.com/admin` | `https://example.com/admin` |
+| nginx | a site block (static + `/_cms/`) and an `admin.` block that routes `/admin`, `/cms-api`, `/forms`, `/livewire-*`, `/up` to php-fpm and serves `/cms-media/`, `/_cms/` and the panel assets | one block: the static site, the backend's own paths routed to php-fpm |
+| `APP_URL` (backend) | `https://admin.example.com` | `https://example.com` |
+| `SESSION_DOMAIN` / `SESSION_PATH` | `null` / `/` (host-only cookie; never `.example.com`) | `null` / `/admin` |
+| `CMS_ADMIN_PATH_MODE` (backend) | `false` | `true`: the Livewire update and upload routes move under `/admin/livewire/` |
+| `CMS_API_URL` (frontend build) | `https://admin.example.com/cms-api/v1` | `https://example.com/cms-api/v1` |
+| `CMS_FORMS_ALLOWED_ORIGINS` | `https://example.com` | `https://example.com` |
 
-Choose the **same domain** when one hostname and one certificate are enough: simplest, one server block. Choose the
-**subdomain** when the admin should be separable from the public site: its own cookies and CSP, its own access rules
-(VPN or IP allowlist on `admin.` without touching the site), and a public site that exposes no PHP routes at all.
-
-- CORS is never needed: the static build fetches the export server-side (Node, in Jenkins) and visitors' browsers never call
-  the backend.
+- **Why a subdomain:** the admin session cookie is host-only and never reaches the public site, the admin has its own CSP and access rules (VPN or IP
+  allowlist on `admin.` without touching the site), and the public site exposes no PHP routes.
+- **Why the path variant needs more:** a host-only cookie is sent with every request to the host, so on a path the cookie has to be scoped to the backend
+  (`SESSION_PATH=/admin`). Livewire posts its updates and uploads outside `/admin` by default, and those would no longer carry the cookie;
+  `CMS_ADMIN_PATH_MODE=true` moves them under `/admin`. Test the admin login, a page save and an image upload after switching.
+- CORS is never needed: the static build fetches the export server-side and visitors' browsers only navigate (the form post is a navigation).
 - `CMS_API_ALLOWED_IPS` has to contain the build agent in both modes (see the setup checklist).
-- In Mode B the build HEAD-checks media on the origin of `CMS_API_URL`, so the admin host serves `/_cms/` as well; the site
-  domain serves it too because the HTML refers to `/_cms/<hash>` relatively.
-- Switching later means changing nginx, `APP_URL`, `cmsApiUrl` and the DNS record; the exported media URLs are relative (`/_cms/<hash>`).
+- Switching later means changing nginx, the backend `.env`, `CMS_API_URL` in the frontend `Jenkinsfile` and the DNS record; the exported media URLs are relative (`/_cms/<hash>`).
 
 ## Local development
 
 ```sh
 # backend (see backend/README.md for the full setup)
 cd backend && composer install && cp .env.example .env && php artisan key:generate && php artisan migrate
-php artisan make:filament-user                      # admin at http://127.0.0.1:8000/admin
-# set CMS_EXPORT_TOKEN=<random string> in backend/.env, then:
-php artisan serve
+php artisan make:filament-user                      # admin at http://localhost:8080/admin
+# set CMS_EXPORT_TOKEN=<random string> in backend/.env
 
 # frontend
 cd frontend && pnpm install
 CMS_SOURCE=fixture pnpm dev                         # no backend needed
-# or against the running backend: CMS_API_URL=http://127.0.0.1:8000/cms-api/v1, CMS_API_TOKEN=<CMS_EXPORT_TOKEN>
+# or against the running backend: CMS_API_URL=http://localhost:8080/cms-api/v1, CMS_API_TOKEN=<CMS_EXPORT_TOKEN>
 ```
+
+After a backend change to the exporter: `cd backend && GOLDEN_UPDATE=1 php artisan test --filter=GoldenExportTest`, then `cd ../frontend && pnpm contract:sync`
+(see `docs/contract.md`, "Golden export, golden copy and fixture").
 
 ## Publish flow
 
 ```text
-editor ── Publish ─▶ StartPublishCommand ─▶ Jenkins job (CMS_PUBLISH_ID=<id>) ─▶ frontend build ─▶ deployStaticSite
-   ▲  (Filament)      │ checks the export,    │                              │ GET /cms-api/v1/export             │
-   │                  │ writes a `publishes`  │                              │ (bearer token, Zod-validated,       ▼
-   │                  │ row (queued)          │                              │  /_cms media HEAD-checked)    web/current -> releases/<id>
-   └──── status ◀──── POST /cms-api/v1/publishes/<id>/status (callback, bearer token) ◀── post { always }
+editor ── Publish ─▶ StartPublishCommand ─▶ Jenkins job of the frontend (CMS_PUBLISH_ID=<id>) ─▶ Checks ─▶ image (FROM scratch, dist/) ─▶ Komodo stack
+   ▲  (Filament)      │ checks the export,    │                                  │ GET /cms-api/v1/export                 │ deploy hook: releases/<id>, `current` switch
+   │                  │ writes a `publishes`  │                                  │ (bearer token, Zod-validated,          ▼
+   │                  │ row (queued)          │                                  │  /_cms media HEAD-checked)       web/current -> releases/<id>
+   └──── status ◀──── POST /cms-api/v1/publishes/<id>/status (callback, bearer token) ◀── finally block of the Jenkinsfile
 ```
 
 1. An editor saves pages and settings in Filament. Nothing is public yet: the **Publish** page shows "unpublished changes".
 2. **Publish** (`StartPublishCommand`): refuses when a publish is already queued or running, when Jenkins is not
    configured, or when the export has problems (the same rules as the Zod schema). Otherwise it stores a `publishes` row
    (`queued`) and calls `{CMS_JENKINS_JOB_URL}/buildWithParameters` with `CMS_PUBLISH_ID`.
-3. The Jenkins build fetches `GET /cms-api/v1/export` (bearer `CMS_EXPORT_TOKEN`). While serving it, the backend copies
-   every referenced image to `storage/app/cms-public/<sha256[0:20]>.<ext>`; nginx serves it at `/_cms/`. The build
-   validates the export with Zod, HEAD-checks the media, builds, runs `pnpm verify` and deploys `dist/` as a new release.
+3. The frontend job fetches `GET /cms-api/v1/export` (bearer `CMS_EXPORT_TOKEN`). While serving it, the backend copies
+   every referenced image to `storage/app/cms-public/<sha256[0:20]>.<ext>`; nginx serves it at `/_cms/`. The image build validates the export with Zod,
+   HEAD-checks the media, builds, runs `pnpm verify` and the Komodo hook deploys `dist/` as a new release.
    **In CI the build fails when the export is unreachable or invalid**: it never falls back to the fixture or to old data.
-4. `post { always }` reports `{result, buildUrl, contentHash}` to `POST /cms-api/v1/publishes/<id>/status`
+4. The `finally` block reports `{result, buildUrl}` to `POST /cms-api/v1/publishes/<id>/status`
    (bearer `CMS_JENKINS_CALLBACK_TOKEN`). `SUCCESS` and `UNSTABLE` mean deployed.
 5. The callback is best effort. **Refresh status** polls Jenkins (queue item, then build), and a publish without a result
    after `CMS_PUBLISH_TIMEOUT` minutes (default 30) is marked failed so the button cannot stay blocked. A late callback
    is still recorded, with a note.
 
 Media: names are content addressed, so files are immutable and cacheable for a year. `cms:prune-public-media` (daily 03:30)
-deletes files that no build of the last 7 days referenced.
+deletes files that no build of the last 7 days referenced. Rollback is redeploying the previous image of the frontend.
 
 ### Setup checklist
 
-- Backend `.env`: `CMS_EXPORT_TOKEN`, `CMS_JENKINS_JOB_URL` (`https://<jenkins>/job/<job>`), `CMS_JENKINS_USER`,
-  `CMS_JENKINS_API_TOKEN`, `CMS_JENKINS_CALLBACK_TOKEN`, `CMS_API_ALLOWED_IPS`.
-- Jenkins credentials (Secret Text): the export token (= `CMS_EXPORT_TOKEN`) and the callback token
-  (= `CMS_JENKINS_CALLBACK_TOKEN`), named in the `Jenkinsfile`.
+- Backend `.env`: `CMS_EXPORT_TOKEN`, `CMS_JENKINS_JOB_URL` (`https://<jenkins>/job/<job>/job/main`, the job of the frontend), `CMS_JENKINS_USER`,
+  `CMS_JENKINS_API_TOKEN`, `CMS_JENKINS_CALLBACK_TOKEN`, `CMS_API_ALLOWED_IPS`, and for the forms `CMS_FORMS_ALLOWED_ORIGINS`, `CMS_FORMS_RECIPIENTS`,
+  `CMS_FORMS_RECAPTCHA_SECRET`, `TRUSTED_PROXIES`.
+- Jenkins credentials (Secret Text) of the frontend job: the export token (= `CMS_EXPORT_TOKEN`) and the callback token
+  (= `CMS_JENKINS_CALLBACK_TOKEN`), named in its `Jenkinsfile`.
 - **`CMS_API_ALLOWED_IPS` has to contain the address of the build agent.** The build fetches `/cms-api` over the public
-  URL, so a changed agent address makes the export (and so every publish) answer 403 until the list is updated.
-- nginx: `docker/nginx.example` (pick Mode A or B first). The static release root and the backend volumes (`storage/app/cms-public`,
-  `storage/app/cms-media`) must be readable by nginx.
-- Staging: build the frontend with `PUBLIC_NOINDEX=true` (noindex meta, `Disallow: /`, no sitemap). Production leaves it unset.
+  URL, so a changed agent address makes the export (and so every publish) answer 403 until the list is updated. Record the address in the frontend `README.md`.
+- nginx: `docker/nginx.example`. The static release root (`web/current`) and the backend directories (`storage/app/cms-public`, `storage/app/cms-media`, `public/`)
+  must be readable by nginx.
+- Staging: build the frontend with `PUBLIC_NOINDEX=true` (noindex meta, `Disallow: /`, no sitemap, no `llms.txt` entries) behind HTTP basic auth. Production leaves it unset.
 
 ## Notes
 
-- `astroCmsPipeline` does not exist yet; the `Jenkinsfile` shows the configuration it is meant to take. Example names
-  (`example-project`, `example.com`) must be replaced.
-- The admin sits on the site's domain under `/admin` by default or on `admin.<domain>` (see "Where the admin lives"). The admin
-  panel assets (`/build`, `/css|js|fonts/filament`) are served by nginx from the backend `public/` directory, which has to be
-  copied from the image after each deploy.
 - The content model is deliberately minimal (pages with heading / text / image blocks, one settings record). Extend the
-  exporter, the Zod schema, `Blocks.astro` and `docs/contract.md` together.
-- Uploads of the admin are served from `/cms-media/` (images only, CSP sandbox) so that Filament can preview them.
+  exporter, the Zod schema, `Blocks.astro`, the Markdown renderer and `docs/contract.md` together, in a pull request in each repository.
+- A site without a CMS needs only the `astro-static` template; if it needs a form it starts its small backend from `laravel-cms`.
+- `esoul-guidelines.json` of this repository holds the layers for the shared documentation; each submodule has its own.

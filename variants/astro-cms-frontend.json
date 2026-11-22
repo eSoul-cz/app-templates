@@ -1,0 +1,10 @@
+{
+    "name": "astro-cms-frontend",
+    "package": "esoul-cz/template-astro-cms-frontend",
+    "description": "eSoul static Astro 7 frontend that builds from a headless CMS export (the laravel-cms backend) and ships as a FROM scratch image.",
+    "layers": [
+        {"layer": "common"},
+        {"layer": "astro/static"},
+        {"layer": "astro/cms-client"}
+    ]
+}

@@ -14,8 +14,8 @@ use Psr\Http\Server\RequestHandlerInterface;
  * CSRF protection for unsafe methods: the request must come from the app's own browser client
  * (Inertia or XHR) and its Origin (or Referer) must match the public origin of the request.
  *
- * The public origin is read from `X-Forwarded-Proto` / `X-Forwarded-Host` / `Host`, so the reverse proxy
- * in front of RoadRunner must set them and must not forward client-supplied values.
+ * The public origin is the scheme and host of the request itself (the request URI and the `Host` header). Behind NGINX over
+ * FastCGI they come from the `HTTPS` and `HTTP_HOST` FastCGI parameters; `X-Forwarded-*` headers are ignored.
  */
 readonly class BrowserCsrfMiddleware implements MiddlewareInterface
 {
@@ -55,21 +55,19 @@ readonly class BrowserCsrfMiddleware implements MiddlewareInterface
             return false;
         }
 
+        // The request as the web server delivered it: over FastCGI, NGINX passes the scheme (`HTTPS`) and the host
+        // (`HTTP_HOST`) as FastCGI parameters, and RoadRunner builds the request URI and the `Host` header from them.
+        // `X-Forwarded-*` is not read: a client could forge it whenever the proxy does not replace it.
         $uri = $request->getUri();
-        $scheme = $this->firstValue($request->getHeaderLine('X-Forwarded-Proto')) ?? $uri->getScheme();
-        $authority = $this->firstValue($request->getHeaderLine('X-Forwarded-Host'))
-            ?? $this->firstValue($request->getHeaderLine('Host'))
-            ?? $uri->getAuthority();
+        $scheme = $uri->getScheme();
+        $authority = trim($request->getHeaderLine('Host'));
+        if ($authority === '') {
+            $authority = $uri->getAuthority();
+        }
 
         $sourceAuthority = $parts['host'] . (isset($parts['port']) ? ':' . $parts['port'] : '');
 
         return $this->origin($parts['scheme'], $sourceAuthority) === $this->origin($scheme, $authority);
-    }
-
-    private function firstValue(string $header): ?string {
-        $value = trim(explode(',', $header, 2)[0]);
-
-        return $value === '' ? null : $value;
     }
 
     private function origin(string $scheme, string $authority): string {

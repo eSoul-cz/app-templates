@@ -36,13 +36,13 @@ Affects: all variants with a Node toolchain (`laravel-inertia`, `laravel-filamen
 `lsr-inertia`, `astro-laravel-cms`) / layers `laravel/base`, `laravel/inertia-vue`, `astro/static`, `lsr/base`, `astro-cms/root` (Jenkinsfile).
 
 Node 26 (`.nvmrc`, Dockerfiles, Jenkinsfiles) and the latest pnpm (12.21.0 at the time) replace the previous pins. Node 26 has no
-corepack, so Docker Node stages install pnpm with `npm install --global pnpm@${PNPM_VERSION}`. pnpm 12 reads only auth settings from
-`.npmrc` and ignores `onlyBuiltDependencies`: build allow-lists are `allowBuilds`, and `ignoreScripts`, `publicHoistPattern` and
-`minimumReleaseAge` live in `pnpm-workspace.yaml`.
+corepack, so Docker Node stages install pnpm with `npm install --global pnpm@${PNPM_VERSION}`. pnpm 12 reads only auth, registry, TLS, proxy
+and `local-address` settings from `.npmrc` and ignores `onlyBuiltDependencies`: build allow-lists are `allowBuilds`, and `ignoreScripts`,
+`publicHoistPattern` and `minimumReleaseAge` live in `pnpm-workspace.yaml`.
 
 Migration: update `.nvmrc`, `engines.node`, the `packageManager` field, the Dockerfile Node/pnpm stages and the `nodeImage` of the
-Jenkinsfile; convert `onlyBuiltDependencies` to `allowBuilds` and move pnpm settings from `.npmrc` to `pnpm-workspace.yaml`; run
-`pnpm install` and commit the lock file.
+Jenkinsfile; convert `onlyBuiltDependencies` to `allowBuilds` and move every other pnpm setting (not auth, registry, TLS, proxy or
+`local-address`) from `.npmrc` to `pnpm-workspace.yaml`; run `pnpm install` and commit the lock file.
 
 ## 2026-11-18: The admin of the CMS can live on a subdomain
 

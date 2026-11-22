@@ -26,11 +26,17 @@ bin/templates build laravel-inertia         # → build/laravel-inertia/
 bin/templates build --all --out=build       # every variant
 bin/templates build laravel-inertia --commit=<sha>    # record another source commit in .esoul/template.json (default: HEAD of this repository)
 bin/templates skeleton:sync                 # refresh laravel/skeleton from upstream (default ^13)
-vendor/bin/phpunit                          # builder tests
+vendor/bin/phpunit                          # builder tests (also: composer test)
+composer phpstan                            # PHPStan, level max with the phpunit, strict and deprecation rules
+composer cs                                 # PHP-CS-Fixer dry run with esoul-cz/coding-standard; `composer cs:fix` applies it
 ```
 
 `build` empties `build/<variant>/` first, so output is reproducible and deterministic (sorted files, normalised JSON). All layers
 of a variant are resolved before anything is deleted; an unknown layer or variant fails with a clear error and exit code 1.
+
+CI is the `Jenkinsfile`: one call to `phpPackagePipeline` from the eSoul Jenkins libraries. It runs composer validate, PHPStan, the code
+style check, composer audit, the builder tests and `bin/templates build --all` on PHP 8.5, then the tests on 8.4 and 8.6 after Composer
+re-resolved the dependencies on that version. The builder supports PHP 8.4 and every later 8.x release (`^8.4`).
 
 ## Layout
 

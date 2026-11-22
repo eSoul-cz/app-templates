@@ -36,4 +36,46 @@ return [
         // the next publish forever (the callback is best effort).
         'timeout_minutes' => env('CMS_PUBLISH_TIMEOUT', 30),
     ],
+
+    /*
+     * POST /forms/contact: the contact form of the static site (docs/forms.md). Pipeline: honeypot, rate limit,
+     * reCAPTCHA v3, delivery (database record + e-mail), last-resort file.
+     */
+    'forms' => [
+        /*
+         * Sites (origins, comma separated, e.g. https://example.com) whose browsers may post to the endpoint and
+         * that `return_to` may point at. The Origin header (or the origin of the Referer) must be listed.
+         * Empty = every post is rejected (403) in production; any origin is accepted in a local environment.
+         */
+        'allowed_origins' => array_values(array_filter(array_map(trim(...), explode(',', (string) env('CMS_FORMS_ALLOWED_ORIGINS', ''))))),
+
+        /*
+         * E-mail recipients of a submission (comma separated). Empty = the contact e-mail of the site settings.
+         * SMTP itself is the normal MAIL_* configuration.
+         */
+        'recipients' => array_values(array_filter(array_map(trim(...), explode(',', (string) env('CMS_FORMS_RECIPIENTS', ''))))),
+
+        // Name of the hidden trap field of the form. A filled field gets a fake success and nothing is sent.
+        'honeypot_field' => 'website',
+
+        // At most `attempts` submissions per client address (known by its hash only) in `decay_seconds`. The
+        // counters live in the cache store: use `file` or `database`, never a directory under the webroot.
+        'rate_limit' => [
+            'attempts' => 5,
+            'decay_seconds' => 600,
+        ],
+
+        /*
+         * reCAPTCHA v3 (action `contact`). Without a secret the check is skipped with a logged warning outside
+         * production, and the endpoint answers 503 in production.
+         */
+        'recaptcha' => [
+            'secret' => env('CMS_FORMS_RECAPTCHA_SECRET'),
+            'min_score' => (float) (env('CMS_FORMS_RECAPTCHA_MIN_SCORE') ?: 0.5),
+        ],
+
+        // Last resort when neither the database nor the e-mail took a submission: one JSON line per submission,
+        // YYYY-MM.jsonl, outside the webroot.
+        'last_resort_path' => storage_path('app/private/forms-last-resort'),
+    ],
 ];

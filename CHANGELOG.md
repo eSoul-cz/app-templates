@@ -26,6 +26,19 @@ Migration: what an existing project must do (or "none").
 
 ## Unreleased
 
+### 2026-11-23: PR template and CONTEXT.md follow the workflow guideline
+
+Affects: every variant / layer `common` (`.github/PULL_REQUEST_TEMPLATE.md`, `CONTEXT.md`).
+
+The PR template gets a **Deploy notes** line (new or changed configuration, secrets, buckets, a migration that needs a backup first,
+or `none`), `Bez testu:` becomes `No test:`, the mutation testing checkbox is gone (mutation testing has no gate, see the
+`package/mutation-testing` guideline), and a new glossary term may land in a stacked PR. `CONTEXT.md` states that a commit message
+starts with an uppercase letter (the example is `:sparkles: [checkout] Add delivery selection`) and gains the `Tracker` and
+`Sources of truth` sections, both `TBD`.
+
+Migration: optional. Copy the changed lines of `.github/PULL_REQUEST_TEMPLATE.md` into the project's template, and add the
+`Tracker` and `Sources of truth` sections to `CONTEXT.md` (fill them in, or keep `TBD`).
+
 ### 2026-11-23: New variant `laravel-cms`
 
 Affects: new variant `laravel-cms` / layers `laravel/cms`, `variants/laravel-cms.json`.

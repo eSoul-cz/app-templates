@@ -133,6 +133,14 @@ and `./temp/queue/tasks.db`).
 Migration: `composer require --dev esoul-cz/guidelines:^0.2`, add the `post-update-cmd`, add `package/mutation-testing` to `esoul-guidelines.json` and run
 `esoul-guidelines sync`; remove the `repositories` entry and run `composer update --lock`; use `mariadb:12.3` in both compose files; append the two lines to
 `.gitattributes` (files already committed to LFS stay there until `git lfs migrate export --include="assets/js/**,assets/css/**"`); write the operations README.
+### 2026-11-23: `laravel/inertia-vue`: script names, Wayfinder form variants, preload cap
+
+Affects: `laravel-inertia`, `laravel-inertia-filament`, `laravel-lunar` / layer `laravel/inertia-vue` (`package.json`, `vite.config.ts`, `bootstrap/app.php`, `components.json`).
+
+The `lint` script (an alias of `eslint`) is removed; the scripts are `eslint`, `eslint:fix`, `format:check`, `format`, `tsc`, `build` and `test`. The Wayfinder plugin runs with `formVariants: true`, matching `wayfinder:generate --with-form` of the production image. `bootstrap/app.php` caps the preload `Link` headers with `AddLinkHeadersForPreloadedAssets::using(limit: 25)` (a safety net against oversized FastCGI response headers, not a budget). The shadcn `lib` alias is dropped from `components.json`; `utils` already points at `@/utils/classes`.
+
+Migration: delete the `lint` script (use `pnpm eslint`), pass `{ formVariants: true }` to `wayfinder()` in `vite.config.ts`, add the middleware to `$middleware->web(append: [...])`, remove `"lib": "@/lib"` from `components.json`.
+
 ### 2026-11-23: Laravel variants: local-only seed data, UTC for plain PHP, LFS assets out of the build context, pinned Mailpit
 
 Affects: `laravel-inertia`, `laravel-filament`, `laravel-inertia-filament`, `laravel-lunar` (and the backend of `laravel-cms`) / layer `laravel/base` (`database/seeders`, `docker/*/php.ini`, `.dockerignore`, `docker-compose.yml`, `docker/production/Dockerfile`).

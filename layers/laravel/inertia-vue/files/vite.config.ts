@@ -12,7 +12,6 @@ export default defineConfig(({ mode }) => {
     const vitePort = Number.isFinite(parsedVitePort) && parsedVitePort > 0 ? parsedVitePort : 5173;
     // The production image generates the Wayfinder files in its PHP stage; its Node stage has no PHP to run the plugin.
     const wayfinderTypesArePreGenerated = process.env.WAYFINDER_TYPES_PREGENERATED === 'true';
-
     return {
         server: {
             host: '0.0.0.0',
@@ -43,7 +42,7 @@ export default defineConfig(({ mode }) => {
                     },
                 },
             }),
-            wayfinderTypesArePreGenerated ? null : wayfinder(),
+            wayfinderTypesArePreGenerated ? null : wayfinder({ formVariants: true }),
         ],
         resolve: {
             alias: {

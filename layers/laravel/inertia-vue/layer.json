@@ -1,3 +1,3 @@
 {
-    "description": "Inertia 3 + Vue 3 frontend (Wayfinder, Tailwind 4, shadcn-vue conventions, Vite 8, Vitest, ESLint flat config, Prettier). No SSR by default. Replaces the skeleton's Vite/welcome files and the base Jenkinsfile (JS lint, format, type check and tests enabled)."
+    "description": "Inertia 3 + Vue 3 frontend (Wayfinder with form variants, Tailwind 4, shadcn-vue conventions, Vite 8, Vitest, ESLint flat config, Prettier; scripts eslint, eslint:fix, format:check, format, tsc, build, test). No SSR by default. Replaces the skeleton's Vite/welcome files and the base Jenkinsfile (JS lint, format, type check and tests enabled, unfiltered pnpm audit) and bootstrap/app.php (adds the Inertia middleware and the cap of 25 preload Link headers to the base's TrustProxies setup)."
 }

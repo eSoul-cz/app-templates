@@ -33,8 +33,9 @@ final readonly class Catalog
     public function variant(string $name): Variant
     {
         $file = $this->root . '/variants/' . $name . '.json';
-        if (!preg_match('/^[a-z0-9][a-z0-9-]*$/', $name) || !is_file($file)) {
-            throw new TemplateException(sprintf('Unknown variant "%s". Available: %s.', $name, implode(', ', $this->variantNames()) ?: 'none'));
+        if (preg_match('/^[a-z0-9][a-z0-9-]*$/', $name) !== 1 || !is_file($file)) {
+            $available = $this->variantNames();
+            throw new TemplateException(sprintf('Unknown variant "%s". Available: %s.', $name, $available === [] ? 'none' : implode(', ', $available)));
         }
 
         $data = JsonMerger::decode((string) file_get_contents($file), $file);
@@ -42,13 +43,11 @@ final readonly class Catalog
             throw new TemplateException(sprintf('%s must contain a JSON object.', $file));
         }
 
-        foreach (['name', 'package', 'description'] as $key) {
-            if (!isset($data->{$key}) || !is_string($data->{$key}) || $data->{$key} === '') {
-                throw new TemplateException(sprintf('%s: "%s" must be a non-empty string.', $file, $key));
-            }
-        }
-        if ($data->name !== $name) {
-            throw new TemplateException(sprintf('%s: "name" is "%s" but the file is called "%s.json".', $file, $data->name, $name));
+        $variantName = self::requiredString($data, 'name', $file);
+        $package = self::requiredString($data, 'package', $file);
+        $description = self::requiredString($data, 'description', $file);
+        if ($variantName !== $name) {
+            throw new TemplateException(sprintf('%s: "name" is "%s" but the file is called "%s.json".', $file, $variantName, $name));
         }
         if (!isset($data->layers) || !is_array($data->layers) || $data->layers === []) {
             throw new TemplateException(sprintf('%s: "layers" must be a non-empty list.', $file));
@@ -59,7 +58,7 @@ final readonly class Catalog
             $entries[] = $this->entry($raw, sprintf('%s: layers[%d]', $file, $index));
         }
 
-        return new Variant($data->name, $data->package, $data->description, $entries);
+        return new Variant($variantName, $package, $description, $entries);
     }
 
     /** Absolute path of a layer directory; throws when the layer does not exist. */
@@ -99,10 +98,27 @@ final readonly class Catalog
         }
 
         $exclude = $raw->exclude ?? [];
-        if (!is_array($exclude) || array_filter($exclude, static fn (mixed $glob): bool => !is_string($glob)) !== []) {
+        if (!is_array($exclude)) {
             throw new TemplateException(sprintf('%s: "exclude" must be a list of glob strings.', $where));
         }
+        $globs = [];
+        foreach ($exclude as $glob) {
+            if (!is_string($glob)) {
+                throw new TemplateException(sprintf('%s: "exclude" must be a list of glob strings.', $where));
+            }
+            $globs[] = $glob;
+        }
 
-        return new LayerEntry($raw->layer, trim($into, '/'), array_values($exclude));
+        return new LayerEntry($raw->layer, trim($into, '/'), $globs);
+    }
+
+    private static function requiredString(\stdClass $data, string $key, string $file): string
+    {
+        $value = $data->{$key} ?? null;
+        if (!is_string($value) || $value === '') {
+            throw new TemplateException(sprintf('%s: "%s" must be a non-empty string.', $file, $key));
+        }
+
+        return $value;
     }
 }

@@ -51,7 +51,7 @@ final readonly class SkeletonSync
             if (!$process->isSuccessful()) {
                 throw new TemplateException('composer create-project failed:' . "\n" . $output);
             }
-            if (!preg_match('/Installing laravel\/laravel \(v?([0-9][^)\s]*)\)/', $output, $matches)) {
+            if (preg_match('/Installing laravel\/laravel \(v?([0-9][^)\s]*)\)/', $output, $matches) !== 1) {
                 throw new TemplateException("Could not detect the resolved laravel/laravel version from composer output:\n" . $output);
             }
             $version = $matches[1];

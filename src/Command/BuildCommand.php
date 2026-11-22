@@ -52,13 +52,15 @@ final class BuildCommand extends Command
         $catalog = new Catalog($this->root);
 
         $variant = $input->getArgument('variant');
-        if ($input->getOption('all') === ($variant !== null)) {
+        $variant = is_string($variant) ? $variant : null;
+        $all = $input->getOption('all') === true;
+        if ($all === ($variant !== null)) {
             $io->error('Give either a variant name or --all.');
 
             return self::INVALID;
         }
 
-        $out = (string) $input->getOption('out');
+        $out = $this->stringOption($input, 'out');
         if (!str_starts_with($out, '/')) {
             $out = $this->root . '/' . $out;
         }
@@ -70,8 +72,8 @@ final class BuildCommand extends Command
         }
         $commit ??= $this->headCommit();
 
-        $names = $input->getOption('all') ? $catalog->variantNames() : [(string) $variant];
-        $guidelinesBin = (string) $input->getOption('guidelines-bin');
+        $names = $variant === null ? $catalog->variantNames() : [$variant];
+        $guidelinesBin = $this->stringOption($input, 'guidelines-bin');
         if (!str_starts_with($guidelinesBin, '/')) {
             $guidelinesBin = $this->root . '/' . $guidelinesBin;
         }
@@ -89,6 +91,17 @@ final class BuildCommand extends Command
         }
 
         return self::SUCCESS;
+    }
+
+    /** Value of an option that is always a string: it takes a value and has a default. */
+    private function stringOption(InputInterface $input, string $name): string
+    {
+        $value = $input->getOption($name);
+        if (!is_string($value)) {
+            throw new \LogicException(sprintf('Option --%s must have a string value.', $name));
+        }
+
+        return $value;
     }
 
     /** HEAD of the source repository, or null when `root` is not the top level of a git checkout (a parent repository must not leak in). */

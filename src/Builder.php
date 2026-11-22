@@ -108,7 +108,7 @@ final readonly class Builder
         }
 
         $patterns = [];
-        foreach (preg_split('/\R/', (string) file_get_contents($file)) ?: [] as $line) {
+        foreach (self::splitLines((string) file_get_contents($file)) as $line) {
             $line = trim($line);
             if ($line !== '' && !str_starts_with($line, '#')) {
                 $patterns[] = $line;
@@ -170,10 +170,10 @@ final readonly class Builder
     private function appendLines(string $source, string $destination): void
     {
         $existing = is_file($destination) ? (string) file_get_contents($destination) : '';
-        $lines = $existing === '' ? [] : (preg_split('/\R/', rtrim($existing, "\r\n")) ?: []);
+        $lines = $existing === '' ? [] : self::splitLines(rtrim($existing, "\r\n"));
         $present = array_fill_keys(array_map(rtrim(...), $lines), true);
 
-        foreach (preg_split('/\R/', rtrim((string) file_get_contents($source), "\r\n")) ?: [] as $line) {
+        foreach (self::splitLines(rtrim((string) file_get_contents($source), "\r\n")) as $line) {
             $line = rtrim($line);
 
             if ($line === '') {
@@ -258,8 +258,14 @@ final readonly class Builder
             throw new TemplateException('composer.json "scripts" must be an object.');
         }
 
-        $existing = $scripts->{self::POST_CREATE_EVENT} ?? [];
-        $existing = is_array($existing) ? $existing : [$existing];
+        $current = $scripts->{self::POST_CREATE_EVENT} ?? [];
+        $existing = [];
+        foreach (is_array($current) ? $current : [$current] as $command) {
+            if (!is_string($command)) {
+                throw new TemplateException(sprintf('composer.json "scripts.%s" must be a string or a list of strings.', self::POST_CREATE_EVENT));
+            }
+            $existing[] = $command;
+        }
 
         $scripts->{self::POST_CREATE_EVENT} = array_values(array_unique([
             ...self::POST_CREATE_COMMANDS,
@@ -267,5 +273,13 @@ final readonly class Builder
             ...$existing,
         ]));
         $composer->scripts = $scripts;
+    }
+
+    /** @return list<string> */
+    private static function splitLines(string $text): array
+    {
+        $lines = preg_split('/\R/', $text);
+
+        return $lines === false ? [] : $lines;
     }
 }

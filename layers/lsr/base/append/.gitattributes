@@ -1,0 +1,5 @@
+
+# LSR keeps the Vite sources in assets/js and assets/css: code, not client material, so they stay out of Git LFS.
+# The rest of assets/ remains client material in LFS (the rule above); a later line wins.
+assets/js/** !filter !diff !merge text
+assets/css/** !filter !diff !merge text

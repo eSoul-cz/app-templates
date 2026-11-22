@@ -18,7 +18,9 @@ if ( ! defined('ROOT')) {
     define('ROOT', dirname(__DIR__) . '/');
 }
 
-date_default_timezone_set('Europe/Prague');
+require_once ROOT . 'include/constants.php';
+
+date_default_timezone_set(APP_TIMEZONE);
 
 // Autoload libraries
 require_once ROOT . 'vendor/autoload.php';

@@ -19,6 +19,11 @@ const LANGUAGE_FILE_NAME = 'LAC';
 const ASSETS_DIR = ROOT . 'assets/';
 /** App's default language */
 const DEFAULT_LANGUAGE = 'cs';
+/**
+ * The application clock (PHP default time zone and database session time zone). The business time zone is named in
+ * CONTEXT.md and applied only where a date is shown or a calendar boundary is cut.
+ */
+const APP_TIMEZONE = 'UTC';
 
 /** Directory for user uploads; configurable by UPLOAD_DIR (absolute, or relative to ROOT) */
 $configuredUploadDir = $_ENV['UPLOAD_DIR'] ?? $_SERVER['UPLOAD_DIR'] ?? '';

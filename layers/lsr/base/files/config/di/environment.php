@@ -1,6 +1,7 @@
 <?php
 
 declare(strict_types=1);
+use Pdo\Mysql;
 
 /**
  * Environment-specific parameters (database connection). Secrets come from the environment only.
@@ -27,6 +28,9 @@ return [
             'user'          => $getEnvironment('DB_USER'),
             'password'      => $getEnvironment('DB_PASSWORD'),
             'autoReconnect' => true,
+            // The database session uses the application clock (APP_TIMEZONE, UTC), not the server's time zone: TIMESTAMP
+            // columns and NOW() then agree with PHP, and it is set again on every (re)connect.
+            'options'       => [Mysql::ATTR_INIT_COMMAND => "SET time_zone = '+00:00'"],
         ],
     ],
 ];

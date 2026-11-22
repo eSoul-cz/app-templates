@@ -26,6 +26,114 @@ Migration: what an existing project must do (or "none").
 
 ## Unreleased
 
+### 2026-11-23: LSR runs PHPStan at level 10
+
+Affects: `lsr-inertia` / layer `lsr/base` (`phpstan.neon`, `include/constants.php`, `src/Core/Info.php`, `src/Install/DbInstall.php`, `src/Http/Templates/AutoFillParameters.php`).
+
+`level: 8` became `level: 10` with no baseline. The 10 errors the shipped code had are fixed in the code: the environment, database and cache values are
+checked before they are used (`UPLOAD_DIR`, the foreign-key setting, the index names and foreign-key names read from the database), the cache tag key is the
+`Cache::Tags` constant, `getTableNameFromClass()` uses `is_subclass_of()` and `AutoFillParameters` takes any array key and copies only string keys.
+
+Migration: set `level: 10` in `phpstan.neon`, run `composer phpstan` and fix what it reports the same way (no `@phpstan-ignore`, no baseline); copy the fixes
+above into the files you did not change.
+
+### 2026-11-23: LSR application clock is UTC
+
+Affects: `lsr-inertia` / layer `lsr/base` (`include/constants.php`, `include/load.php`, `config/di/environment.php`, `tests/Config/EnvironmentTest.php`).
+
+`include/load.php` set `Europe/Prague` as the PHP time zone, against the rule that the application clock stays UTC. The constant `APP_TIMEZONE` (`UTC`) in
+`include/constants.php` now sets it, and the database session is pinned to `+00:00` through the PDO init command in `config/di/environment.php`, so `NOW()` and
+`TIMESTAMP` columns agree with PHP and the setting survives a reconnect. `lsr/db` and `lsr/orm` have no time-zone handling of their own. The business time zone
+goes into `CONTEXT.md` and is applied only where a date is shown or a calendar boundary is cut.
+
+Migration: new applications need nothing. An existing application keeps `Europe/Prague` until it migrates, because its stored `DATETIME` values are local
+wall-clock times: to migrate, take the three files above, convert the stored `DATETIME` values (`CONVERT_TZ(column, 'Europe/Prague', 'UTC')`; `TIMESTAMP` columns
+need no conversion), and apply the business time zone where dates are displayed.
+
+### 2026-11-23: LSR serves FastCGI and keeps the jobs queue in boltdb
+
+Affects: `lsr-inertia` / layer `lsr/base` (`.rr.yaml`, `docker/nginx/nginx.conf`, `docker/Dockerfile`, `docker/prepare-runtime.sh`, `docker/http-smoke.php`, `docker-compose.ci.yml`).
+
+`.rr.yaml` has the FastCGI listener (`http.fcgi.address: tcp://0.0.0.0:9000`) next to the HTTP listener on 8001, which stays for the health check and the smoke
+test. The `tasks` pipeline uses the `boltdb` driver with the file `/app/temp/queue/tasks.db`, inside the persistent `./temp` mount, so queued tasks survive a
+restart; `cache:clean`, the other cache commands and `prepare-runtime.sh` do not touch `temp/queue/`. The dev NGINX uses `fastcgi_pass app:9000` with the production
+parameters (`HTTP_HOST`, `HTTPS`, `X-Forwarded-*` replaced), so development exercises the production path, and `docker/http-smoke.php` sends FastCGI requests to
+`/up` and `/` (`HTTP_SMOKE_FASTCGI_ADDRESS`, set in `docker-compose.ci.yml`).
+
+Migration: copy the changes of the files above. In a deployed stack the run directory's `.rr.yaml` is mounted over the image's: give it the `fcgi` listener (if
+it has none) and the `boltdb` pipeline with the same file path, and create `./temp/queue` there; tasks that are only in the old `memory` queue are lost at the
+switch. Never delete `temp/queue/` together with the caches.
+
+### 2026-11-23: LSR CSRF check does not read `X-Forwarded-*`
+
+Affects: `lsr-inertia` / layer `lsr/base` (`src/Http/Middleware/BrowserCsrfMiddleware.php`, `tests/Http/BrowserCsrfMiddlewareTest.php`).
+
+Checked against RoadRunner over FastCGI: the middleware worked behind NGINX, but it preferred `X-Forwarded-Proto` and `X-Forwarded-Host` over the request, so a
+client could forge them whenever the proxy did not replace them (a plain `include fastcgi_params` does not). It now takes the public origin from the request itself:
+the scheme of the request URI and the `Host` header, which RoadRunner builds from the `HTTPS` and `HTTP_HOST` FastCGI parameters.
+
+Migration: replace the middleware and its test. The NGINX in front of the application must pass `HTTPS` and `HTTP_HOST` (the host's `lsr-fastcgi.conf` and the dev
+`nginx.conf` do); a proxy that terminates TLS and talks plain HTTP to RoadRunner would now fail the origin check.
+
+### 2026-11-23: LSR HTTP client service and a network guard in the tests
+
+Affects: `lsr-inertia` / layer `lsr/base` (`composer.json`, `phpunit.xml`, `config/di/services-common.neon`, `src/Http/Client`, `tests/Support`, `tests/Fixtures`, new tests).
+
+The outgoing HTTP client is the DI service `http.client` (`App\Http\Client\CurlHttpClient`, PSR-18, typed `Psr\Http\Client\ClientInterface`), and a test replaces
+it with `Tests\Support\Http\FakeHttpClient::install(App::getContainer())`. The PHPUnit extension `Tests\Support\Network\NetworkGuardExtension` (registered in
+`phpunit.xml`) makes every `http(s)` stream request to a host other than localhost throw; raw sockets and cURL are not intercepted. `phpunit.xml` excludes the
+groups `sandbox` and `quarantine`. `composer test` and `test:parallel` no longer set `XDEBUG_MODE=coverage`; `composer test:coverage` does. `ext-curl` is required.
+
+Migration: copy `src/Http/Client`, `tests/Support`, `tests/Fixtures`, the `http.client` service and the new tests, add the `<groups>` and `<extensions>` blocks to
+`phpunit.xml`, `ext-curl` to `composer.json` and the three scripts, and replace direct HTTP calls in the code by a service that depends on `ClientInterface`.
+
+### 2026-11-23: LSR frontend tree, scripts and checks follow the Inertia Vue guideline
+
+Affects: `lsr-inertia` / layer `lsr/base` (`assets/js`, `components.json`, `eslint.config.js`, `vitest.config.ts`, `.prettierignore`, `package.json`).
+
+`assets/js/components/ui` moved to `assets/js/design-system/ui`, `assets/js/lib/utils.ts` (and its test) to `assets/js/utils/classes.ts`, and a curated
+`assets/js/design-system/index.ts` exports `AppButton`; `Home.vue` imports it from `@/design-system`. `components.json` aliases point there (`utils` is
+`@/utils/classes`, `ui` is `@/design-system/ui`, the `lib` alias is gone). ESLint restricts imports (application code must not import `@/design-system/ui`;
+the design system must not import Inertia, pages, components or layouts), `vitest.config.ts` has the `shared`/`isolated` project split of the Laravel template, and the
+`lint` script became `eslint:fix`, so the scripts are `eslint`, `eslint:fix`, `format:check`, `format`, `tsc`, `build` and `test`.
+
+Migration: move the folders and fix the imports (`@/lib/utils` becomes `@/utils/classes`, `@/components/ui/...` becomes `@/design-system/ui/...` inside the design
+system and an `App*` export of `@/design-system` elsewhere), update `components.json`, `.prettierignore` and the ESLint ignore path, copy the two
+`no-restricted-imports` blocks and the Vitest config, rename `lint` to `eslint:fix` and update scripts or CI that call it.
+
+### 2026-11-23: LSR pnpm install hardening and `pnpm audit` in CI
+
+Affects: `lsr-inertia` / layer `lsr/base` (`pnpm-workspace.yaml`, `Jenkinsfile`).
+
+`pnpm-workspace.yaml` gets `minimumReleaseAge: 1440` and `auditConfig.ignoreGhsas` (the existing `allowBuilds` stays). `pnpm audit` runs in CI. Five advisories in
+dev-only packages (Vite's optional `stylus` peer and the shadcn-vue CLI) cannot be fixed yet and are listed with the reason and the review date 2026-12-23.
+
+Migration: add the two settings to `pnpm-workspace.yaml`, run `pnpm audit` and fix or list (with reason and review date) what it reports.
+
+### 2026-11-23: LSR `Jenkinsfile` is composed from the existing steps
+
+Affects: `lsr-inertia` / layer `lsr/base` (`Jenkinsfile`).
+
+`lsrPipeline` does not exist yet (plan J4), so the file composes the library steps that do: `fullPhpTest` (PHPStan, `composer cs`, tests, `composer audit`),
+`fullNodeTest` (ESLint, Prettier, `tsc`, Vitest, `pnpm audit`, build), a local build of the production image with `dockerComposeSmokeTest`, then
+`dockerBuildMultiArch` and `deployKomodoStack` from `main` and `master`. A comment names the planned one-call `lsrPipeline`; set `image` and `stack` in the file.
+
+Migration: replace the `Jenkinsfile` and set `image` (and `stack` to deploy). When `lsrPipeline` is released, the file becomes that one call.
+
+### 2026-11-23: LSR guidelines 0.2, sync on `composer update`, no Satis, MariaDB 12.3, LFS carve-out and an operations README
+
+Affects: `lsr-inertia` / layer `lsr/base` (`merge/composer.json`, `merge/esoul-guidelines.json`, `append/.gitattributes`, `docker-compose.yml`, `docker-compose.ci.yml`, `README.md`).
+
+`esoul-cz/guidelines` is `^0.2`, and `composer.json` has `"post-update-cmd": ["esoul-guidelines sync"]`. The guideline layers now include `package/mutation-testing`
+(the template requires `infection/infection`). The `repositories` entry for `packages.esoul.cz` is gone: every dependency resolves from Packagist. The dev and CI
+MariaDB is `12.3`, the series of the production server. `.gitattributes` re-includes `assets/js/**` and `assets/css/**` out of Git LFS, where `common` sends
+`assets/**` (the Vite sources live there). The application gets an operations `README.md` (ports, commands, the persistent paths `./upload`, `./logs`, `./temp`
+and `./temp/queue/tasks.db`).
+
+Migration: `composer require --dev esoul-cz/guidelines:^0.2`, add the `post-update-cmd`, add `package/mutation-testing` to `esoul-guidelines.json` and run
+`esoul-guidelines sync`; remove the `repositories` entry and run `composer update --lock`; use `mariadb:12.3` in both compose files; append the two lines to
+`.gitattributes` (files already committed to LFS stay there until `git lfs migrate export --include="assets/js/**,assets/css/**"`); write the operations README.
+
 ### 2026-11-23: Form endpoint in `laravel-cms`
 
 Affects: `laravel-cms` (and the `backend/` of `astro-laravel-cms`) / layer `laravel/cms` (`config/cms.php`, `CmsServiceProvider`, `routes/forms.php`, `append/.env.example`).

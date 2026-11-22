@@ -15,7 +15,11 @@ infrastructure repo as submodules at `templates/<variant>/`.
 | `laravel-inertia-filament` | common, laravel/skeleton, laravel/base, laravel/inertia-vue, laravel/filament |
 | `laravel-lunar` | common, laravel/skeleton, laravel/base, laravel/inertia-vue, laravel/lunar |
 | `lsr-inertia` | common, lsr/base |
-| `astro-laravel-cms` | common, astro-cms/root, astro/static + astro/cms-client (`frontend/`), laravel/skeleton + laravel/base + laravel/filament + laravel/cms (`backend/`) |
+| `laravel-cms` | common, laravel/skeleton, laravel/base, laravel/filament, laravel/cms |
+| `astro-static` | common, astro/static |
+| `astro-cms-frontend` | common, astro/static, astro/cms-client |
+| `astro-cms` | common, astro-cms/root (thin monorepo root; the frontend and the `laravel-cms` backend are its git submodules) |
+| `astro-ssr` | common, astro/ssr |
 
 ## Usage
 
@@ -78,7 +82,7 @@ composer script; `exclude` globs are relative to the layer's `files/`, `merge/` 
 (`delete.txt` is not affected).
 
 After all layers, the builder **stamps the root `composer.json`** with the variant's `name` and `description` (the file is created
-with `type: project` if no layer ships one, which is the case for the `astro-laravel-cms` monorepo unless `astro-cms/root` adds it).
+with `type: project` if no layer ships one, which is the case for the variants without PHP, e.g. `astro-static`).
 It also writes `.esoul/template.json` (`{"variant": "...", "commit": "<sha>"}`): `commit` is the app-templates source commit the variant was
 built from, `--commit=<sha>` (7 to 40 hex characters) or, by default, `git rev-parse HEAD` of this repository. When this directory is not
 the top level of a git checkout (and no `--commit` is given) nothing is recorded.
@@ -86,7 +90,7 @@ the top level of a git checkout (and no `--commit` is given) nothing is recorded
 The stamp also **prepends two steps to `scripts.post-create-project-cmd`** (list-union with the layers' own steps, e.g. Laravel's
 `key:generate`, which keep running after them), because a project created from a template is no longer the MIT template (see
 "Licence of created projects"): `LICENSE` is moved to `.esoul/template-LICENSE` and `composer config license proprietary` runs. For each
-`into` subdirectory that has its own `composer.json` (the `backend/` of `astro-laravel-cms`) an extra
+`into` subdirectory that has its own `composer.json` (no variant uses `into` today) an extra
 `@composer config --working-dir=<dir> license proprietary` step is added. Composer writes the value as `"license": ["proprietary"]`.
 
 Finally it **renders the project guidelines**: it runs `esoul-guidelines sync --no-interaction` (the esoul-cz/guidelines installer,
@@ -225,8 +229,8 @@ template, applies the entries that affect the project's variant and layers, foll
 - Publishing: `bin/templates publish` builds a pristine copy of a variant and syncs it into its repository as one commit on top of the
   tip (history of the variant repository is the sequence of source commits that changed it); the `Jenkinsfile` runs it on `main` for the
   variants in its `publishable` list after their checks passed. Tag-less by design (D-12).
-- `astro-laravel-cms` has no root `composer.json` from the builder's point of view except the stamped stub; if the monorepo should
-  not be installable through Satis, drop the stamping for variants without a root composer file.
+- Variants without PHP (the `astro-*` ones) still get the stamped root `composer.json` (name, MIT licence, the licence-handover
+  `post-create-project-cmd` steps): it is what makes `composer create-project esoul-cz/template-<variant>` work.
 - `skeleton:sync` formats the synced skeleton with Pint using `layers/laravel/base/files/pint.json` (Pint is installed into a temp dir),
   so untouched upstream files pass the base layer's `composer cs`; it skips the step when that file does not exist.
 - Laravel layers (`laravel/base`, `inertia-vue`, `filament`, `lunar`):
@@ -274,7 +278,11 @@ template, applies the entries that affect the project's variant and layers, foll
   - Frontend packages follow the reference versions (Vite 8, Vitest 5, ESLint 10, TypeScript 6, Tailwind 4.3); `components.json` uses the
     `new-york` shadcn-vue style and the `@/design-system/ui` alias, but no shadcn component is added yet.
 - `lsr/base`: assumptions, verification and open questions are in [`layers/lsr/base/README.md`](layers/lsr/base/README.md).
-- `astro-laravel-cms` layers (`astro/static`, `astro/cms-client`, `laravel/cms`, `astro-cms/root`):
+- Astro layers (`astro/static`, `astro/cms-client`, `astro/ssr`, `astro-cms/root`) and `laravel/cms`: a site with a CMS is three repositories, each created
+  from its own template: `laravel-cms` (backend), `astro-cms-frontend` and the thin root `astro-cms` (documentation, the contract, the
+  NGINX example and `bin/add-submodules`, which adds the other two as submodules). Each repository has its own `esoul-guidelines.json`,
+  Jenkinsfile and pipeline (D-22 is reversed); the Jenkinsfiles compose the existing library steps and name the planned `astroPipeline` /
+  `staticSitePipeline` (J5/J8) in a marked comment.
   - The admin lives on the site's domain under `/admin` (default) or on `admin.<domain>`; `docker/nginx.example` holds both server layouts
     (Mode B commented) and the root README explains how to choose (decision D-17). No code differs: only nginx, `APP_URL`, `cmsApiUrl`.
     `SESSION_DOMAIN` stays `null` in both, CORS is not needed because the static build fetches the export server-side. The Jenkinsfile
@@ -282,11 +290,12 @@ template, applies the entries that affect the project's variant and layers, foll
   - `astro/cms-client` replaces `astro.config.mjs` of `astro/static` (it registers the media integration) and deletes `src/pages/index.astro`
     (the home page is rendered from the export by `[...slug].astro`). `scripts/verify-dist.mjs` loads an optional `scripts/verify-extra.mjs`.
   - Content model is minimal and generic: pages (slug, title, `isHome`, description, blocks `heading` / `text` / `image`) and one settings
-    record; text is plain text, never HTML. Contract: `astro-cms/root/files/docs/contract.md`. No i18n, no Vue islands, no shop.
+    record; text is plain text, never HTML. Contract: `astro-cms/root/files/docs/contract.md`. No i18n, no shop; one Vue island (the mobile menu).
   - `CMS_SOURCE` is `api | fixture`; unset = `api` with a token, else `fixture`. There is no snapshot fallback. In CI (`CI` or `JENKINS_URL`)
     the fixture is used only with `CMS_SOURCE=fixture` set in the process environment, so a deploy build (CMS_SOURCE=api) fails when the API is unreachable.
-  - The fixture is generated from the backend golden export (`pnpm fixture:build`), the golden test shares `pixel.png` with it; `pnpm fixture:check` compares them.
-    Frontend and backend are therefore assumed to live in one monorepo (`../backend/tests/Fixtures`).
+  - The fixture is generated from the backend golden export, which the frontend carries as a copy in `contract/` (`pnpm contract:sync` copies it
+    from `../backend/tests/Fixtures`; `pnpm fixture:check` always compares the schema version and, when `../backend` exists, the copy with the
+    backend originals). A builder test (`ContractCopyTest`) guards the copy against the `laravel/cms` golden export.
   - Source Sans 3 (SIL OFL, copied from a reference project's `src/assets/fonts`) is the placeholder local font.
   - Provider list: `laravel/cms` overwrites `bootstrap/providers.php` with `[AppServiceProvider, AdminPanelProvider, CmsServiceProvider]` (the last layer owns the list).
     The `cms-media` / `cms-public` disks are added by `CmsServiceProvider` (config/filesystems.php stays the skeleton's).
@@ -299,11 +308,9 @@ template, applies the entries that affect the project's variant and layers, foll
   - Admin uploads sit on a public-visibility `cms-media` disk (served at `/cms-media/` by nginx, images only, CSP sandbox) so Filament can preview them.
   - `pnpm-workspace.yaml` has `minimumReleaseAge: 1440` and `allowBuilds` (pnpm 12 ignores `onlyBuiltDependencies`).
   - ESLint (`eslint.config.js`, flat config: ESLint recommended + typescript-eslint + eslint-plugin-astro, `no-explicit-any` as error) ships in `astro/static`
-    with `pnpm lint` / `pnpm lint:fix`; there are no Vue rules because the layers have no `.vue` files (a project with Vue islands adds `eslint-plugin-vue` and `vue-tsc`).
-    The default CI check set is `pnpm audit`, `lint`, `format:check`, `check`, `build`, `verify`, `test:e2e`. The CSP is Astro's `security.csp` (a `<meta>` tag with hashes);
+    with `pnpm eslint` / `pnpm eslint:fix`; the Vue integration (`@astrojs/vue`, `vue-tsc`) arrives with `astro/cms-client`.
+    The default CI check set is `pnpm audit`, `eslint`, `format:check`, `check`, `build`, `verify`, `test:e2e`. The CSP is Astro's `security.csp` (a `<meta>` tag with hashes);
     `frame-ancestors` / `X-Frame-Options` and the other response headers stay in nginx. `smoke.spec.ts` asserts the CSP tag and a console free of errors and violations.
-  - Prettier in `frontend/` follows the baseline (printWidth 150, tabWidth 4); `esoul-guidelines.json` is in `.prettierignore` (written by the builder / installer).
-  - `astroCmsPipeline` is planned only; the root `Jenkinsfile` documents the intended configuration with example names (`example-project`).
-  - The monorepo has ONE guideline config at its root (`general`, `framework/astro`, `framework/laravel`, `package/mutation-testing`), so
-    same-named topics merge across frontend and backend (e.g. one `frontend.md` with Astro and Laravel sections). Per-directory guideline
-    sets would need installer support; open question. The root `composer.json` requires `esoul-cz/guidelines` for `sync`/`check` there.
+  - Prettier in the frontend follows the baseline (printWidth 150, tabWidth 4); `esoul-guidelines.json` is in `.prettierignore` (written by the builder / installer).
+  - Guidelines: `framework/astro` for every Astro template, `framework/laravel` and its packages for `laravel-cms`; since each repository has its own
+    config, topics no longer merge across the halves of a site.

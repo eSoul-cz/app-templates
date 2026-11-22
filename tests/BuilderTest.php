@@ -45,14 +45,14 @@ final class BuilderTest extends BuilderTestCase
             'files' => ['a', 'b'],
             'workspaces' => [['name' => 'x']],
             'empty' => new \stdClass(),
-        ]));
+        ], JSON_THROW_ON_ERROR));
         $this->put('layers/b/merge/package.json', json_encode([
             'name' => 'renamed',
             'scripts' => ['build' => 'vite build --mode production', 'lint' => 'eslint .'],
             'files' => ['b', 'c'],
             'workspaces' => [['name' => 'y']],
             'engines' => ['node' => '>=24'],
-        ]));
+        ], JSON_THROW_ON_ERROR));
         $this->variant([['layer' => 'a'], ['layer' => 'b']]);
 
         $out = $this->build();
@@ -93,7 +93,7 @@ final class BuilderTest extends BuilderTestCase
         $this->variant([['layer' => 'a']]);
 
         $this->expectException(TemplateException::class);
-        $this->expectExceptionMessage('Only .json files can be merged');
+        $this->expectExceptionMessageContaining('Only .json files can be merged');
         $this->build();
     }
 
@@ -216,11 +216,13 @@ final class BuilderTest extends BuilderTestCase
         $this->variant([['layer' => 'a']]);
 
         $out = $this->build();
-        $commands = $this->json($out, 'composer.json')['scripts']['post-create-project-cmd'];
+        $commands = $this->jsonAt($out, 'composer.json', 'scripts', 'post-create-project-cmd');
 
         self::assertSame('MIT', $this->read($out, 'LICENSE'), 'the variant repository itself keeps LICENSE');
-        self::assertSame('MIT', $this->json($out, 'composer.json')['license']);
+        self::assertSame('MIT', $this->jsonAt($out, 'composer.json', 'license'));
+        self::assertIsArray($commands);
         self::assertCount(2, $commands);
+        self::assertIsString($commands[0]);
         self::assertStringContainsString("rename('LICENSE', '.esoul/template-LICENSE')", $commands[0]);
         self::assertSame('@composer config license proprietary', $commands[1]);
     }
@@ -231,11 +233,11 @@ final class BuilderTest extends BuilderTestCase
         $this->put('layers/b/files/README.md', 'no composer here');
         $this->variant([['layer' => 'a', 'into' => 'backend'], ['layer' => 'b', 'into' => 'frontend']]);
 
-        $composer = $this->json($this->build(), 'composer.json');
+        $out = $this->build();
 
         self::assertSame(
             [...Builder::POST_CREATE_COMMANDS, '@composer config --working-dir=backend license proprietary'],
-            $composer['scripts']['post-create-project-cmd'],
+            $this->jsonAt($out, 'composer.json', 'scripts', 'post-create-project-cmd'),
         );
     }
 
@@ -250,13 +252,13 @@ final class BuilderTest extends BuilderTestCase
         $this->put('layers/b/merge/composer.json', '{"scripts": {"post-create-project-cmd": ["@php artisan migrate", "@php artisan storage:link"]}}');
         $this->variant([['layer' => 'a'], ['layer' => 'b']]);
 
-        $scripts = $this->json($this->build(), 'composer.json')['scripts'];
+        $out = $this->build();
 
         self::assertSame(
             [...Builder::POST_CREATE_COMMANDS, '@php artisan key:generate --ansi', '@php artisan migrate', '@php artisan storage:link'],
-            $scripts['post-create-project-cmd'],
+            $this->jsonAt($out, 'composer.json', 'scripts', 'post-create-project-cmd'),
         );
-        self::assertSame('artisan test', $scripts['test']);
+        self::assertSame('artisan test', $this->jsonAt($out, 'composer.json', 'scripts', 'test'));
     }
 
     public function testPostCreateCommandsWrapAScriptGivenAsAString(): void
@@ -264,9 +266,10 @@ final class BuilderTest extends BuilderTestCase
         $this->put('layers/a/files/composer.json', '{"scripts": {"post-create-project-cmd": "@php artisan key:generate"}}');
         $this->variant([['layer' => 'a']]);
 
-        $scripts = $this->json($this->build(), 'composer.json')['scripts'];
-
-        self::assertSame([...Builder::POST_CREATE_COMMANDS, '@php artisan key:generate'], $scripts['post-create-project-cmd']);
+        self::assertSame(
+            [...Builder::POST_CREATE_COMMANDS, '@php artisan key:generate'],
+            $this->jsonAt($this->build(), 'composer.json', 'scripts', 'post-create-project-cmd'),
+        );
     }
 
     public function testCommitWritesTemplateRecord(): void
@@ -326,7 +329,7 @@ final class BuilderTest extends BuilderTestCase
         $this->variant([['layer' => 'a']]);
 
         $this->expectException(TemplateException::class);
-        $this->expectExceptionMessage('Unknown variant "missing". Available: demo.');
+        $this->expectExceptionMessageContaining('Unknown variant "missing". Available: demo.');
         $this->build('missing');
     }
 
@@ -335,7 +338,7 @@ final class BuilderTest extends BuilderTestCase
         $this->put('variants/demo.json', '{"name": "other", "package": "esoul/x", "description": "d", "layers": [{"layer": "a"}]}');
 
         $this->expectException(TemplateException::class);
-        $this->expectExceptionMessage('is "other" but the file is called "demo.json"');
+        $this->expectExceptionMessageContaining('is "other" but the file is called "demo.json"');
         $this->build();
     }
 
@@ -345,7 +348,7 @@ final class BuilderTest extends BuilderTestCase
         $this->variant([['layer' => 'a', 'into' => '../outside']]);
 
         $this->expectException(TemplateException::class);
-        $this->expectExceptionMessage('"into" must be a relative path');
+        $this->expectExceptionMessageContaining('"into" must be a relative path');
         $this->build();
     }
 
@@ -357,7 +360,7 @@ final class BuilderTest extends BuilderTestCase
         $this->variant([['layer' => 'a', 'into' => $into]]);
 
         $this->expectException(TemplateException::class);
-        $this->expectExceptionMessage('"into" must be a relative path');
+        $this->expectExceptionMessageContaining('"into" must be a relative path');
         $this->build();
     }
 }

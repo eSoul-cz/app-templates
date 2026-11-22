@@ -53,9 +53,31 @@ abstract class BuilderTestCase extends TestCase
         return $content;
     }
 
-    /** @return mixed decoded JSON as associative array */
-    protected function json(string $dir, string $relative): mixed
+    /** @return array<mixed> decoded JSON object as associative array */
+    protected function json(string $dir, string $relative): array
     {
-        return json_decode($this->read($dir, $relative), true, 512, JSON_THROW_ON_ERROR);
+        $decoded = json_decode($this->read($dir, $relative), true, 512, JSON_THROW_ON_ERROR);
+        self::assertIsArray($decoded, $relative . ' should contain a JSON object or list');
+
+        return $decoded;
+    }
+
+    /** Value at a path of keys inside a decoded JSON file. */
+    protected function jsonAt(string $dir, string $relative, string ...$keys): mixed
+    {
+        $value = $this->json($dir, $relative);
+        foreach ($keys as $key) {
+            self::assertIsArray($value);
+            self::assertArrayHasKey($key, $value, $relative . ' should have ' . $key);
+            $value = $value[$key];
+        }
+
+        return $value;
+    }
+
+    /** Like expectExceptionMessage() (deprecated since PHPUnit 13): the message must contain the text. */
+    protected function expectExceptionMessageContaining(string $text): void
+    {
+        $this->expectExceptionMessageMatches('/' . preg_quote($text, '/') . '/');
     }
 }

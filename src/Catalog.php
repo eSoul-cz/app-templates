@@ -94,7 +94,7 @@ final readonly class Catalog
 
         $into = $raw->into ?? '';
         // `into` ends up unquoted in a composer script (`--working-dir=<into>`), so only shell-safe characters are allowed.
-        if (!is_string($into) || ($into !== '' && (!self::isSafeRelativePath($into) || preg_match('#^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*/?$#', $into) !== 1))) {
+        if (!is_string($into) || ($into !== '' && (!self::isSafeRelativePath($into) || preg_match('#^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*/?$#D', $into) !== 1))) {
             throw new TemplateException(sprintf('%s: "into" must be a relative path without "..", made of letters, digits, ".", "_" and "-".', $where));
         }
 

@@ -5,7 +5,7 @@
     },
     "require-dev": {
         "brianium/paratest": "^7.24",
-        "esoul-cz/guidelines": "^0.1",
+        "esoul-cz/guidelines": "^0.2",
         "infection/infection": "^0.35",
         "larastan/larastan": "^3.0",
         "laravel/boost": "^2.5",
@@ -43,7 +43,8 @@
             "@php -d memory_limit=4G vendor/bin/infection --coverage=build/infection/coverage --skip-initial-tests --only-covering-test-cases --threads=${MUTATION_THREADS:-4} @additional_args"
         ],
         "post-update-cmd": [
-            "@php artisan boost:update --ansi || true"
+            "@php artisan boost:update --ansi || true",
+            "esoul-guidelines sync"
         ]
     },
     "config": {

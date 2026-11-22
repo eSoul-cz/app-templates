@@ -133,6 +133,14 @@ and `./temp/queue/tasks.db`).
 Migration: `composer require --dev esoul-cz/guidelines:^0.2`, add the `post-update-cmd`, add `package/mutation-testing` to `esoul-guidelines.json` and run
 `esoul-guidelines sync`; remove the `repositories` entry and run `composer update --lock`; use `mariadb:12.3` in both compose files; append the two lines to
 `.gitattributes` (files already committed to LFS stay there until `git lfs migrate export --include="assets/js/**,assets/css/**"`); write the operations README.
+### 2026-11-23: Laravel variants: guidelines 0.2 with their package layers, synced on `composer update`
+
+Affects: `laravel-inertia`, `laravel-filament`, `laravel-inertia-filament`, `laravel-lunar` / layers `laravel/base` (`composer.json`), `laravel/inertia-vue` and `laravel/filament` (`esoul-guidelines.json`).
+
+`esoul-cz/guidelines` is `^0.2`, and `post-update-cmd` runs `esoul-guidelines sync` after `boost:update`, so the generated guidelines never lag behind the installed package. `laravel/inertia-vue` now declares `package/laravel-inertia` next to `package/inertia-vue`, and `laravel/filament` declares `package/filament`; `laravel-lunar` still has no Lunar layer (see its own entry).
+
+Migration: in `composer.json` raise the constraint to `^0.2` and add `"esoul-guidelines sync"` to `scripts.post-update-cmd` after `@php artisan boost:update --ansi || true`; add `package/laravel-inertia` (Inertia projects) and `package/filament` (Filament projects) to `esoul-guidelines.json`; run `composer update esoul-cz/guidelines` and commit the synced guidelines.
+
 ### 2026-11-23: The Laravel variants no longer add the Satis repository
 
 Affects: `laravel-inertia`, `laravel-filament`, `laravel-inertia-filament`, `laravel-lunar` / layer `laravel/base` (`composer.json`).

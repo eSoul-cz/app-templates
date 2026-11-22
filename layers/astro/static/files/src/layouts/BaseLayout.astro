@@ -13,9 +13,11 @@ interface Props {
     ogImage?: string | null;
     /** Forces `noindex,nofollow` for this page (the staging gate PUBLIC_NOINDEX forces it everywhere). */
     noindex?: boolean;
+    /** Site-relative path of the Markdown version of this page, advertised with `<link rel="alternate" type="text/markdown">`. */
+    markdownHref?: string | null;
 }
 
-const { title, description, siteName, ogImage, noindex = false } = Astro.props;
+const { title, description, siteName, ogImage = '/og-default.png', noindex = false, markdownHref = null } = Astro.props;
 
 const site = Astro.site ?? new URL('http://localhost:4321');
 const stagingGate = import.meta.env.PUBLIC_NOINDEX === 'true';
@@ -47,12 +49,14 @@ const ogImageUrl = ogImage ? new URL(ogImage, site).href : null;
         <meta name="twitter:title" content={title} />
 
         <Font cssVariable="--font-source-sans" preload={[{ weight: '200 900', style: 'normal' }]} />
+        {markdownHref && <link rel="alternate" type="text/markdown" href={new URL(markdownHref, site).href} />}
         <slot name="head" />
     </head>
     <body class="flex min-h-dvh flex-col">
         <a href="#main" class="sr-only z-50 rounded-md bg-white px-4 py-2 font-semibold focus:not-sr-only focus:fixed focus:top-2 focus:left-2">
             Skip to content
         </a>
+        <slot name="header" />
         <main id="main" class="flex-1">
             <slot />
         </main>

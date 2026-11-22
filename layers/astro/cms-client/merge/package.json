@@ -1,8 +1,19 @@
 {
+    "name": "frontend",
     "scripts": {
-        "check": "CMS_SOURCE=${CMS_SOURCE:-fixture} astro check",
+        "check": "CMS_SOURCE=${CMS_SOURCE:-fixture} astro check && vue-tsc --noEmit",
         "cms:pull": "CMS_SOURCE=api astro sync",
+        "contract:sync": "node scripts/sync-contract.mjs && node scripts/build-fixture.mjs",
         "fixture:build": "node scripts/build-fixture.mjs",
-        "fixture:check": "node scripts/check-fixture.mjs"
+        "fixture:check": "node scripts/check-contract.mjs && node scripts/check-fixture.mjs"
+    },
+    "dependencies": {
+        "@astrojs/vue": "^7.1.0",
+        "vue": "^3.5.0"
+    },
+    "devDependencies": {
+        "eslint-plugin-vue": "^10.12.0",
+        "vue-eslint-parser": "^10.4.0",
+        "vue-tsc": "^3.3.0"
     }
 }

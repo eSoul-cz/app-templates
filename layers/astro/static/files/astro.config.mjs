@@ -4,6 +4,8 @@ import sitemap from '@astrojs/sitemap';
 import tailwindcss from '@tailwindcss/vite';
 import { existsSync, readFileSync } from 'node:fs';
 
+import { pageByPath } from './src/lib/site-pages';
+
 // Process env wins over `.env`, so Jenkins / Docker build args need no file.
 /** @returns {Record<string, string>} */
 function readDotEnv() {
@@ -47,8 +49,17 @@ export default defineConfig({
         },
     },
 
-    // A staging site (PUBLIC_NOINDEX=true) must not advertise its pages: no sitemap.
-    integrations: noindex ? [] : [sitemap()],
+    // A staging site (PUBLIC_NOINDEX=true) must not advertise its pages: no sitemap. `lastmod` is the date the content of
+    // the page last changed (src/lib/site-pages.ts); a page without an entry there has none, and `pnpm verify` fails.
+    integrations: noindex
+        ? []
+        : [
+              sitemap({
+                  serialize(item) {
+                      return { ...item, lastmod: pageByPath(new URL(item.url).pathname)?.updatedAt };
+                  },
+              }),
+          ],
 
     // Local fonts keep the build hermetic (no Google Fonts). Files live in src/assets/fonts/, not in public/,
     // otherwise they would be copied to the output twice. Source Sans 3 is SIL OFL (see OFL.txt): replace it

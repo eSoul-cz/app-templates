@@ -1,20 +1,20 @@
 #!/usr/bin/env node
-// Generates the committed fixture (src/lib/cms/fixture.json + fixture-media/) from the backend golden export
-// (backend/tests/Fixtures/content-export.golden.json) and the media file it was made from
-// (backend/tests/Fixtures/pixel.png). The data are the unchanged output of `ExportContentQuery`; only the file
+// Generates the committed fixture (src/lib/cms/fixture.json + fixture-media/) from the golden export
+// (contract/content-export.golden.json, a copy of the backend's) and the media file it was made from
+// (contract/pixel.png). The data are the unchanged output of `ExportContentQuery`; only the file
 // URLs become relative paths into fixture-media/. `pnpm fixture:check` verifies that the two still agree.
 //
-// Run after the golden export changed: `pnpm fixture:build`.
+// Run after the golden export changed: `pnpm contract:sync` (copies the backend files, then runs this).
 import { createHash } from 'node:crypto';
 import { copyFile, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { eachFile, readGolden } from './golden.mjs';
+import { eachFile, pixelPath, readGolden } from './golden.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const mediaDir = join(root, 'src/lib/cms/fixture-media');
-const source = resolve(root, '../backend/tests/Fixtures/pixel.png');
+const source = fileURLToPath(pixelPath);
 
 const { export: golden } = await readGolden();
 const hash = createHash('sha256')

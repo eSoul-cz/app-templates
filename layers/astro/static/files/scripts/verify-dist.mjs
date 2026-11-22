@@ -6,9 +6,11 @@
 //   - every page has <title>, canonical, a Content-Security-Policy without 'unsafe-inline' / 'unsafe-eval' scripts,
 //   - no admin / localhost addresses leak into the HTML, no `TODO` placeholders in visible text,
 //   - robots.txt exists; with PUBLIC_NOINDEX=true it disallows everything, every page is noindex and there is no
-//     sitemap; otherwise the sitemap exists and lists every indexable page and no noindex page.
+//     sitemap; otherwise the sitemap lists exactly the indexable pages (no noindex page) and every entry has `lastmod`,
+//   - llms.txt exists and, outside the staging gate, lists every indexable page and no noindex page.
 //
-// Layers may add checks: an optional `scripts/verify-extra.mjs` default-exports `async ({ dist, pages, fail, noindex })`.
+// Layers may add checks: an optional `scripts/verify-extra.mjs` default-exports `async ({ dist, pages, fail, noindex, sitemap, stagingGate })`
+// (`sitemap` maps the path of every sitemap entry to its `lastmod`; `stagingGate` is PUBLIC_NOINDEX=true).
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -102,27 +104,51 @@ if (!existsSync(robotsPath)) {
     if (!stagingGate && disallowsAll) fail('robots.txt disallows everything but PUBLIC_NOINDEX is not set.');
 }
 
+const sitemap = new Map();
 if (stagingGate) {
     for (const path of pages.keys()) if (!noindex.has(path)) fail(`${path}: PUBLIC_NOINDEX=true but the page is indexable.`);
     if (existsSync(join(dist, 'sitemap-index.xml'))) fail('PUBLIC_NOINDEX=true but sitemap-index.xml exists.');
 } else if (!existsSync(join(dist, 'sitemap-index.xml'))) {
     fail('Missing sitemap-index.xml (the sitemap integration only logs its errors).');
 } else {
-    const locs = readdirSync(dist)
+    const entries = readdirSync(dist)
         .filter((name) => /^sitemap-\d+\.xml$/.test(name))
-        .flatMap((name) => [...readFileSync(join(dist, name), 'utf8').matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1]));
-    const sitemapPaths = new Set(locs.map((loc) => trim(new URL(loc).pathname)));
-    for (const path of noindex) if (sitemapPaths.has(path)) fail(`noindex page in the sitemap: ${path}`);
+        .flatMap((name) => [...readFileSync(join(dist, name), 'utf8').matchAll(/<url>([\s\S]*?)<\/url>/g)].map((match) => match[1]));
+    for (const entry of entries) {
+        const loc = entry.match(/<loc>([^<]+)<\/loc>/)?.[1];
+        if (loc) sitemap.set(trim(new URL(loc).pathname), entry.match(/<lastmod>([^<]+)<\/lastmod>/)?.[1] ?? null);
+    }
+    for (const [path, lastmod] of sitemap) {
+        if (lastmod === null || Number.isNaN(Date.parse(lastmod))) fail(`sitemap entry without a valid lastmod: ${path}`);
+        if (noindex.has(path)) fail(`noindex page in the sitemap: ${path}`);
+        else if (!pages.has(path)) fail(`sitemap lists a page that the build does not produce: ${path}`);
+    }
     for (const path of pages.keys())
-        if (path !== '/404' && !noindex.has(path) && !sitemapPaths.has(path)) fail(`indexable page missing from the sitemap: ${path}`);
-    console.log(`verify-dist: sitemap ${sitemapPaths.size} URLs, noindex ${noindex.size} pages.`);
+        if (path !== '/404' && !noindex.has(path) && !sitemap.has(path)) fail(`indexable page missing from the sitemap: ${path}`);
+    console.log(`verify-dist: sitemap ${sitemap.size} URLs, noindex ${noindex.size} pages.`);
+}
+
+const llmsPath = join(dist, 'llms.txt');
+if (!existsSync(llmsPath)) {
+    fail('Missing llms.txt.');
+} else {
+    const llms = readFileSync(llmsPath, 'utf8');
+    if (!/^# .+/m.test(llms)) fail('llms.txt has no title line ("# <site name>").');
+    const listed = new Set([...llms.matchAll(/\]\(([^)\s]+)\)/g)].map((match) => trim(new URL(match[1], siteOrigin).pathname)));
+    for (const path of listed) if (noindex.has(path)) fail(`noindex page in llms.txt: ${path}`);
+    if (stagingGate) {
+        if (listed.size > 0) fail('PUBLIC_NOINDEX=true but llms.txt lists pages.');
+    } else {
+        for (const path of pages.keys())
+            if (path !== '/404' && !noindex.has(path) && !listed.has(path)) fail(`indexable page missing from llms.txt: ${path}`);
+    }
 }
 
 // --- layer extensions ---------------------------------------------------------------------
 const extra = join(root, 'scripts/verify-extra.mjs');
 if (existsSync(extra)) {
     const { default: run } = await import(pathToFileURL(extra).href);
-    await run({ dist, pages, fail, noindex });
+    await run({ dist, pages, fail, noindex, sitemap, stagingGate });
 }
 
 if (problems.length > 0) {

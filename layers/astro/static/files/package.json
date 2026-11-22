@@ -1,5 +1,5 @@
 {
-    "name": "frontend",
+    "name": "site",
     "type": "module",
     "version": "0.1.0",
     "private": true,
@@ -13,12 +13,13 @@
         "preview": "astro preview",
         "astro": "astro",
         "check": "astro check",
-        "lint": "eslint .",
-        "lint:fix": "eslint . --fix",
-        "verify": "node scripts/verify-dist.mjs",
-        "test:e2e": "playwright test",
+        "eslint": "eslint .",
+        "eslint:fix": "eslint . --fix",
         "format": "prettier . --write",
-        "format:check": "prettier . --check"
+        "format:check": "prettier . --check",
+        "test": "vitest run",
+        "test:e2e": "playwright test",
+        "verify": "node scripts/verify-dist.mjs"
     },
     "dependencies": {
         "@astrojs/sitemap": "^3.7.4",
@@ -37,6 +38,7 @@
         "prettier": "^3.8.1",
         "prettier-plugin-astro": "^0.14.1",
         "typescript": "^5.9.3",
-        "typescript-eslint": "^8.73.0"
+        "typescript-eslint": "^8.73.0",
+        "vitest": "^5.1.1"
     }
 }

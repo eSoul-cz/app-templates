@@ -1,10 +1,12 @@
 // @ts-check
 import { defineConfig, fontProviders } from 'astro/config';
 import sitemap from '@astrojs/sitemap';
+import vue from '@astrojs/vue';
 import tailwindcss from '@tailwindcss/vite';
 
 import cms from './src/lib/cms/integration';
 import { readEnv as env } from './src/lib/cms/env';
+import { sitemapFilter, sitemapLastmod } from './src/lib/cms/sitemap';
 
 // Process env wins over `.env`, so Jenkins / Docker build args need no file.
 const site = env('SITE_URL') || 'http://localhost:4321';
@@ -37,7 +39,13 @@ export default defineConfig({
     },
 
     // A staging site (PUBLIC_NOINDEX=true) must not advertise its pages: no sitemap.
-    integrations: [cms(), ...(noindex ? [] : [sitemap()])],
+    // `noindex` pages of the backend stay out of the sitemap and `lastmod` is the `updatedAt` of the page in the export
+    // (src/lib/cms/sitemap.ts), so a rebuild does not touch the dates of unchanged pages.
+    integrations: [
+        cms(),
+        vue(),
+        ...(noindex ? [] : [sitemap({ filter: sitemapFilter, serialize: (item) => ({ ...item, lastmod: sitemapLastmod(item.url) }) })]),
+    ],
 
     // Local fonts keep the build hermetic (no Google Fonts). Files live in src/assets/fonts/, not in public/,
     // otherwise they would be copied to the output twice. Source Sans 3 is SIL OFL (see OFL.txt): replace it

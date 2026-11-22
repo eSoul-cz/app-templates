@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 
 // Runs in two projects: desktop 1440x900 and mobile 390x844.
 

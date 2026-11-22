@@ -1,1 +1,4 @@
+# The home page and every other page are rendered from the export by src/pages/[...slug].astro; the page list
+# (llms.txt, sitemap lastmod) comes from the export too (src/lib/cms/sitemap.ts, src/pages/llms.txt.ts).
 src/pages/index.astro
+src/lib/site-pages.ts

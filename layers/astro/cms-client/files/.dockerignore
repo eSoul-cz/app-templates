@@ -1,0 +1,19 @@
+# Keep host state, secrets, runtime data and everything the build does not need out of the build context.
+.git
+.github
+.astro
+.esoul
+node_modules
+dist
+.env
+.env.*
+!.env.example
+test-results
+playwright-report
+.pnpm-store
+docs
+assets
+e2e
+Jenkinsfile
+README.md
+*.md

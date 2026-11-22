@@ -3,6 +3,8 @@
 import { getCollection, getEntry } from 'astro:content';
 
 import Blocks from '../components/Blocks.astro';
+import Header from '../components/Header.astro';
+import { markdownPath } from '../lib/cms/markdown';
 import BaseLayout from '../layouts/BaseLayout.astro';
 
 export async function getStaticPaths() {
@@ -15,9 +17,18 @@ export async function getStaticPaths() {
 
 const { page } = Astro.props;
 const settings = (await getEntry('settings', 'global'))!.data;
+const noindex = page.noindex ?? false;
 ---
 
-<BaseLayout title={page.title} description={page.description ?? settings.description} siteName={settings.siteName} ogImage={settings.ogImage?.url}>
+<BaseLayout
+    title={page.title}
+    description={page.description ?? settings.description}
+    siteName={settings.siteName}
+    ogImage={(page.ogImage ?? settings.ogImage)?.url}
+    noindex={noindex}
+    markdownHref={noindex ? null : markdownPath(page)}
+>
+    <Header slot="header" siteName={settings.siteName} />
     <article class="container-site flex flex-col gap-8 py-12 md:py-16">
         <h1 class="text-4xl font-bold">{page.title}</h1>
         <Blocks blocks={page.blocks} />

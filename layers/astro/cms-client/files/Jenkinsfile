@@ -1,0 +1,178 @@
+// Frontend of a site WITH a CMS (archetype C-headless): checks on the fixture, then a `FROM scratch` image that holds only the
+// verified dist/, pushed with `dockerBuildMultiArch` and rolled out with `deployKomodoStack`. The deploy hook of the Komodo stack
+// creates (does not start) a container from the image, copies the assets into `releases/<id>/` and switches `current`
+// (framework/astro/deployment.md, "Site with a CMS: image to Komodo"). A publish from the CMS backend starts this job with the
+// parameter CMS_PUBLISH_ID and the result goes back to the backend in the `finally` block.
+//
+// PLANNED (jenkins-libraries, J5/J8): one call `astroPipeline(mode: 'image', ...)` with the CMS callback built in will replace
+// this file. It does not exist yet, so this Jenkinsfile composes the existing steps (`fullNodeTest`, `buildStaticSite`,
+// `dockerBuildMultiArch`, `deployKomodoStack`). When the step exists, keep the values below and delete the code. The planned step
+// should also pass the export token to the image build as a BuildKit secret instead of a build argument (see "Image" below).
+//
+// Replace the example values. Credentials (Jenkins): `scaleway_secret_key`, `komodo_deploy_api_key`, `komodo_deploy_api_secret`
+// and two Secret Text credentials: the export token (= CMS_EXPORT_TOKEN of the backend) and the callback token
+// (= CMS_JENKINS_CALLBACK_TOKEN of the backend). The build agent fetches the export over the public URL, so its address has to be
+// in CMS_API_ALLOWED_IPS of the backend (README, "Publish flow").
+@Library(['dockerHelpers', 'testing', 'deploy']) _
+
+def site = [
+    // Node image of the checks (Debian-based: Playwright needs it), inside the test registry.
+    nodeImage                 : 'rg.fr-par.scw.cloud/testing-images/node:26',
+    registry                  : 'rg.fr-par.scw.cloud/app-images',
+    registryHost              : 'rg.fr-par.scw.cloud',
+    // Release image of the site and the Komodo stack that unpacks it.
+    image                     : 'example-project-web',
+    stack                     : 'example-project-web',
+    // Canonical origin of the site (SITE_URL) and the content export of the backend (CMS_API_URL).
+    siteUrl                   : 'https://example-project.example.com',
+    cmsApiUrl                 : 'https://admin.example-project.example.com/cms-api/v1',
+    exportTokenCredentialsId  : 'example-project-cms-export-token',
+    callbackTokenCredentialsId: 'example-project-cms-callback-token',
+    // `true` while the site is a protected preview (noindex everywhere, no sitemap); the launch step sets it to `false`.
+    noindex                   : 'true',
+    deployBranches            : ['main'],
+]
+
+properties([
+    disableConcurrentBuilds(abortPrevious: env.CHANGE_ID != null),
+    // Filled by the Publish button of the backend; empty for a push. Two publishes would overwrite each other's release,
+    // so concurrent builds stay disabled.
+    parameters([string(name: 'CMS_PUBLISH_ID', defaultValue: '', description: 'Publish started from the CMS backend (set by the backend)')]),
+])
+
+boolean deploy = site.deployBranches.contains(env.BRANCH_NAME)
+List imageTags = []
+
+try {
+    node {
+        try {
+            timeout(time: 60, unit: 'MINUTES') {
+                stage('Checkout') {
+                    withEnv(['GIT_LFS_SKIP_SMUDGE=1']) {
+                        checkout scm
+                    }
+                }
+
+                stage('Docker Login') {
+                    withCredentials([string(credentialsId: 'scaleway_secret_key', variable: 'SECRET')]) {
+                        dockerRegistryLogin(registryUrl: site.registryHost, password: env.SECRET)
+                    }
+                }
+
+                // Checks stage: mandatory, runs before any image is built (guidelines: framework/astro/tools.md). It never needs the
+                // backend: CMS_SOURCE=fixture is set explicitly in the process environment, which CI accepts for checks only.
+                stage('Checks') {
+                    def fixtureEnv = [CMS_SOURCE: 'fixture', SITE_URL: site.siteUrl, PUBLIC_NOINDEX: site.noindex]
+
+                    // Install, then in parallel: eslint, prettier, astro check + vue-tsc, Vitest, audit, contract and fixture check.
+                    fullNodeTest(
+                        image: site.nodeImage,
+                        eslintCommand: 'pnpm run eslint',
+                        prettierCommand: 'pnpm run format:check',
+                        typecheck: true,
+                        typecheckCommand: 'pnpm run check',
+                        typecheckEnv: fixtureEnv,
+                        test: true,
+                        testCommand: 'pnpm run test',
+                        additionalTests: [
+                            [name: 'Dependency audit', command: 'pnpm audit'],
+                            [name: 'Contract', command: 'pnpm run fixture:check'],
+                        ],
+                    )
+
+                    // Build from the fixture, then verify the output (the packages are installed already).
+                    buildStaticSite(
+                        image: site.nodeImage,
+                        env: fixtureEnv,
+                        installEnabled: false,
+                        verifyEnabled: true,
+                    )
+
+                    // Playwright smoke, SEO and CMS specs against the built dist/ (desktop 1440 px and mobile 390 px).
+                    fullNodeTest(
+                        image: site.nodeImage,
+                        install: false,
+                        eslint: false,
+                        prettier: false,
+                        playwright: true,
+                        playwrightImage: site.nodeImage,
+                        playwrightCommand: 'pnpm run test:e2e',
+                        playwrightEnv: fixtureEnv,
+                    )
+                }
+
+                if (deploy) {
+                    stage('Resolve image tags') {
+                        imageTags = ["${env.BUILD_NUMBER}", 'latest']
+                    }
+                }
+            }
+        } finally {
+            sh 'sudo /usr/local/sbin/jenkins-fix-workspace "$WORKSPACE" || true'
+            cleanWs()
+        }
+    }
+
+    if (deploy) {
+        // Image: multi-stage Dockerfile; the build stage runs `pnpm build` and `pnpm verify` against the REAL export (CMS_SOURCE=api,
+        // never the fixture), the final stage is FROM scratch with dist/ only. SITE_URL, PUBLIC_NOINDEX and CMS_API_URL are public
+        // build arguments. The export token is a Jenkins credential; as a build argument it exists only in the build stage, never in
+        // the pushed image (the final stage copies dist/ and nothing else).
+        stage('Build and push image') {
+            timeout(time: 60, unit: 'MINUTES') {
+                withCredentials([
+                    string(credentialsId: 'scaleway_secret_key', variable: 'SECRET'),
+                    string(credentialsId: site.exportTokenCredentialsId, variable: 'CMS_API_TOKEN'),
+                ]) {
+                    dockerBuildMultiArch(
+                        registry: site.registry,
+                        registryHost: site.registryHost,
+                        registryPassword: env.SECRET,
+                        image: site.image,
+                        contextDir: '.',
+                        dockerfile: 'Dockerfile',
+                        tags: imageTags,
+                        dockerfileArgs: [
+                            SITE_URL      : site.siteUrl,
+                            PUBLIC_NOINDEX: site.noindex,
+                            CMS_API_URL   : site.cmsApiUrl,
+                            CMS_API_TOKEN : env.CMS_API_TOKEN,
+                        ],
+                    )
+                }
+            }
+        }
+
+        stage('Deploy') {
+            node {
+                withCredentials([
+                    string(credentialsId: 'komodo_deploy_api_key', variable: 'API_KEY'),
+                    string(credentialsId: 'komodo_deploy_api_secret', variable: 'API_SECRET'),
+                ]) {
+                    deployKomodoStack(apiKey: env.API_KEY, apiSecret: env.API_SECRET, deployStackName: site.stack)
+                }
+            }
+        }
+    }
+} catch (err) {
+    // A scripted pipeline only sets the result after the last block, so the callback below needs it set here.
+    currentBuild.result = err instanceof org.jenkinsci.plugins.workflow.steps.FlowInterruptedException ? 'ABORTED' : 'FAILURE'
+    throw err
+} finally {
+    // Tell the backend how the publish ended. Best effort: a failing callback never fails the build, the backend polls Jenkins
+    // ("Refresh status") and marks a publish without a result as failed after CMS_PUBLISH_TIMEOUT minutes.
+    if (params.CMS_PUBLISH_ID) {
+        node {
+            withCredentials([string(credentialsId: site.callbackTokenCredentialsId, variable: 'CALLBACK_TOKEN')]) {
+                def result = currentBuild.currentResult
+                def body = groovy.json.JsonOutput.toJson([result: result, buildUrl: env.BUILD_URL])
+                sh(
+                    returnStatus: true,
+                    script: """curl --silent --show-error --max-time 30 -X POST '${site.cmsApiUrl}/publishes/${params.CMS_PUBLISH_ID}/status' \
+                        -H "Authorization: Bearer \$CALLBACK_TOKEN" -H 'Content-Type: application/json' -H 'Accept: application/json' \
+                        -d '${body}'""",
+                )
+            }
+        }
+    }
+}

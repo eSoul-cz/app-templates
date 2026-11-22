@@ -3,7 +3,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
-export default async function verifyCms({ dist, pages, fail }) {
+export default async function verifyCms({ dist, pages, fail, noindex, sitemap, stagingGate }) {
     const cacheDir = resolve(process.cwd(), process.env.CMS_CACHE_DIR ?? 'node_modules/.astro/cms');
     const sourcePath = join(cacheDir, 'source.json');
     if (!existsSync(sourcePath)) return fail(`Missing ${sourcePath}: the build did not load the CMS export.`);
@@ -15,6 +15,32 @@ export default async function verifyCms({ dist, pages, fail }) {
     for (const path of expected) if (!pages.has(path)) fail(`Missing page ${path} from the export.`);
     for (const path of pages.keys()) if (path !== '/404' && !expected.has(path)) fail(`Page ${path} is not in the export.`);
     console.log(`verify-dist: source ${source}, ${data.pages.length} pages from the export.`);
+
+    // `noindex` of the export is the `noindex` of the HTML; the sitemap carries the `updatedAt` of the export as `lastmod`
+    // (never the build time); an indexable page has its Markdown version and advertises it, a `noindex` page has none.
+    for (const page of data.pages) {
+        const path = page.isHome ? '/' : `/${page.slug}`;
+        const html = pages.get(path);
+        if (html === undefined) continue;
+
+        const expectedNoindex = (page.noindex ?? false) || stagingGate;
+        if (expectedNoindex !== noindex.has(path)) fail(`${path}: noindex is ${expectedNoindex} in the export but ${noindex.has(path)} in the HTML.`);
+
+        const markdown = join(dist, page.isHome ? 'index.md' : `${page.slug}.md`);
+        const advertised = /<link\s+rel="alternate"\s+type="text\/markdown"\s+href="([^"]+)"/i.test(html);
+        if (page.noindex) {
+            if (existsSync(markdown) || advertised) fail(`${path}: a noindex page must have no Markdown version.`);
+            continue;
+        }
+        if (!existsSync(markdown)) fail(`${path}: Markdown version ${markdown} is missing.`);
+        if (!advertised) fail(`${path}: missing <link rel="alternate" type="text/markdown">.`);
+
+        if (sitemap.size > 0 && page.updatedAt) {
+            const lastmod = sitemap.get(path);
+            if (!lastmod || Date.parse(lastmod) !== Date.parse(page.updatedAt))
+                fail(`${path}: sitemap lastmod ${lastmod} is not the page updatedAt ${page.updatedAt}.`);
+        }
+    }
 
     // Media: referenced files exist (fixture: in dist/_cms; backend: verified on the site by the build).
     const manifestPath = join(cacheDir, 'media-manifest.json');

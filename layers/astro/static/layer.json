@@ -1,1 +1,1 @@
-{"description": "Astro 7 static site (Tailwind 4, sitemap, local fonts, Playwright smoke test, dist verification); builds standalone into frontend/."}
+{"description": "Astro 7 static site (Tailwind 4, sitemap with lastmod, robots.txt, llms.txt, local fonts, Vitest, Playwright smoke and SEO specs with a network guard, dist verification, deployStaticSite Jenkinsfile); the whole repository of a site without a CMS."}

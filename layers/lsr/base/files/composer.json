@@ -4,8 +4,19 @@
     "type": "project",
     "license": "proprietary",
     "scripts": {
-        "test": "env XDEBUG_MODE=coverage php vendor/bin/phpunit",
-        "test:parallel": "env XDEBUG_MODE=coverage php vendor/bin/paratest",
+        "test": [
+            "@putenv XDEBUG_MODE=off",
+            "@php vendor/bin/phpunit"
+        ],
+        "test:parallel": [
+            "@putenv XDEBUG_MODE=off",
+            "@php vendor/bin/paratest"
+        ],
+        "test:coverage": [
+            "Composer\\Config::disableProcessTimeout",
+            "@putenv XDEBUG_MODE=coverage",
+            "@php -d memory_limit=2G vendor/bin/phpunit --coverage-text --only-summary-for-coverage-text"
+        ],
         "phpstan": "./vendor/bin/phpstan --memory-limit=1G analyse",
         "phpstan:ci": [
             "Composer\\Config::disableProcessTimeout",

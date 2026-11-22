@@ -26,6 +26,24 @@ Migration: what an existing project must do (or "none").
 
 ## Unreleased
 
+### 2026-11-23: Form endpoint in `laravel-cms`
+
+Affects: `laravel-cms` (and the `backend/` of `astro-laravel-cms`) / layer `laravel/cms` (`config/cms.php`, `CmsServiceProvider`, `routes/forms.php`, `append/.env.example`).
+
+`POST /forms/contact` (route `forms.contact`) takes the contact form of the static site: a public endpoint outside `/cms-api`, without the `web`
+middleware (no CSRF token, session or cookie). It checks the `Origin` against `CMS_FORMS_ALLOWED_ORIGINS`, then runs the pipeline honeypot, rate limit per
+client (address stored only as an HMAC), reCAPTCHA v3, delivery (a `form_submissions` row plus an e-mail to `CMS_FORMS_RECIPIENTS`) and a last-resort file
+`storage/app/private/forms-last-resort/YYYY-MM.jsonl`. A plain post is answered with a 303 to `return_to` (`?form=sent` or `?form=<error code>`, fragment
+`#form-result`), a JSON client gets `{status, code, message}`. The admin has a read-only "Form submissions" resource. See `docs/forms.md`.
+
+Migration: copy the layer's new files (`app/Application/Contract/Cms/Form*.php`, `CaptchaVerifier.php`, `app/Domain/Cms/Form*.php`, `CaptchaVerdict.php`,
+`SubmitFormCommand*.php`, the `Form*`/`Recaptcha*`/`ContactForm*`/`LastResortFile`/`CacheFormRateLimiter`/`ConfiguredFormRecipients`/`ClientAddressHasher`
+classes, `FormSubmission` model and factory, the `FormSubmissions` Filament resource, `app/Infrastructure/Mail`, `resources/views/mail`, `routes/forms.php`,
+`docs/forms.md`, the `Forms*` tests) and merge `CmsServiceProvider` and the `forms` array of `config/cms.php`. Run `php artisan migrate` (new table
+`form_submissions`). Set `CMS_FORMS_ALLOWED_ORIGINS` (the site, e.g. `https://example.com`), `CMS_FORMS_RECIPIENTS`, `CMS_FORMS_RECAPTCHA_SECRET` (required in
+production: the endpoint answers 503 without it) and `CMS_FORMS_RECAPTCHA_MIN_SCORE`; use `CACHE_STORE=file` or `database`. Route `/forms` to the backend in
+nginx (next to `/cms-api` and the admin). The frontend posts the form to `<backend>/forms/contact`.
+
 ### 2026-11-23: The Laravel variants are published from `main`
 
 Affects: the builder (`bin/templates publish`, `Jenkinsfile`); variants `laravel-inertia`, `laravel-filament`, `laravel-inertia-filament`,

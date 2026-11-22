@@ -1,3 +1,3 @@
 {
-    "layers": ["framework/lsr", "package/inertia-vue"]
+    "layers": ["framework/lsr", "package/inertia-vue", "package/mutation-testing"]
 }

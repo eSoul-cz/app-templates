@@ -160,12 +160,17 @@ There are no template version tags: **the `main` HEAD of a variant repository is
 
    `bin/templates publish <variant> --dry-run` builds and compares with the remote without pushing; `--repo`, `--branch`, `--message`
    and `--commit` override the defaults (`https://github.com/<package>.git`, `main`, the source commit's subject, `HEAD`). With
-   `TEMPLATES_PUBLISH_USER` and `TEMPLATES_PUBLISH_TOKEN` set, git authenticates with them (a credential helper reads both variables;
-   they are never part of a command line); without them it uses the machine's own authentication.
+   `TEMPLATES_PUBLISH_TOKEN` set (a GitHub App installation token or a personal access token), git authenticates with it as
+   `x-access-token` (a credential helper reads the variable; it is never part of a command line); without it git uses the machine's own
+   authentication.
 
-   What the owner sets up once: the Jenkins credential `github-template-publisher` (username with password: a GitHub App installation
-   token or a fine-grained token with `Contents: write` on the `template-*` repositories only), the empty `template-<variant>`
-   repositories, and for each a Packagist package `esoul-cz/template-<variant>` with the GitHub webhook that tells Packagist about a push.
+   The Jenkins credential is the existing `github-app-esoul` (type GitHub App, from the GitHub Branch Source plugin). Bound with
+   `usernamePassword(credentialsId: 'github-app-esoul', usernameVariable: ..., passwordVariable: 'TEMPLATES_PUBLISH_TOKEN')`, its password
+   is an installation token (valid for an hour), which the `Jenkinsfile` passes to the container by name. What the owner sets up once:
+   the App is installed on the `template-*` repositories with `Contents: write`, and the credential's repository access covers them (a
+   credential whose access is inferred from the job gets a token for `app-templates` only, see `runCommandInTest`); the empty
+   `template-<variant>` repositories; and for each a Packagist package `esoul-cz/template-<variant>` with the GitHub webhook that tells
+   Packagist about a push.
 4. Packagist (vendor `esoul-cz`, packages `esoul-cz/template-<variant>`) is the primary distribution; it serves `dev-main` of each
    variant repository. `packages.esoul.cz` (Satis) is only a secondary mirror; no template lists it in `repositories`. Install:
 

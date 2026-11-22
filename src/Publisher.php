@@ -15,13 +15,13 @@ use Symfony\Component\Process\Process;
  * the branch does not exist yet), and nothing is pushed when the tree equals the tip's. Only git plumbing runs, against a throwaway
  * git directory with the build as work tree, so the build directory is never touched and needs no repository of its own.
  *
- * Credentials: with `TEMPLATES_PUBLISH_USER` and `TEMPLATES_PUBLISH_TOKEN` set, git gets them through a credential helper that reads
- * both variables (they never appear in a command line); without them git uses whatever authentication the machine has.
+ * Credentials: with `TEMPLATES_PUBLISH_TOKEN` set (a GitHub App installation token or a personal access token), git gets it through a
+ * credential helper that reads the variable (it never appears in a command line) and signs in as `x-access-token`; without it git uses
+ * whatever authentication the machine has.
  */
 final readonly class Publisher
 {
-    public const string USER_ENV = 'TEMPLATES_PUBLISH_USER';
-
+    /** Environment variable that holds the token git authenticates with. */
     public const string TOKEN_ENV = 'TEMPLATES_PUBLISH_TOKEN';
 
     private const string AUTHOR_NAME = 'eSoul app-templates publisher';
@@ -116,9 +116,9 @@ final readonly class Publisher
      * @param list<string> $config    `key=value` settings for this call (`git -c`)
      */
     private function git(string $gitDir, array $arguments, ?string $workTree = null, array $config = []): string {
-        if (self::envValue(self::USER_ENV) !== null && self::envValue(self::TOKEN_ENV) !== null) {
-            // The first setting clears helpers configured on the machine; the second reads the two variables inside the helper's shell.
-            array_push($config, 'credential.helper=', sprintf('credential.helper=!f() { echo "username=${%s}"; echo "password=${%s}"; }; f', self::USER_ENV, self::TOKEN_ENV));
+        if (self::envValue(self::TOKEN_ENV) !== null) {
+            // The first setting clears helpers configured on the machine; the second reads the token inside the helper's shell.
+            array_push($config, 'credential.helper=', sprintf('credential.helper=!f() { echo username=x-access-token; echo "password=${%s}"; }; f', self::TOKEN_ENV));
         }
 
         $command = ['git'];

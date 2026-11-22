@@ -29,8 +29,10 @@ if (env.CHANGE_ID == null && env.BRANCH_NAME == 'main') {
 
 /**
  * Checks every publishable variant, then syncs each into `main` of its repository (`bin/templates publish`).
- * Nothing is published unless every variant passed its checks. Needs the Jenkins credential
- * `github-template-publisher` (username with password: a token that can push to the template-* repositories).
+ * Nothing is published unless every variant passed its checks. Publishing uses the Jenkins GitHub App credential `github-app-esoul`
+ * (the one Composer uses): as username with password its password is an installation token, which must be allowed to push to
+ * the template-* repositories (the App is installed there with Contents: write, and the credential's repository access is not
+ * limited to this job's repository).
  */
 def publishVariants(Map publishable) {
     def registry = 'rg.fr-par.scw.cloud/testing-images'
@@ -90,16 +92,17 @@ def publishVariants(Map publishable) {
                 }
 
                 stage('Publish variants') {
-                    // The token is passed to the container by name: its value is not part of the logged options.
+                    // A GitHub App credential yields an installation token as the password. It is passed to the container by
+                    // name (its value is not part of the logged options); the user name (the App id) is not needed.
                     withCredentials([usernamePassword(
-                        credentialsId: 'github-template-publisher',
-                        usernameVariable: 'TEMPLATES_PUBLISH_USER',
+                        credentialsId: 'github-app-esoul',
+                        usernameVariable: 'GITHUB_APP_ID',
                         passwordVariable: 'TEMPLATES_PUBLISH_TOKEN',
                     )]) {
                         for (String name : publishable.keySet()) {
                             runCommandInTest(
                                 image: phpImage,
-                                options: '-e TEMPLATES_PUBLISH_USER -e TEMPLATES_PUBLISH_TOKEN',
+                                options: '-e TEMPLATES_PUBLISH_TOKEN',
                                 command: "php bin/templates publish ${name} --commit=${sourceCommit}".toString(),
                             )
                         }

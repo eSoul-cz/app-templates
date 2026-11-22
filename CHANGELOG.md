@@ -383,8 +383,8 @@ code style, tests, pnpm audit, lint, typecheck, tests, build) and, only when all
 whose tree is exactly the build, with the source commit in `.esoul/template.json` (nothing is pushed when nothing changed). The LSR and
 Astro variants follow when their pipelines exist.
 
-Migration: none for projects. The owner creates the Jenkins credential `github-template-publisher` and the Packagist packages with
-their GitHub webhooks (README, "Publishing flow").
+Migration: none for projects. Publishing uses the existing Jenkins GitHub App credential `github-app-esoul`; the owner installs the App
+on the `template-*` repositories with Contents: write and creates the Packagist packages with their GitHub webhooks (README, "Publishing flow").
 
 ### 2026-11-23: The builder repository adopts the guidelines
 

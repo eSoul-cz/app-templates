@@ -4,6 +4,13 @@ declare(strict_types=1);
 
 return [
     /*
+     * Path mode of the admin, a documented exception: the backend shares the domain of the static site under /admin
+     * instead of living on its own subdomain (the default). Set it together with SESSION_PATH=/admin: Livewire's update
+     * endpoint then moves under /admin (App\Infrastructure\Cms\AdminPathMode), where the session cookie is sent.
+     */
+    'admin_path_mode' => (bool) env('CMS_ADMIN_PATH_MODE', false),
+
+    /*
      * Bearer token of GET /cms-api/v1/export. Read by the frontend build (Jenkins, local development),
      * read-only. An empty token disables the export (404).
      */

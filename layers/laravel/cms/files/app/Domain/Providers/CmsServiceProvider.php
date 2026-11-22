@@ -11,6 +11,7 @@ use App\Application\Contract\Cms\FormMailer;
 use App\Application\Contract\Cms\FormRateLimiter;
 use App\Application\Contract\Cms\FormRecipients;
 use App\Application\Contract\Cms\PublicMediaStore;
+use App\Infrastructure\Cms\AdminPathMode;
 use App\Infrastructure\Cms\CacheFormRateLimiter;
 use App\Infrastructure\Cms\ConfiguredFormRecipients;
 use App\Infrastructure\Cms\ContactFormMailer;
@@ -60,6 +61,11 @@ final class CmsServiceProvider extends ServiceProvider
         Route::middleware([RequireAllowedFormOrigin::class])
             ->prefix('forms')
             ->group(base_path('routes/forms.php'));
+
+        // Backend under /admin of the site's domain: the Livewire update endpoint moves under /admin (see AdminPathMode).
+        if (config()->boolean('cms.admin_path_mode')) {
+            AdminPathMode::apply();
+        }
 
         if ($this->app->runningInConsole()) {
             $this->commands([PrunePublicMedia::class]);

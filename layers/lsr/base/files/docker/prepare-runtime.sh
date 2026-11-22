@@ -2,7 +2,8 @@
 
 set -eu
 
-mkdir -p ./logs/tracy ./temp/cache ./temp/latte ./build ./upload /var/www/public/build
+# temp/queue holds the RoadRunner boltdb queue file (.rr.yaml); the cache commands and the `rm` below never touch it.
+mkdir -p ./logs/tracy ./temp/cache ./temp/latte ./temp/queue ./build ./upload /var/www/public/build
 
 # Console commands bootstrap the DI container first, so stale generated files must go first.
 rm -f ./temp/config.cache \

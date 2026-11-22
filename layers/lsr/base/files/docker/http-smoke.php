@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-// Runs against the built production image over HTTP, without bootstrapping the application in this process.
+// Runs against the built production image over HTTP and FastCGI, without bootstrapping the application in this process.
 $baseUrl = rtrim(getenv('HTTP_SMOKE_BASE_URL') ?: 'http://127.0.0.1:8001', '/');
 $client = curl_init();
 if ($client === false) {
@@ -49,6 +49,86 @@ function requireCondition(bool $condition, string $message): void
     if (!$condition) {
         throw new RuntimeException($message);
     }
+}
+
+/**
+ * One FastCGI request (responder role) over a fresh connection, like NGINX sends it.
+ *
+ * @param array<string, string> $headers FastCGI parameters added to the defaults (HTTP_* ones are request headers)
+ * @return array{status: int, headers: array<string, string>, body: string}
+ */
+function fastcgiRequest(string $address, string $uri, array $headers = []): array
+{
+    $socket = @stream_socket_client($address, $errorCode, $errorMessage, 2);
+    if ($socket === false) {
+        throw new RuntimeException('FastCGI ' . $address . ': ' . $errorMessage);
+    }
+    stream_set_timeout($socket, 4);
+
+    $record = static fn (int $type, string $content): string => pack('CCnnCx', 1, $type, 1, strlen($content), 0) . $content;
+    $length = static fn (int $size): string => $size < 128 ? chr($size) : pack('N', $size | 0x80000000);
+
+    $params = [
+        'REQUEST_METHOD'  => 'GET',
+        'REQUEST_URI'     => $uri,
+        'QUERY_STRING'    => '',
+        'SERVER_PROTOCOL' => 'HTTP/1.1',
+        'SCRIPT_FILENAME' => '/app/index.php',
+        'REMOTE_ADDR'     => '127.0.0.1',
+        'REMOTE_PORT'     => '50000',
+        'HTTP_HOST'       => 'localhost',
+    ];
+    $encodedParams = '';
+    foreach ([...$params, ...$headers] as $name => $value) {
+        $encodedParams .= $length(strlen($name)) . $length(strlen($value)) . $name . $value;
+    }
+
+    fwrite($socket, $record(1, pack('nCx5', 1, 0)) . $record(4, $encodedParams) . $record(4, '') . $record(5, ''));
+
+    $read = static function (int $bytes) use ($socket): string {
+        $data = '';
+        while (strlen($data) < $bytes) {
+            $chunk = fread($socket, $bytes - strlen($data));
+            if ($chunk === false || $chunk === '') {
+                throw new RuntimeException('FastCGI connection closed before the response ended.');
+            }
+            $data .= $chunk;
+        }
+        return $data;
+    };
+
+    $stdout = '';
+    do {
+        $header = unpack('Cversion/Ctype/nrequestId/ncontentLength/CpaddingLength', $read(8));
+        if ($header === false) {
+            throw new RuntimeException('Invalid FastCGI record header.');
+        }
+        $content = $read($header['contentLength']);
+        $read($header['paddingLength']);
+        if ($header['type'] === 6) {
+            $stdout .= $content;
+        }
+    } while ($header['type'] !== 3);
+    fclose($socket);
+
+    [$rawHeaders, $body] = array_pad(explode("\r\n\r\n", $stdout, 2), 2, '');
+    $status = 200;
+    $responseHeaders = [];
+    foreach (explode("\r\n", $rawHeaders) as $line) {
+        $separator = strpos($line, ':');
+        if ($separator === false) {
+            continue;
+        }
+        $name = strtolower(trim(substr($line, 0, $separator)));
+        $value = trim(substr($line, $separator + 1));
+        if ($name === 'status') {
+            $status = (int) $value;
+            continue;
+        }
+        $responseHeaders[$name] = $value;
+    }
+
+    return ['status' => $status, 'headers' => $responseHeaders, 'body' => $body];
 }
 
 try {
@@ -100,6 +180,28 @@ try {
         requireCondition($response['status'] === 404, $path . ': private/source path returned HTTP ' . $response['status']);
     }
     echo "Private files and frontend sources are not publicly served\n";
+
+    // The production path: NGINX talks FastCGI to RoadRunner and passes the scheme and the host as FastCGI parameters.
+    $fastcgiAddress = getenv('HTTP_SMOKE_FASTCGI_ADDRESS') ?: 'tcp://127.0.0.1:9000';
+    $fastcgiHealth = fastcgiRequest($fastcgiAddress, '/up');
+    requireCondition($fastcgiHealth['status'] === 200, 'FastCGI /up: health check returned HTTP ' . $fastcgiHealth['status']);
+    $fastcgiHealthBody = json_decode($fastcgiHealth['body'], true, flags: JSON_THROW_ON_ERROR);
+    requireCondition(is_array($fastcgiHealthBody) && ($fastcgiHealthBody['status'] ?? null) === 'ok', 'FastCGI /up: unexpected health payload');
+
+    $fastcgiInertia = fastcgiRequest($fastcgiAddress, '/', [
+        'HTTP_ACCEPT'           => 'text/html, application/xhtml+xml',
+        'HTTP_X_INERTIA'        => 'true',
+        'HTTP_X_REQUESTED_WITH' => 'XMLHttpRequest',
+        'HTTP_X_FORWARDED_PROTO' => 'https',
+        'HTTP_X_FORWARDED_HOST' => 'app.test',
+        'HTTP_HOST'             => 'app.test',
+        'HTTPS'                 => 'on',
+    ]);
+    requireCondition($fastcgiInertia['status'] === 200, 'FastCGI /: Inertia returned HTTP ' . $fastcgiInertia['status']);
+    requireCondition(($fastcgiInertia['headers']['x-inertia'] ?? '') === 'true', 'FastCGI /: missing X-Inertia response header');
+    $fastcgiPage = json_decode($fastcgiInertia['body'], true, flags: JSON_THROW_ON_ERROR);
+    requireCondition(is_array($fastcgiPage) && ($fastcgiPage['component'] ?? null) === 'Home', 'FastCGI /: unexpected Inertia component');
+    echo "FastCGI requests OK\n";
 } catch (Throwable $exception) {
     fwrite(STDERR, 'HTTP smoke failed: ' . $exception->getMessage() . "\n");
     exit(1);

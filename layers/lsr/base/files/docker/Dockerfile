@@ -85,7 +85,7 @@ COPY --from=composer_builder /app/vendor /app/vendor
 COPY --from=node_builder /app/build /app/build
 
 # Only compiled browser assets are public; the Vite manifest and the application stay private.
-RUN mkdir -p /app/temp/cache /app/temp/latte /app/logs/tracy /app/upload /var/www/public/build \
+RUN mkdir -p /app/temp/cache /app/temp/latte /app/temp/queue /app/logs/tracy /app/upload /var/www/public/build \
     && ln -s /app/build/assets /var/www/public/build/assets
 
 COPY docker/http-smoke.php /usr/local/bin/http-smoke.php

@@ -13,6 +13,10 @@ http:
     address: 0.0.0.0:8001
     access_logs: true
     max_request_size: 10 # MiB; rejects oversized bodies before PHP parses the request
+    # FastCGI listener for the NGINX in front of the container (production and docker-compose.yml). The HTTP listener
+    # above stays for the container health check and the smoke test.
+    fcgi:
+        address: tcp://0.0.0.0:9000
     middleware:
         - http_metrics
         - static
@@ -38,8 +42,12 @@ jobs:
     consume: ['tasks']
     pipelines:
         tasks: # RoadRunner queue identifier, matches roadrunner.jobs.queue in config/di/extensions/roadrunner.neon
-            driver: memory
+            driver: boltdb
             config:
+                # Durable queue file in the persistent `./temp` mount (docker/prepare-runtime.sh creates the directory).
+                # `cache:clean` and the other cache commands never touch `temp/queue/`; do not delete it with the caches.
+                file: /app/temp/queue/tasks.db
+                permissions: 0600
                 priority: 10
                 prefetch: 10
 service:

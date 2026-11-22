@@ -42,6 +42,7 @@ services:
     entrypoint: ["php", "/usr/local/bin/http-smoke.php"]
     environment:
       HTTP_SMOKE_BASE_URL: http://app:8001
+      HTTP_SMOKE_FASTCGI_ADDRESS: tcp://app:9000
     depends_on:
       app:
         condition: service_healthy

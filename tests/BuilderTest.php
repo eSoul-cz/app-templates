@@ -8,11 +8,11 @@ use ESoul\AppTemplates\Builder;
 use ESoul\AppTemplates\Catalog;
 use ESoul\AppTemplates\TemplateException;
 use PHPUnit\Framework\Attributes\TestWith;
+use stdClass;
 
 final class BuilderTest extends BuilderTestCase
 {
-    public function testLaterLayersOverwriteEarlierFiles(): void
-    {
+    public function test_later_layers_overwrite_earlier_files(): void {
         $this->put('layers/a/files/shared.txt', 'from a');
         $this->put('layers/a/files/only-a.txt', 'a');
         $this->put('layers/a/files/.hidden', 'dot');
@@ -28,8 +28,7 @@ final class BuilderTest extends BuilderTestCase
         self::assertSame('b', $this->read($out, 'nested/deep.txt'));
     }
 
-    public function testLayerOrderDecidesTheWinner(): void
-    {
+    public function test_layer_order_decides_the_winner(): void {
         $this->put('layers/a/files/x.txt', 'a');
         $this->put('layers/b/files/x.txt', 'b');
         $this->variant([['layer' => 'b'], ['layer' => 'a']]);
@@ -37,14 +36,13 @@ final class BuilderTest extends BuilderTestCase
         self::assertSame('a', $this->read($this->build(), 'x.txt'));
     }
 
-    public function testMergeDeepMergesObjectsAndUnionsScalarLists(): void
-    {
+    public function test_merge_deep_merges_objects_and_unions_scalar_lists(): void {
         $this->put('layers/a/files/package.json', json_encode([
             'name' => 'demo',
             'scripts' => ['dev' => 'vite', 'build' => 'vite build'],
             'files' => ['a', 'b'],
             'workspaces' => [['name' => 'x']],
-            'empty' => new \stdClass(),
+            'empty' => new stdClass(),
         ], JSON_THROW_ON_ERROR));
         $this->put('layers/b/merge/package.json', json_encode([
             'name' => 'renamed',
@@ -66,8 +64,7 @@ final class BuilderTest extends BuilderTestCase
         self::assertStringContainsString('"empty": {}', $this->read($out, 'package.json'));
     }
 
-    public function testMergeNullRemovesTheKeyFromTheBase(): void
-    {
+    public function test_merge_null_removes_the_key_from_the_base(): void {
         $this->put('layers/a/files/composer.json', '{"require-dev": {"laravel/pao": "^1.0", "laravel/pint": "^1.27"}}');
         $this->put('layers/b/merge/composer.json', '{"require-dev": {"laravel/pao": null, "phpunit/phpunit": "^13.2"}}');
         $this->variant([['layer' => 'a'], ['layer' => 'b']]);
@@ -78,8 +75,7 @@ final class BuilderTest extends BuilderTestCase
         );
     }
 
-    public function testMergeCreatesMissingTargetAndSupportsNestedPaths(): void
-    {
+    public function test_merge_creates_missing_target_and_supports_nested_paths(): void {
         $this->put('layers/a/merge/config/settings.json', '{"layers": ["general"]}');
         $this->put('layers/b/merge/config/settings.json', '{"layers": ["general", "framework/laravel"]}');
         $this->variant([['layer' => 'a'], ['layer' => 'b']]);
@@ -87,8 +83,7 @@ final class BuilderTest extends BuilderTestCase
         self::assertSame(['layers' => ['general', 'framework/laravel']], $this->json($this->build(), 'config/settings.json'));
     }
 
-    public function testMergeRejectsNonJsonFiles(): void
-    {
+    public function test_merge_rejects_non_json_files(): void {
         $this->put('layers/a/merge/notes.txt', 'nope');
         $this->variant([['layer' => 'a']]);
 
@@ -97,8 +92,7 @@ final class BuilderTest extends BuilderTestCase
         $this->build();
     }
 
-    public function testAppendSkipsLinesAlreadyPresent(): void
-    {
+    public function test_append_skips_lines_already_present(): void {
         $this->put('layers/a/files/.gitignore', "/vendor\n/node_modules\n");
         $this->put('layers/b/append/.gitignore', "/vendor\n\n# build\n/public/build\n/node_modules\n");
         $this->put('layers/c/append/.gitignore', "/public/build\n/storage/*.key\n");
@@ -111,8 +105,7 @@ final class BuilderTest extends BuilderTestCase
         self::assertSame("APP_NAME=Demo\n", $this->read($out, '.env.example'));
     }
 
-    public function testDeleteTxtRemovesFilesGlobsAndDirectoriesBeforeTheLayerFiles(): void
-    {
+    public function test_delete_txt_removes_files_globs_and_directories_before_the_layer_files(): void {
         $this->put('layers/a/files/keep.txt', 'keep');
         $this->put('layers/a/files/drop.txt', 'drop');
         $this->put('layers/a/files/tests/Unit/ExampleTest.php', 'x');
@@ -133,8 +126,7 @@ final class BuilderTest extends BuilderTestCase
         self::assertFileExists($out . '/resources/js/app.js');
     }
 
-    public function testIntoAndExclude(): void
-    {
+    public function test_into_and_exclude(): void {
         $this->put('layers/root/files/README.md', 'root');
         $this->put('layers/app/files/Jenkinsfile', 'pipeline');
         $this->put('layers/app/files/.github/PULL_REQUEST_TEMPLATE.md', 'pr');
@@ -160,8 +152,7 @@ final class BuilderTest extends BuilderTestCase
         self::assertFileDoesNotExist($out . '/Jenkinsfile');
     }
 
-    public function testGuidelineConfigFromSubdirectoryLayersMergesIntoTheVariantRoot(): void
-    {
+    public function test_guideline_config_from_subdirectory_layers_merges_into_the_variant_root(): void {
         $this->put('layers/root/merge/esoul-guidelines.json', '{"layers": ["general"]}');
         $this->put('layers/back/merge/esoul-guidelines.json', '{"layers": ["framework/laravel"]}');
         $this->put('layers/front/merge/esoul-guidelines.json', '{"layers": ["framework/astro"]}');
@@ -178,8 +169,7 @@ final class BuilderTest extends BuilderTestCase
         self::assertFileDoesNotExist($out . '/frontend/esoul-guidelines.json');
     }
 
-    public function testRootComposerJsonIsStampedWithThePackageName(): void
-    {
+    public function test_root_composer_json_is_stamped_with_the_package_name(): void {
         $this->put('layers/a/files/composer.json', '{"name": "laravel/laravel", "description": "upstream", "type": "project", "require": {"php": "^8.5"}}');
         $this->variant([['layer' => 'a']]);
 
@@ -191,8 +181,7 @@ final class BuilderTest extends BuilderTestCase
         self::assertSame('name', array_key_first($composer));
     }
 
-    public function testComposerJsonIsCreatedWhenNoLayerShipsOne(): void
-    {
+    public function test_composer_json_is_created_when_no_layer_ships_one(): void {
         $this->put('layers/a/files/README.md', 'x');
         $this->variant([['layer' => 'a']]);
 
@@ -210,8 +199,7 @@ final class BuilderTest extends BuilderTestCase
         );
     }
 
-    public function testPostCreateCommandsHandTheLicenceOverToTheProject(): void
-    {
+    public function test_post_create_commands_hand_the_licence_over_to_the_project(): void {
         $this->put('layers/a/files/LICENSE', 'MIT');
         $this->variant([['layer' => 'a']]);
 
@@ -227,8 +215,7 @@ final class BuilderTest extends BuilderTestCase
         self::assertSame('@composer config license proprietary', $commands[1]);
     }
 
-    public function testPostCreateCommandsAlsoCoverNestedComposerFiles(): void
-    {
+    public function test_post_create_commands_also_cover_nested_composer_files(): void {
         $this->put('layers/a/files/composer.json', '{"license": "MIT"}');
         $this->put('layers/b/files/README.md', 'no composer here');
         $this->variant([['layer' => 'a', 'into' => 'backend'], ['layer' => 'b', 'into' => 'frontend']]);
@@ -241,8 +228,7 @@ final class BuilderTest extends BuilderTestCase
         );
     }
 
-    public function testPostCreateCommandsAreMergedBeforeExistingOnes(): void
-    {
+    public function test_post_create_commands_are_merged_before_existing_ones(): void {
         $this->put('layers/a/files/composer.json', (string) json_encode([
             'scripts' => [
                 'post-create-project-cmd' => ['@php artisan key:generate --ansi', '@php artisan migrate'],
@@ -261,8 +247,7 @@ final class BuilderTest extends BuilderTestCase
         self::assertSame('artisan test', $this->jsonAt($out, 'composer.json', 'scripts', 'test'));
     }
 
-    public function testPostCreateCommandsWrapAScriptGivenAsAString(): void
-    {
+    public function test_post_create_commands_wrap_a_script_given_as_a_string(): void {
         $this->put('layers/a/files/composer.json', '{"scripts": {"post-create-project-cmd": "@php artisan key:generate"}}');
         $this->variant([['layer' => 'a']]);
 
@@ -272,12 +257,11 @@ final class BuilderTest extends BuilderTestCase
         );
     }
 
-    public function testCommitWritesTemplateRecord(): void
-    {
+    public function test_commit_writes_template_record(): void {
         $this->put('layers/a/files/x.txt', 'x');
         $this->variant([['layer' => 'a']]);
 
-        $out = (new Builder(new Catalog($this->root)))->build('demo', $this->root . '/build', '0123456789abcdef0123456789abcdef01234567');
+        $out = new Builder(new Catalog($this->root))->build('demo', $this->root . '/build', '0123456789abcdef0123456789abcdef01234567');
 
         self::assertSame(
             ['variant' => 'demo', 'commit' => '0123456789abcdef0123456789abcdef01234567'],
@@ -285,16 +269,14 @@ final class BuilderTest extends BuilderTestCase
         );
     }
 
-    public function testNoTemplateRecordWithoutACommit(): void
-    {
+    public function test_no_template_record_without_a_commit(): void {
         $this->put('layers/a/files/x.txt', 'x');
         $this->variant([['layer' => 'a']]);
 
         self::assertDirectoryDoesNotExist($this->build() . '/.esoul');
     }
 
-    public function testBuildCleansTheTargetAndIsDeterministic(): void
-    {
+    public function test_build_cleans_the_target_and_is_deterministic(): void {
         $this->put('layers/a/files/x.txt', 'x');
         $this->put('layers/a/merge/data.json', '{"b": 1, "a": [1, 2]}');
         $this->variant([['layer' => 'a']]);
@@ -308,8 +290,7 @@ final class BuilderTest extends BuilderTestCase
         self::assertSame($first, $this->read($out, 'data.json'));
     }
 
-    public function testUnknownLayerFailsBeforeTouchingTheOutput(): void
-    {
+    public function test_unknown_layer_fails_before_touching_the_output(): void {
         $this->put('layers/a/files/x.txt', 'x');
         $this->variant([['layer' => 'a']], 'good');
         $out = $this->build('good');
@@ -324,8 +305,7 @@ final class BuilderTest extends BuilderTestCase
         self::assertFileExists($out . '/x.txt');
     }
 
-    public function testUnknownVariantFails(): void
-    {
+    public function test_unknown_variant_fails(): void {
         $this->variant([['layer' => 'a']]);
 
         $this->expectException(TemplateException::class);
@@ -333,8 +313,7 @@ final class BuilderTest extends BuilderTestCase
         $this->build('missing');
     }
 
-    public function testVariantNameMustMatchFileName(): void
-    {
+    public function test_variant_name_must_match_file_name(): void {
         $this->put('variants/demo.json', '{"name": "other", "package": "esoul/x", "description": "d", "layers": [{"layer": "a"}]}');
 
         $this->expectException(TemplateException::class);
@@ -342,8 +321,7 @@ final class BuilderTest extends BuilderTestCase
         $this->build();
     }
 
-    public function testIntoMustNotEscapeTheVariant(): void
-    {
+    public function test_into_must_not_escape_the_variant(): void {
         $this->put('layers/a/files/x.txt', 'x');
         $this->variant([['layer' => 'a', 'into' => '../outside']]);
 
@@ -354,8 +332,7 @@ final class BuilderTest extends BuilderTestCase
 
     #[TestWith(['backend app'])]
     #[TestWith(["backend\n"])]
-    public function testIntoRejectsCharactersThatWouldSplitTheComposerScript(string $into): void
-    {
+    public function test_into_rejects_characters_that_would_split_the_composer_script(string $into): void {
         $this->put('layers/a/files/composer.json', '{}');
         $this->variant([['layer' => 'a', 'into' => $into]]);
 

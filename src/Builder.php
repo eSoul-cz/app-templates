@@ -34,8 +34,7 @@ final readonly class Builder
     private Filesystem $fs;
 
     /** @param GuidelinesRenderer|null $guidelines renders the project guidelines after layering; null skips it (builder tests only) */
-    public function __construct(private Catalog $catalog, private ?GuidelinesRenderer $guidelines = null)
-    {
+    public function __construct(private Catalog $catalog, private ?GuidelinesRenderer $guidelines = null) {
         $this->fs = new Filesystem();
     }
 
@@ -45,8 +44,7 @@ final readonly class Builder
      * @param string|null $commit app-templates source commit the variant is built from; when set,
      *                            `.esoul/template.json` {variant, commit} is written into the result
      */
-    public function build(string $variantName, string $outDir, ?string $commit = null): string
-    {
+    public function build(string $variantName, string $outDir, ?string $commit = null): string {
         $variant = $this->catalog->variant($variantName);
 
         // Resolve every layer first so an unknown layer fails before anything is deleted.
@@ -79,8 +77,7 @@ final readonly class Builder
     }
 
     /** @param list<string> $exclude */
-    private function applyLayer(string $layerPath, string $target, array $exclude, string $root): void
-    {
+    private function applyLayer(string $layerPath, string $target, array $exclude, string $root): void {
         $this->applyDeletes($layerPath, $target);
 
         foreach ($this->relativeFiles($layerPath . '/files', $exclude) as $relative => $source) {
@@ -88,7 +85,7 @@ final readonly class Builder
         }
 
         foreach ($this->relativeFiles($layerPath . '/merge', $exclude) as $relative => $source) {
-            if (!str_ends_with($relative, '.json')) {
+            if ( ! str_ends_with($relative, '.json')) {
                 throw new TemplateException(sprintf('Only .json files can be merged, found %s.', $source));
             }
             $destination = $relative === self::GUIDELINES_CONFIG ? $root : $target;
@@ -100,17 +97,16 @@ final readonly class Builder
         }
     }
 
-    private function applyDeletes(string $layerPath, string $target): void
-    {
+    private function applyDeletes(string $layerPath, string $target): void {
         $file = $layerPath . '/delete.txt';
-        if (!is_file($file)) {
+        if ( ! is_file($file)) {
             return;
         }
 
         $patterns = [];
         foreach (self::splitLines((string) file_get_contents($file)) as $line) {
             $line = trim($line);
-            if ($line !== '' && !str_starts_with($line, '#')) {
+            if ($line !== '' && ! str_starts_with($line, '#')) {
                 $patterns[] = $line;
             }
         }
@@ -119,7 +115,7 @@ final readonly class Builder
         }
 
         $doomed = [];
-        $finder = (new Finder())->in($target)->ignoreDotFiles(false)->ignoreVCS(false)->ignoreUnreadableDirs();
+        $finder = new Finder()->in($target)->ignoreDotFiles(false)->ignoreVCS(false)->ignoreUnreadableDirs();
         foreach ($finder as $item) {
             $relative = str_replace('\\', '/', $item->getRelativePathname());
             if (Glob::matchesAny($patterns, $relative)) {
@@ -136,17 +132,16 @@ final readonly class Builder
      *
      * @return array<string, string> relative path => absolute source path, sorted by relative path
      */
-    private function relativeFiles(string $dir, array $exclude): array
-    {
-        if (!is_dir($dir)) {
+    private function relativeFiles(string $dir, array $exclude): array {
+        if ( ! is_dir($dir)) {
             return [];
         }
 
         $files = [];
-        $finder = (new Finder())->files()->in($dir)->ignoreDotFiles(false)->ignoreVCS(false);
+        $finder = new Finder()->files()->in($dir)->ignoreDotFiles(false)->ignoreVCS(false);
         foreach ($finder as $file) {
             $relative = str_replace('\\', '/', $file->getRelativePathname());
-            if (!Glob::matchesAny($exclude, $relative)) {
+            if ( ! Glob::matchesAny($exclude, $relative)) {
                 $files[$relative] = $file->getPathname();
             }
         }
@@ -155,8 +150,7 @@ final readonly class Builder
         return $files;
     }
 
-    private function mergeJson(string $source, string $destination): void
-    {
+    private function mergeJson(string $source, string $destination): void {
         $overlay = JsonMerger::decode((string) file_get_contents($source), $source);
 
         if (is_file($destination)) {
@@ -167,8 +161,7 @@ final readonly class Builder
         $this->fs->dumpFile($destination, JsonMerger::encode($overlay));
     }
 
-    private function appendLines(string $source, string $destination): void
-    {
+    private function appendLines(string $source, string $destination): void {
         $existing = is_file($destination) ? (string) file_get_contents($destination) : '';
         $lines = $existing === '' ? [] : self::splitLines(rtrim($existing, "\r\n"));
         $present = array_fill_keys(array_map(rtrim(...), $lines), true);
@@ -207,11 +200,10 @@ final readonly class Builder
      *
      * @param list<string> $nestedDirs subdirectories of the variant that carry their own composer.json
      */
-    private function stampComposer(Variant $variant, string $target, array $nestedDirs): void
-    {
+    private function stampComposer(Variant $variant, string $target, array $nestedDirs): void {
         $file = $target . '/composer.json';
         $composer = is_file($file) ? JsonMerger::decode((string) file_get_contents($file), $file) : new stdClass();
-        if (!$composer instanceof stdClass) {
+        if ( ! $composer instanceof stdClass) {
             throw new TemplateException(sprintf('%s must contain a JSON object.', $file));
         }
 
@@ -231,8 +223,7 @@ final readonly class Builder
     }
 
     /** @return list<string> distinct `into` directories (sorted) that have a composer.json after layering */
-    private function nestedComposerDirs(Variant $variant, string $target): array
-    {
+    private function nestedComposerDirs(Variant $variant, string $target): array {
         $dirs = [];
         foreach ($variant->layers as $entry) {
             if ($entry->into !== '' && is_file($target . '/' . $entry->into . '/composer.json')) {
@@ -251,17 +242,16 @@ final readonly class Builder
      *
      * @param list<string> $nestedDirs
      */
-    private function stampPostCreateCommands(stdClass $composer, array $nestedDirs): void
-    {
+    private function stampPostCreateCommands(stdClass $composer, array $nestedDirs): void {
         $scripts = $composer->scripts ?? new stdClass();
-        if (!$scripts instanceof stdClass) {
+        if ( ! $scripts instanceof stdClass) {
             throw new TemplateException('composer.json "scripts" must be an object.');
         }
 
         $current = $scripts->{self::POST_CREATE_EVENT} ?? [];
         $existing = [];
         foreach (is_array($current) ? $current : [$current] as $command) {
-            if (!is_string($command)) {
+            if ( ! is_string($command)) {
                 throw new TemplateException(sprintf('composer.json "scripts.%s" must be a string or a list of strings.', self::POST_CREATE_EVENT));
             }
             $existing[] = $command;
@@ -276,8 +266,7 @@ final readonly class Builder
     }
 
     /** @return list<string> */
-    private static function splitLines(string $text): array
-    {
+    private static function splitLines(string $text): array {
         $lines = preg_split('/\R/', $text);
 
         return $lines === false ? [] : $lines;

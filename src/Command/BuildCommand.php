@@ -8,6 +8,7 @@ use ESoul\AppTemplates\Builder;
 use ESoul\AppTemplates\Catalog;
 use ESoul\AppTemplates\GuidelinesRenderer;
 use ESoul\AppTemplates\TemplateException;
+use LogicException;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -20,13 +21,11 @@ use Symfony\Component\Process\Process;
 #[AsCommand(name: 'build', description: 'Build one variant (or all with --all) into <out>/<variant>')]
 final class BuildCommand extends Command
 {
-    public function __construct(private readonly string $root)
-    {
+    public function __construct(private readonly string $root) {
         parent::__construct();
     }
 
-    protected function configure(): void
-    {
+    protected function configure(): void {
         $this
             ->addArgument('variant', InputArgument::OPTIONAL, 'Variant name, see `templates list`')
             ->addOption('all', null, InputOption::VALUE_NONE, 'Build every variant')
@@ -46,8 +45,7 @@ final class BuildCommand extends Command
             );
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output): int
-    {
+    protected function execute(InputInterface $input, OutputInterface $output): int {
         $io = new SymfonyStyle($input, $output);
         $catalog = new Catalog($this->root);
 
@@ -61,11 +59,11 @@ final class BuildCommand extends Command
         }
 
         $out = $this->stringOption($input, 'out');
-        if (!str_starts_with($out, '/')) {
+        if ( ! str_starts_with($out, '/')) {
             $out = $this->root . '/' . $out;
         }
         $commit = $input->getOption('commit');
-        if ($commit !== null && (!is_string($commit) || preg_match('/^[0-9a-f]{7,40}$/', $commit) !== 1)) {
+        if ($commit !== null && ( ! is_string($commit) || preg_match('/^[0-9a-f]{7,40}$/', $commit) !== 1)) {
             $io->error('--commit must be a git commit hash (7 to 40 lowercase hex characters).');
 
             return self::INVALID;
@@ -74,7 +72,7 @@ final class BuildCommand extends Command
 
         $names = $variant === null ? $catalog->variantNames() : [$variant];
         $guidelinesBin = $this->stringOption($input, 'guidelines-bin');
-        if (!str_starts_with($guidelinesBin, '/')) {
+        if ( ! str_starts_with($guidelinesBin, '/')) {
             $guidelinesBin = $this->root . '/' . $guidelinesBin;
         }
         $builder = new Builder($catalog, new GuidelinesRenderer($guidelinesBin));
@@ -94,22 +92,20 @@ final class BuildCommand extends Command
     }
 
     /** Value of an option that is always a string: it takes a value and has a default. */
-    private function stringOption(InputInterface $input, string $name): string
-    {
+    private function stringOption(InputInterface $input, string $name): string {
         $value = $input->getOption($name);
-        if (!is_string($value)) {
-            throw new \LogicException(sprintf('Option --%s must have a string value.', $name));
+        if ( ! is_string($value)) {
+            throw new LogicException(sprintf('Option --%s must have a string value.', $name));
         }
 
         return $value;
     }
 
     /** HEAD of the source repository, or null when `root` is not the top level of a git checkout (a parent repository must not leak in). */
-    private function headCommit(): ?string
-    {
+    private function headCommit(): ?string {
         $top = new Process(['git', 'rev-parse', '--show-toplevel'], $this->root);
         $top->run();
-        if (!$top->isSuccessful() || realpath(trim($top->getOutput())) !== realpath($this->root)) {
+        if ( ! $top->isSuccessful() || realpath(trim($top->getOutput())) !== realpath($this->root)) {
             return null;
         }
 

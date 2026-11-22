@@ -133,6 +133,14 @@ and `./temp/queue/tasks.db`).
 Migration: `composer require --dev esoul-cz/guidelines:^0.2`, add the `post-update-cmd`, add `package/mutation-testing` to `esoul-guidelines.json` and run
 `esoul-guidelines sync`; remove the `repositories` entry and run `composer update --lock`; use `mariadb:12.3` in both compose files; append the two lines to
 `.gitattributes` (files already committed to LFS stay there until `git lfs migrate export --include="assets/js/**,assets/css/**"`); write the operations README.
+### 2026-11-23: Laravel variants: an operations README, port 8080 in `.env.example`, OTEL placeholders
+
+Affects: `laravel-inertia`, `laravel-filament`, `laravel-inertia-filament`, `laravel-lunar` (and the backend of `laravel-cms`) / layer `laravel/base` (`README.md`, `.env.example`).
+
+The project README is an operations README (requirements, setup, ports 8080 / 5173 / 8025, commands, configuration, troubleshooting) instead of the Laravel marketing text of the skeleton. `.env.example` defines `APP_PORT=8080` first and builds `APP_URL` from it (it was `http://localhost:8000`, a port nothing serves). It also carries the `OTEL_*` placeholders for the OTLP export to the host collector (`OTEL_PHP_AUTOLOAD_ENABLED=false`: the `opentelemetry` PHP extension is in the base image, the SDK is added by the project that switches it on; the README says how).
+
+Migration: replace the README with the project's own operations README (the template's is a starting point), set `APP_URL` to `http://localhost:${APP_PORT}` after `APP_PORT=8080`, and add the `OTEL_*` block to `.env.example`.
+
 ### 2026-11-23: Laravel variants: the image healthcheck also requests `/up`
 
 Affects: `laravel-inertia`, `laravel-filament`, `laravel-inertia-filament`, `laravel-lunar` (and the backend of `laravel-cms`) / layer `laravel/base` (`docker/production/Dockerfile`, `docker/production/healthcheck`).

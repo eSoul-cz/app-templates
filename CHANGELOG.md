@@ -26,6 +26,14 @@ Migration: what an existing project must do (or "none").
 
 ## Unreleased
 
+### 2026-11-23: `laravel-lunar` calculates cart lines in integer minor units; the "no Lunar guideline layer" note is dropped
+
+Affects: `laravel-lunar` / layer `laravel/lunar` (`config/lunar/cart.php`, `app/Infrastructure/Lunar/Cart/CalculateLines.php`, `tests`, `README.md`, `layer.json`).
+
+`config/lunar/cart.php` replaces Lunar's `CalculateLines` cart pipeline step with `App\Infrastructure\Lunar\Cart\CalculateLines`: a line's sub total is `value * quantity / unitQty` in integer minor units, rounded once half away from zero (`Money::proportion()`, `Money::ROUNDING`). Lunar's step multiplies floats and truncates, so the two differ only when the unit quantity does not divide `value * quantity` (2.5 minor units: Lunar 2, the project 3). Tests pin the project step against Lunar's on amounts where they cannot differ, and pin the `cart` pipeline to Lunar's default with only that step replaced, so a Lunar update that changes the steps fails the suite. A shop currency must be a case of `App\Domain\ValueObjects\Currency`. The "no Lunar guideline layer yet" note of the README and the layer description is gone: `package/lunar` is written (its declaration in `esoul-guidelines.json` comes with guidelines 0.3).
+
+Migration: copy the config, the step and its tests, make sure the shop's currencies are `Currency` cases, and remove the note from the README. Existing orders are unaffected; only carts that calculate lines with a unit quantity above 1 can round differently.
+
 ### 2026-11-23: `laravel-lunar` registers Lunar's panel in its own provider
 
 Affects: `laravel-lunar` / layer `laravel/lunar` (`app/Domain/Providers/Filament/LunarPanelProvider.php`, `bootstrap/providers.php`, `app/Domain/Providers/AppServiceProvider.php`).

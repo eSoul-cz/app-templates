@@ -156,9 +156,15 @@ the template's MIT text only as attribution in `.esoul/template-LICENSE`. Nothin
 
 ### The changelog
 
-`CHANGELOG.md` is the update interface: newest entry first, one dated heading per change (`## YYYY-MM-DD: title`), each naming the
-**affected variants and layers** and carrying **migration notes** for projects created earlier. Every PR that changes `layers/`,
-`variants/` or the builder adds an entry; without one the PR is not complete.
+`CHANGELOG.md` is the update interface: newest entry first, each naming the **affected variants and layers** and carrying
+**migration notes** for projects created earlier. Every change to `layers/`, `variants/` or the builder adds an entry; without one the
+change is not complete.
+
+Entries are written under the `## Unreleased` heading as `### YYYY-MM-DD: short title`, newest first. The date is stamped when the
+change is merged: a commit made directly to `main` carries its commit date, a PR adds the date of the day and the merge corrects it
+when it differs. The update skill orders entries by these dates (there are no tags, see "Updating existing projects"). The template
+has no releases, so the section only grows; if it ever gets versions, a release turns `Unreleased` into the version heading, as the
+guidelines say. Entries from before the section existed are `## YYYY-MM-DD: short title`.
 
 ## Updating existing projects
 

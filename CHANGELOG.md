@@ -1,7 +1,12 @@
 # Changelog
 
-Every change to the template source (`layers/`, `variants/`, the builder) is recorded here, **newest first**, one dated entry per
-change. An entry names the **affected variants and layers** and carries **migration notes** for projects created earlier.
+Every change to the template source (`layers/`, `variants/`, the builder) is recorded here, **newest first**, one entry per change. An
+entry names the **affected variants and layers** and carries **migration notes** for projects created earlier.
+
+New entries are written under `## Unreleased` as `### YYYY-MM-DD: short title`. The date is stamped when the change is merged (a commit
+made directly to `main`: the commit date); a PR adds its entry with the date of the day and the merge corrects it when it differs. The
+template has no releases, so the section only grows; a release would turn it into the version heading. Entries below it, from before
+the section existed, are `## YYYY-MM-DD: short title`.
 
 There are no version tags: the `main` HEAD of each variant repository is the latest template, and a project records the app-templates
 source commit it was built from in `.esoul/template.json` (`{"variant": ..., "commit": ...}`). The update skill reads the entries newer
@@ -10,7 +15,7 @@ than that commit (see the README, "Updating existing projects").
 Entry format:
 
 ```markdown
-## YYYY-MM-DD: short title
+### YYYY-MM-DD: short title
 
 Affects: <variants> / <layers>
 

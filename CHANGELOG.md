@@ -133,6 +133,14 @@ and `./temp/queue/tasks.db`).
 Migration: `composer require --dev esoul-cz/guidelines:^0.2`, add the `post-update-cmd`, add `package/mutation-testing` to `esoul-guidelines.json` and run
 `esoul-guidelines sync`; remove the `repositories` entry and run `composer update --lock`; use `mariadb:12.3` in both compose files; append the two lines to
 `.gitattributes` (files already committed to LFS stay there until `git lfs migrate export --include="assets/js/**,assets/css/**"`); write the operations README.
+### 2026-11-23: Laravel variants: hardened pnpm installs, unfiltered audit, pnpm in the setup script
+
+Affects: `laravel-inertia`, `laravel-filament`, `laravel-inertia-filament`, `laravel-lunar` / layers `laravel/base` (`pnpm-workspace.yaml`, `.npmrc`, `composer.json`, `Jenkinsfile`) and `laravel/inertia-vue` (`Jenkinsfile`).
+
+`pnpm-workspace.yaml` carries the install hardening of the dependencies guideline: `minimumReleaseAge: 1440`, an empty `allowBuilds` and an empty `auditConfig.ignoreGhsas` (the `ignoreScripts: true` it replaces is gone). `.npmrc` no longer sets `ignore-scripts` and `audit` (pnpm 12 ignores them). The `setup` Composer script runs `pnpm install` and `pnpm build` instead of npm. The Jenkinsfile runs the unfiltered `pnpm audit` as `nodeStaticChecks`, not only critical advisories.
+
+Migration: replace the keys of `pnpm-workspace.yaml` as above (`allowBuilds` lists any package that needs an install script; an ignored advisory goes into `ignoreGhsas` with a reason and a review date), strip the two keys from `.npmrc` (keep the file, the production Dockerfile copies it), make `scripts.setup` a string that points at a `setup:steps` list using `pnpm install` and `pnpm build`, and add `nodeStaticChecks: [[name: 'Dependency audit', command: 'pnpm audit']]` to `laravelPipeline`.
+
 ### 2026-11-23: Laravel variants: guidelines 0.2 with their package layers, synced on `composer update`
 
 Affects: `laravel-inertia`, `laravel-filament`, `laravel-inertia-filament`, `laravel-lunar` / layers `laravel/base` (`composer.json`), `laravel/inertia-vue` and `laravel/filament` (`esoul-guidelines.json`).

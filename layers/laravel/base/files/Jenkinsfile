@@ -12,6 +12,13 @@ laravelPipeline(
     image: 'replace-with-app-name',
     nodeImage: 'node:26',
 
+    // The step's default audit fails only on critical advisories. This replaces the default list with the
+    // unfiltered audit that general/dependencies.md asks for; an advisory that cannot be fixed yet goes into
+    // `auditConfig.ignoreGhsas` of pnpm-workspace.yaml, with a reason and a review date.
+    nodeStaticChecks: [
+        [name: 'Dependency audit', command: 'pnpm audit'],
+    ],
+
     // This variant has no JavaScript linting or unit tests, only the asset build. The step runs
     // it with the Wayfinder routes pre-generated; the production image runs the same build.
     node: [

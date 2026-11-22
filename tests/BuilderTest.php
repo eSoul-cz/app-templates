@@ -347,4 +347,14 @@ final class BuilderTest extends BuilderTestCase
         $this->expectExceptionMessage('"into" must be a relative path');
         $this->build();
     }
+
+    public function testIntoRejectsCharactersThatWouldSplitTheComposerScript(): void
+    {
+        $this->put('layers/a/files/composer.json', '{}');
+        $this->variant([['layer' => 'a', 'into' => 'backend app']]);
+
+        $this->expectException(TemplateException::class);
+        $this->expectExceptionMessage('"into" must be a relative path');
+        $this->build();
+    }
 }

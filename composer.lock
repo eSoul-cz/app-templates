@@ -4,20 +4,20 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "1ac86ea557ef4f10db57ad5da34789b4",
+    "content-hash": "61ac0e561a9ded93a5d6783526295935",
     "packages": [
         {
             "name": "esoul-cz/guidelines",
-            "version": "v0.2.1",
+            "version": "v0.3.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/eSoul-cz/guidelines.git",
-                "reference": "6892470f13fbb272a8809757d2c8f71b32addb5b"
+                "reference": "d677c5fbf9b584681e4d011eb1002341b79f5d07"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/eSoul-cz/guidelines/zipball/6892470f13fbb272a8809757d2c8f71b32addb5b",
-                "reference": "6892470f13fbb272a8809757d2c8f71b32addb5b",
+                "url": "https://api.github.com/repos/eSoul-cz/guidelines/zipball/d677c5fbf9b584681e4d011eb1002341b79f5d07",
+                "reference": "d677c5fbf9b584681e4d011eb1002341b79f5d07",
                 "shasum": ""
             },
             "require": {
@@ -51,10 +51,10 @@
             "description": "Layered, mergeable project guidelines for eSoul projects (Laravel, LSR, Astro) with drift detection.",
             "support": {
                 "issues": "https://github.com/eSoul-cz/guidelines/issues",
-                "source": "https://github.com/eSoul-cz/guidelines/tree/v0.2.1"
+                "source": "https://github.com/eSoul-cz/guidelines/tree/v0.3.0"
             },
-            "time": "2026-11-22T23:00:41+00:00",
-            "published-time": "2026-11-22T23:00:53+00:00"
+            "time": "2026-11-22T23:32:13+00:00",
+            "published-time": "2026-11-22T23:32:23+00:00"
         },
         {
             "name": "psr/container",

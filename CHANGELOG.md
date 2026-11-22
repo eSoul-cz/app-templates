@@ -35,9 +35,10 @@ Affects: `lsr-inertia` / layer `lsr/base`; the builder (code quality only).
 (the same rules, now kept in one package) instead of a copied rules array; `friendsofphp/php-cs-fixer` comes in through that package.
 The builder itself is now checked with PHPStan (level max) and the same coding standard; its output is unchanged.
 
-Migration: `composer remove --dev friendsofphp/php-cs-fixer`, `composer require --dev esoul-cz/coding-standard:^0.1`, then replace the
-rules in `.php-cs-fixer.php` with `return ESoul\CodingStandard\Config::create($finder, __DIR__ . '/temp/tools/php-cs-fixer.cache');`
-and run `composer cs` (project-specific rule changes go into `->setRules([...Config::rules(), ...])`).
+Migration: `composer remove --dev friendsofphp/php-cs-fixer`, `composer require --dev esoul-cz/coding-standard:^0.1`, then in
+`.php-cs-fixer.php` add `use ESoul\CodingStandard\Config;` and replace the rules with
+`return Config::create($finder, __DIR__ . '/temp/tools/php-cs-fixer.cache');` (as the template's file does), and run `composer cs`.
+Project-specific rule changes go into `->setRules([...Config::rules(), ...])`.
 
 ## 2026-11-22: Guidelines 0.1.1
 

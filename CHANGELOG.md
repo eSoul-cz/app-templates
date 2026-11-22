@@ -133,6 +133,14 @@ and `./temp/queue/tasks.db`).
 Migration: `composer require --dev esoul-cz/guidelines:^0.2`, add the `post-update-cmd`, add `package/mutation-testing` to `esoul-guidelines.json` and run
 `esoul-guidelines sync`; remove the `repositories` entry and run `composer update --lock`; use `mariadb:12.3` in both compose files; append the two lines to
 `.gitattributes` (files already committed to LFS stay there until `git lfs migrate export --include="assets/js/**,assets/css/**"`); write the operations README.
+### 2026-11-23: `laravel-lunar` is published with a "no Lunar guideline layer yet" note
+
+Affects: `laravel-lunar` / layer `laravel/lunar` (`layer.json`, `README.md`).
+
+There is no `package/lunar` guideline layer (it is written from the first Lunar project, Indcom, plan G3); `esoul-guidelines` skips the detected layer. The project README and the layer description say so and state what applies until then: the Laravel rules, with Lunar specifics decided in ADRs. The variant is otherwise unchanged (Lunar 1.x with its Filament 4 panel).
+
+Migration: none.
+
 ### 2026-11-23: Filament variants: a generated panel theme
 
 Affects: `laravel-filament`, `laravel-inertia-filament` (and the backend of `laravel-cms`) / layers `laravel/filament` (`resources/css/filament/admin/theme.css`, `AdminPanelProvider`), `laravel/base` and `laravel/inertia-vue` (`vite.config.*`, `tests/TestCase.php`).

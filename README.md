@@ -156,9 +156,9 @@ the template's MIT text only as attribution in `.esoul/template-LICENSE`. Nothin
 ## Updating existing projects
 
 A project records where it came from in `.esoul/template.json` (`{"variant": "laravel-inertia", "commit": "<sha>"}`, written by every
-build). Updating is done by an agent skill (planned, to be written in `eSoul-cz/skills`): it reads `CHANGELOG.md` of the template since the
-recorded `commit` (the changelog of the variant repository `main`, or of this repository at that commit), pulls the latest template,
-applies the entries that affect the project's variant and layers, follows their migration notes, and writes the new `commit` into
+build). Updating is done by an agent skill (planned, to be written in `eSoul-cz/skills`): it reads the entries of `CHANGELOG.md` in this
+repository (`eSoul-cz/app-templates`) added after the recorded `commit` (variant repositories do not ship the changelog), pulls the latest
+template, applies the entries that affect the project's variant and layers, follows their migration notes, and writes the new `commit` into
 `.esoul/template.json`. Project customisations stay the project's; the skill resolves conflicts with them, it does not overwrite them.
 
 ## Draft assumptions

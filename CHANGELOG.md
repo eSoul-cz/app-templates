@@ -133,6 +133,14 @@ and `./temp/queue/tasks.db`).
 Migration: `composer require --dev esoul-cz/guidelines:^0.2`, add the `post-update-cmd`, add `package/mutation-testing` to `esoul-guidelines.json` and run
 `esoul-guidelines sync`; remove the `repositories` entry and run `composer update --lock`; use `mariadb:12.3` in both compose files; append the two lines to
 `.gitattributes` (files already committed to LFS stay there until `git lfs migrate export --include="assets/js/**,assets/css/**"`); write the operations README.
+### 2026-11-23: The Laravel skeleton is re-synced
+
+Affects: layer `laravel/skeleton` (no variant output changes).
+
+`bin/templates skeleton:sync` strips `tests/TestCase.php`, which `laravel/base` overwrites anyway (the committed skeleton still had it).
+
+Migration: none.
+
 ### 2026-11-23: `laravel-lunar` is published with a "no Lunar guideline layer yet" note
 
 Affects: `laravel-lunar` / layer `laravel/lunar` (`layer.json`, `README.md`).

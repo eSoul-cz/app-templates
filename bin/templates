@@ -5,6 +5,7 @@ declare(strict_types=1);
 
 use ESoul\AppTemplates\Command\BuildCommand;
 use ESoul\AppTemplates\Command\ListCommand;
+use ESoul\AppTemplates\Command\PublishCommand;
 use ESoul\AppTemplates\Command\SkeletonSyncCommand;
 use Symfony\Component\Console\Application;
 
@@ -21,6 +22,7 @@ $application = new Application('eSoul app templates builder');
 $application->addCommands([
     new ListCommand($root),
     new BuildCommand($root),
+    new PublishCommand($root),
     new SkeletonSyncCommand($root),
 ]);
 $application->run();

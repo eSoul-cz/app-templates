@@ -215,7 +215,33 @@ server {
 #     root /data/apps/example-project/web/current;
 #     index index.html;
 #
-#     # Same static locations as in MODE A: = /404.html, = /404, dotfiles, /, ^~ /_astro/ ...
+#     location = /404.html {
+#         internal;
+#         add_header Cache-Control "no-cache" always;
+#         include /etc/nginx/snippets/security-headers.conf;
+#     }
+#     location = /404 {
+#         return 404;
+#     }
+#
+#     location ~ /\.(?!well-known/) {
+#         deny all;
+#     }
+#
+#     location / {
+#         try_files $uri $uri/index.html $uri.html =404;
+#         add_header Cache-Control "no-cache";
+#         include /etc/nginx/snippets/security-headers.conf;
+#     }
+#
+#     # Hashed assets from the shared directory (see MODE A).
+#     location ^~ /_astro/ {
+#         root /data/apps/example-project/web/shared;
+#         try_files $uri =404;
+#         add_header Cache-Control "public, max-age=31536000, immutable";
+#         include /etc/nginx/snippets/security-headers.conf;
+#     }
+#
 #     # Site media: the HTML refers to /_cms/<hash>.<ext> on this domain, so it is served here too.
 #     location ^~ /_cms/ {
 #         alias /data/apps/example-project/be/storage/app/cms-public/;
@@ -273,8 +299,31 @@ server {
 #         include /etc/nginx/snippets/security-headers.conf;
 #     }
 #
-#     # Assets of the admin panel (the same four locations as in MODE A: /build/, /css/filament/, /js/filament/,
-#     # /fonts/filament/, root /data/apps/example-project/be/public).
+#     # Assets of the admin panel: copied from public/ of the backend image to the host after each deploy.
+#     location ^~ /build/ {
+#         root /data/apps/example-project/be/public;
+#         try_files $uri =404;
+#         add_header Cache-Control "public, max-age=31536000, immutable";
+#         include /etc/nginx/snippets/security-headers.conf;
+#     }
+#
+#     location ^~ /css/filament/ {
+#         root /data/apps/example-project/be/public;
+#         add_header Cache-Control "public, max-age=604800";
+#         include /etc/nginx/snippets/security-headers.conf;
+#     }
+#
+#     location ^~ /js/filament/ {
+#         root /data/apps/example-project/be/public;
+#         add_header Cache-Control "public, max-age=604800";
+#         include /etc/nginx/snippets/security-headers.conf;
+#     }
+#
+#     location ^~ /fonts/filament/ {
+#         root /data/apps/example-project/be/public;
+#         add_header Cache-Control "public, max-age=2592000";
+#         include /etc/nginx/snippets/security-headers.conf;
+#     }
 #
 #     location ~ ^/(admin|cms-api|livewire[^/]*)(/|$)|^/up$ {
 #         fastcgi_pass example-project-be;

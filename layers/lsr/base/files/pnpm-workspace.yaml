@@ -9,3 +9,19 @@ allowBuilds:
     '@tailwindcss/oxide': true
     esbuild: true
     vue-demi: true
+# Supply chain: pnpm only takes package versions that are at least one day old (value in minutes).
+# An urgent security fix can bypass it with `minimumReleaseAgeExclude: ['<package>@<version>']`, with a comment that names the reason.
+minimumReleaseAge: 1440
+# `pnpm audit` runs in CI. An advisory that cannot be fixed yet is listed here, one entry per advisory, with a comment that
+# states the reason and the date it is reviewed again.
+auditConfig:
+    ignoreGhsas:
+        # Denial of service on malformed percent-encoded input in decode-uri-component. Dev only (Vite's optional stylus peer ->
+        # css -> source-map-resolve): the build never decodes untrusted input, nothing reaches the production image. Review 2026-12-23.
+        - GHSA-vcc3-ghjq-m6fr
+        - GHSA-qr28-fpjm-wq7f
+        # zod, glob and minimatch inside the shadcn-vue CLI (dev only, run by hand when a component is added; no fix without a
+        # shadcn-vue release that updates them). Review 2026-12-23.
+        - GHSA-mrhx-c7xc-m3w5
+        - GHSA-3g3m-2fjr-6pw4
+        - GHSA-g3hv-75wg-m249

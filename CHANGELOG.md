@@ -133,6 +133,14 @@ and `./temp/queue/tasks.db`).
 Migration: `composer require --dev esoul-cz/guidelines:^0.2`, add the `post-update-cmd`, add `package/mutation-testing` to `esoul-guidelines.json` and run
 `esoul-guidelines sync`; remove the `repositories` entry and run `composer update --lock`; use `mariadb:12.3` in both compose files; append the two lines to
 `.gitattributes` (files already committed to LFS stay there until `git lfs migrate export --include="assets/js/**,assets/css/**"`); write the operations README.
+### 2026-11-23: Filament variants: a generated panel theme
+
+Affects: `laravel-filament`, `laravel-inertia-filament` (and the backend of `laravel-cms`) / layers `laravel/filament` (`resources/css/filament/admin/theme.css`, `AdminPanelProvider`), `laravel/base` and `laravel/inertia-vue` (`vite.config.*`, `tests/TestCase.php`).
+
+The admin panel is themed as the Filament guideline asks: `resources/css/filament/admin/theme.css` (generated with `php artisan make:filament-theme admin --pm=pnpm`, with the `@source` of `app/Infrastructure/Filament`) is a Vite entry and registered with `viteTheme()`. Both Vite configs build every `resources/css/filament/*/theme.css` they find, so a second panel's theme needs no config change. `laravel/base` now ships its own `vite.config.js` (the upstream one plus that glob), and `tests/TestCase.php` calls `withoutVite()` for every variant (the PHP tests run before the assets are built).
+
+Migration: copy the theme file, add `->viteTheme('resources/css/filament/admin/theme.css')` to the panel, add `...globSync('resources/css/filament/*/theme.css')` to the `input` of the Vite config (`import { globSync } from 'node:fs'`), call `$this->withoutVite()` in `TestCase::setUp()`, and run `pnpm install && pnpm build`.
+
 ### 2026-11-23: `laravel/inertia-vue`: script names, Wayfinder form variants, preload cap
 
 Affects: `laravel-inertia`, `laravel-inertia-filament`, `laravel-lunar` / layer `laravel/inertia-vue` (`package.json`, `vite.config.ts`, `bootstrap/app.php`, `components.json`).

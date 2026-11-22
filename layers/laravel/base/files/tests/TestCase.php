@@ -22,5 +22,8 @@ abstract class TestCase extends BaseTestCase
         parent::setUp();
 
         Http::preventStrayRequests();
+
+        // The PHP tests run before the assets are built, so there is no Vite manifest to read.
+        $this->withoutVite();
     }
 }

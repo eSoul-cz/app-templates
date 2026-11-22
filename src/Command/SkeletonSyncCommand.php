@@ -30,8 +30,13 @@ final class SkeletonSyncCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
 
+        $constraint = $input->getOption('constraint');
+        if (!is_string($constraint)) {
+            throw new \LogicException('Option --constraint must have a string value.');
+        }
+
         try {
-            $result = (new SkeletonSync($this->root))->sync((string) $input->getOption('constraint'), $io->writeln(...));
+            $result = (new SkeletonSync($this->root))->sync($constraint, $io->writeln(...));
         } catch (TemplateException $e) {
             $io->error($e->getMessage());
 

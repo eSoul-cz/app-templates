@@ -133,6 +133,14 @@ and `./temp/queue/tasks.db`).
 Migration: `composer require --dev esoul-cz/guidelines:^0.2`, add the `post-update-cmd`, add `package/mutation-testing` to `esoul-guidelines.json` and run
 `esoul-guidelines sync`; remove the `repositories` entry and run `composer update --lock`; use `mariadb:12.3` in both compose files; append the two lines to
 `.gitattributes` (files already committed to LFS stay there until `git lfs migrate export --include="assets/js/**,assets/css/**"`); write the operations README.
+### 2026-11-23: Laravel variants: a Money value object, cast and formatter
+
+Affects: `laravel-inertia`, `laravel-filament`, `laravel-inertia-filament`, `laravel-lunar` (and the backend of `laravel-cms`) / layer `laravel/base` (`app/Domain/ValueObjects`, `app/Infrastructure/Casts/MoneyCast.php`, `config/money.php`, `tests`, `composer.json`, `.env.example`).
+
+`App\Domain\ValueObjects\Money` (integer minor units, a `Currency` backed enum with exponents, add, subtract, multiply with one rounding mode, `allocate`, comparisons, overflow as `ArithmeticError`), `MoneyFormatter` (integer and string arithmetic only, no float) and `App\Infrastructure\Casts\MoneyCast` (a `*_currency` sibling column, `config('money.default_currency')` as the fallback, `MONEY_DEFAULT_CURRENCY`) make the money rules of the guidelines hold out of the box. It is an own class, not `moneyphp/money`, because the rules forbid the float and numeric-string entry points of a general library (reasons in `layers/laravel/base/README.md` and the class comment). `ext-bcmath` is required.
+
+Migration: optional. Copy the files above to adopt it; a project that already has its own money type keeps it (and its money ADR).
+
 ### 2026-11-23: Laravel variants: `TRUSTED_PROXIES` is wired
 
 Affects: `laravel-inertia`, `laravel-filament`, `laravel-inertia-filament`, `laravel-lunar` (and the backend of `laravel-cms`) / layers `laravel/base` (`bootstrap/app.php`, `config/proxy.php`, `app/Infrastructure/Http/Middleware/TrustProxies.php`, `.env.example`) and `laravel/inertia-vue` (`bootstrap/app.php`).

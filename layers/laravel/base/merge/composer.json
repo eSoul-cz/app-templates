@@ -1,7 +1,8 @@
 {
     "require": {
         "php": "^8.5",
-        "esoul-cz/laravel-cqrs": "^1.0"
+        "esoul-cz/laravel-cqrs": "^1.0",
+        "ext-bcmath": "*"
     },
     "require-dev": {
         "brianium/paratest": "^7.24",

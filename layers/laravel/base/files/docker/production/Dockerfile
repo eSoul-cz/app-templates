@@ -10,7 +10,8 @@ FROM rg.fr-par.scw.cloud/esoul-starters/php-fpm-laravel:8.5 AS base
 
 LABEL org.opencontainers.image.vendor="eSoul"
 
-RUN apk add --no-cache supervisor
+# `fcgi` provides cgi-fcgi, which the healthcheck uses to request /up from php-fpm
+RUN apk add --no-cache supervisor fcgi
 
 # Add Composer
 RUN install-php-extensions @composer
@@ -101,7 +102,7 @@ ENV RUN_MIGRATIONS=true
 ENV RUN_SCHEDULER=true
 ENV RUN_QUEUE_WORKER=true
 
-# Supervisor configuration and the process healthcheck
+# Supervisor configuration and the healthcheck (the Supervisor programs, then a FastCGI request for /up)
 COPY docker/production/supervisord.conf /etc/supervisor/supervisord.conf
 COPY docker/production/supervisor-php.conf /etc/supervisor/conf.d/php.conf
 COPY docker/production/supervisor-queue-worker.conf /etc/supervisor/conf.d/queue-worker.conf

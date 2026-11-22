@@ -1,9 +1,12 @@
 #!/usr/bin/env sh
 
-# Container healthcheck. Supervisor restarts crashed processes; the container is unhealthy when a
-# program it is supposed to run is not RUNNING (crashed for good, stopped by hand, or never
-# started) or when supervisord is unreachable. Programs switched off through RUN_* stay STOPPED
-# and are ignored.
+# Container healthcheck, two signals; the container is unhealthy when either fails.
+#
+# 1. Supervisor restarts crashed processes; a program it is supposed to run that is not RUNNING
+#    (crashed for good, stopped by hand, or never started) or an unreachable supervisord is
+#    unhealthy. Programs switched off through RUN_* stay STOPPED and are ignored.
+# 2. A FastCGI request for Laravel's `/up` straight to php-fpm (the image has no web server), the
+#    request the host NGINX would make. It must answer 200: the framework boots.
 
 output=$(supervisorctl -c /etc/supervisor/supervisord.conf status 2>&1)
 status=$?
@@ -36,5 +39,33 @@ while read -r program state _; do
 done <<EOF
 $output
 EOF
+
+# php-fpm only sends a `Status:` header for a status other than 200, so a response with a
+# `Content-type:` header and no `Status:` header is a 200.
+response=$(
+    SCRIPT_NAME=/index.php \
+    SCRIPT_FILENAME=/var/www/public/index.php \
+    REQUEST_METHOD=GET \
+    REQUEST_URI=/up \
+    QUERY_STRING= \
+    SERVER_PROTOCOL=HTTP/1.1 \
+    SERVER_NAME=localhost \
+    HTTP_HOST=localhost \
+    REMOTE_ADDR=127.0.0.1 \
+    GATEWAY_INTERFACE=CGI/1.1 \
+    cgi-fcgi -bind -connect 127.0.0.1:9000 2>&1
+)
+fcgi_status=$?
+http_status=$(printf '%s\n' "$response" | sed -n 's/^Status: \([0-9][0-9]*\).*/\1/p' | head -n 1)
+
+if [ "$fcgi_status" -ne 0 ]; then
+    echo "FastCGI request for /up failed: ${response}"
+    unhealthy=1
+elif [ -z "$http_status" ] && printf '%s\n' "$response" | grep -qi '^Content-type:'; then
+    :
+elif [ "$http_status" != "200" ]; then
+    echo "GET /up answered ${http_status:-nothing}"
+    unhealthy=1
+fi
 
 exit "$unhealthy"

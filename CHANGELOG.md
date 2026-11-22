@@ -133,6 +133,14 @@ and `./temp/queue/tasks.db`).
 Migration: `composer require --dev esoul-cz/guidelines:^0.2`, add the `post-update-cmd`, add `package/mutation-testing` to `esoul-guidelines.json` and run
 `esoul-guidelines sync`; remove the `repositories` entry and run `composer update --lock`; use `mariadb:12.3` in both compose files; append the two lines to
 `.gitattributes` (files already committed to LFS stay there until `git lfs migrate export --include="assets/js/**,assets/css/**"`); write the operations README.
+### 2026-11-23: Laravel variants: the image healthcheck also requests `/up`
+
+Affects: `laravel-inertia`, `laravel-filament`, `laravel-inertia-filament`, `laravel-lunar` (and the backend of `laravel-cms`) / layer `laravel/base` (`docker/production/Dockerfile`, `docker/production/healthcheck`).
+
+The healthcheck still reports a Supervisor program that is not `RUNNING`, and now also sends a FastCGI request for `/up` straight to php-fpm (`cgi-fcgi` from the apk package `fcgi`, installed in the `base` stage next to Supervisor) and fails unless it answers `200`: the deployment guideline's "the image's HEALTHCHECK requests `/up`", with no web server in the image. The request shows in the php-fpm access log every 30 seconds.
+
+Migration: add `fcgi` to the `apk add` line of the `base` stage and replace `docker/production/healthcheck` with the template's.
+
 ### 2026-11-23: Laravel variants: a Money value object, cast and formatter
 
 Affects: `laravel-inertia`, `laravel-filament`, `laravel-inertia-filament`, `laravel-lunar` (and the backend of `laravel-cms`) / layer `laravel/base` (`app/Domain/ValueObjects`, `app/Infrastructure/Casts/MoneyCast.php`, `config/money.php`, `tests`, `composer.json`, `.env.example`).

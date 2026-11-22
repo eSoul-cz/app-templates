@@ -67,8 +67,9 @@ Affects: every variant / the builder (`bin/templates build`), `README.md`.
   `git rev-parse HEAD`, override `--commit=<sha>`). `--release=X.Y.Z` and the `version` key are gone; there are no template versions or tags.
 - The root `composer.json` of every variant gets `post-create-project-cmd` steps (run before the layers' own ones such as `key:generate`) that move
   `LICENSE` to `.esoul/template-LICENSE` and set `license` to `proprietary` (also in `backend/composer.json` of `astro-laravel-cms`). The variant repository
-  itself stays MIT.
-- This file is the update interface for existing projects.
+  itself stays MIT. A variant entry's `into` directory may only contain letters, digits, `.`, `_`, `-` and `/`, because it is written unquoted
+  into one of these steps.
+- This file is the update interface for existing projects; variant repositories do not ship it, the update skill reads it from this repository.
 
 Migration: projects created before this entry have no `commit` in `.esoul/template.json` (they may carry `version` or nothing). Set `commit` to the
 first source commit whose entry you have applied, or let the update skill reconstruct it. Existing projects keep their current licence metadata;

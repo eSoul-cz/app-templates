@@ -93,8 +93,9 @@ final readonly class Catalog
         }
 
         $into = $raw->into ?? '';
-        if (!is_string($into) || ($into !== '' && !self::isSafeRelativePath($into))) {
-            throw new TemplateException(sprintf('%s: "into" must be a relative path without "..".', $where));
+        // `into` ends up unquoted in a composer script (`--working-dir=<into>`), so only shell-safe characters are allowed.
+        if (!is_string($into) || ($into !== '' && (!self::isSafeRelativePath($into) || preg_match('#^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*/?$#', $into) !== 1))) {
+            throw new TemplateException(sprintf('%s: "into" must be a relative path without "..", made of letters, digits, ".", "_" and "-".', $where));
         }
 
         $exclude = $raw->exclude ?? [];

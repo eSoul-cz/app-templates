@@ -65,7 +65,8 @@ Per layer, in this order, relative to the entry's `into` directory:
    the file is skipped; blank lines are kept for spacing but never stacked.
 
 Variant entry: `{"layer": "laravel/base", "into": "backend", "exclude": ["Jenkinsfile", ".github/**"]}`. `into` is a relative
-subdirectory; `exclude` globs are relative to the layer's `files/`, `merge/` and `append/` directories and skip matching files
+subdirectory made of letters, digits, `.`, `_` and `-` (segments joined by `/`, no `..`), because the builder writes it unquoted into a
+composer script; `exclude` globs are relative to the layer's `files/`, `merge/` and `append/` directories and skip matching files
 (`delete.txt` is not affected).
 
 After all layers, the builder **stamps the root `composer.json`** with the variant's `name` and `description` (the file is created

@@ -26,6 +26,15 @@ Migration: what an existing project must do (or "none").
 
 ## Unreleased
 
+### 2026-11-23: The builder repository adopts the guidelines
+
+Affects: the builder only (`esoul-guidelines.json`, `docs/project_guidelines/`, `AGENTS.md`, `CONTEXT.md`, `composer.json`).
+
+This repository follows the guidelines itself with the layers `general` and `profile/internal`, and `composer update` runs
+`esoul-guidelines sync` (`post-update-cmd`). No template output changes.
+
+Migration: none.
+
 ### 2026-11-23: Guidelines 0.2
 
 Affects: every variant / the builder (`composer.json`, `composer.lock`).

@@ -34,6 +34,9 @@
         "bin/templates"
     ],
     "scripts": {
+        "post-update-cmd": [
+            "esoul-guidelines sync"
+        ],
         "test": "phpunit",
         "phpstan": "phpstan analyse --memory-limit=1G --no-progress",
         "cs": "php-cs-fixer fix --dry-run --diff",

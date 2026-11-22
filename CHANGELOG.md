@@ -26,6 +26,16 @@ Migration: what an existing project must do (or "none").
 
 ## Unreleased
 
+### 2026-11-23: LSR writes a JUnit log and the `Jenkinsfile` names the `lsrPipeline` call
+
+Affects: `lsr-inertia` / layer `lsr/base` (`phpunit.xml`, `append/.gitignore`, `Jenkinsfile`).
+
+`phpunit.xml` has `<logging><junit outputFile=".ci/junit/phpunit.xml"/></logging>`, so the shared pipeline can read per-test times (jenkins-libraries#8), and `.ci/`
+is gitignored. The marked comment of the composed `Jenkinsfile` now holds the exact one-call replacement planned in jenkins-libraries#10 (`image`, `smoke`, `deploy`;
+the step does not accept `images`); the file still runs the composed steps until that step is released.
+
+Migration: add the `<logging>` block to `phpunit.xml` and `/.ci/` to `.gitignore`; keep the `Jenkinsfile` until `lsrPipeline` exists.
+
 ### 2026-11-23: LSR runs PHPStan at level 10
 
 Affects: `lsr-inertia` / layer `lsr/base` (`phpstan.neon`, `include/constants.php`, `src/Core/Info.php`, `src/Install/DbInstall.php`, `src/Http/Templates/AutoFillParameters.php`).

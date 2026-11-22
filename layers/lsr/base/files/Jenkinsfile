@@ -3,15 +3,12 @@
 // The pipeline is composed from the steps the eSoul Jenkins libraries have today (fullPhpTest, fullNodeTest,
 // dockerComposeSmokeTest, dockerBuildMultiArch, deployKomodoStack): `lsrPipeline` does not exist yet (plan J4).
 //
-// PLANNED, not available yet: when `lsrPipeline` is released, this whole file becomes the one call below, the way
-// `laravelPipeline` is one call in the Laravel templates. Until then keep this file; do not call `lsrPipeline`.
+// PLANNED, not available yet (jenkins-libraries#10, not merged): when `lsrPipeline` is released, this whole file becomes the
+// one call below, the way `laravelPipeline` is one call in the Laravel templates. The step takes `image` only (not `images`).
+// Until then keep this file; do not call `lsrPipeline`.
 //
 //     lsrPipeline(
 //         image: 'lsr-app',
-//         images: [[image: 'lsr-app', dockerfile: 'docker/Dockerfile', target: 'production']],
-//         prepareCommand: 'php bin/console list --no-interaction',
-//         php: [phpstanCommand: 'composer phpstan:ci', csCommand: 'composer cs', testCommand: 'composer test:parallel'],
-//         node: [eslintCommand: 'pnpm run eslint --quiet', prettierCommand: 'pnpm run format:check'],
 //         smoke: [composeFile: 'docker-compose.ci.yml', verificationServices: ['http-smoke']],
 //         deploy: [[branches: ['main', 'master'], stack: 'lsr-app']],
 //     )

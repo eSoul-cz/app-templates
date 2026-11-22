@@ -16,3 +16,4 @@ config/di/services.local.neon
 .idea
 *.iml
 .DS_Store
+/.ci/

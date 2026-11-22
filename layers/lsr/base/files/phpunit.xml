@@ -24,6 +24,10 @@
         <!-- Fails the test on an http(s) stream request to anything but localhost (see tests/Support/Network). -->
         <bootstrap class="Tests\Support\Network\NetworkGuardExtension"/>
     </extensions>
+    <logging>
+        <!-- Per-test times for the shared pipeline (jenkins-libraries#8); the directory is gitignored. -->
+        <junit outputFile=".ci/junit/phpunit.xml"/>
+    </logging>
     <source>
         <include>
             <directory suffix=".php">src</directory>

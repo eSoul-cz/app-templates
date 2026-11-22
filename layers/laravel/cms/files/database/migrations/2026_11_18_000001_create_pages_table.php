@@ -18,6 +18,8 @@ return new class extends Migration
             $table->boolean('is_home')->default(false);
             $table->boolean('is_published')->default(true);
             $table->unsignedInteger('sort')->default(0);
+            $table->boolean('noindex')->default(false);
+            $table->string('og_image')->nullable();
             $table->json('blocks')->nullable();
             $table->timestamps();
         });

@@ -23,11 +23,13 @@ use Illuminate\Support\Carbon;
  * @property bool $is_home
  * @property bool $is_published
  * @property int $sort
+ * @property bool $noindex page stays out of the sitemap, llms.txt and the Markdown versions of the site
+ * @property string|null $og_image path on the cms-media disk; the site image is used when empty
  * @property array<array-key, mixed>|null $blocks
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['slug', 'title', 'description', 'is_home', 'is_published', 'sort', 'blocks'])]
+#[Fillable(['slug', 'title', 'description', 'is_home', 'is_published', 'sort', 'noindex', 'og_image', 'blocks'])]
 class Page extends Model
 {
     /**
@@ -59,6 +61,7 @@ class Page extends Model
             'is_home' => 'boolean',
             'is_published' => 'boolean',
             'sort' => 'integer',
+            'noindex' => 'boolean',
             'blocks' => 'array',
         ];
     }

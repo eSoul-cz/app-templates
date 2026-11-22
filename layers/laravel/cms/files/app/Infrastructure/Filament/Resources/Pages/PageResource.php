@@ -68,6 +68,19 @@ final class PageResource extends Resource
                 Toggle::make('is_home')->label('Home page (/)')->helperText('Exactly one published page must be the home page.'),
                 Toggle::make('is_published')->label('Published')->default(true),
                 TextInput::make('sort')->numeric()->integer()->minValue(0)->default(0),
+                Toggle::make('noindex')
+                    ->label('Hide from search engines')
+                    ->helperText('The page gets noindex and is left out of the sitemap, llms.txt and the Markdown versions (thank-you pages, for example).'),
+                FileUpload::make('og_image')
+                    ->label('Social image')
+                    ->helperText('Open Graph image of this page (1200 x 630 px recommended). The site image is used when empty.')
+                    ->disk(PublicMediaStore::MEDIA_DISK)
+                    ->directory('images')
+                    ->visibility('public')
+                    ->image()
+                    ->acceptedFileTypes(['image/png', 'image/jpeg', 'image/webp', 'image/avif'])
+                    ->maxSize(10240)
+                    ->columnSpanFull(),
             ]),
             Section::make('Content')->schema([
                 Builder::make('blocks')

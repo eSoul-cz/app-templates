@@ -122,6 +122,10 @@ final class ExportContentQueryHandler implements QueryHandlerInterface
             'title' => $page->title,
             'description' => $this->nullable($page->description),
             'blocks' => $blocks,
+            // Optional fields of contract v1: when the content last changed (sitemap lastmod), noindex, own Open Graph image.
+            'updatedAt' => $page->updated_at?->toIso8601String(),
+            'noindex' => $page->noindex,
+            'ogImage' => $this->image($page->og_image, "{$label}: the social image"),
         ];
     }
 

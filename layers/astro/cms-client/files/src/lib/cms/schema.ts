@@ -3,6 +3,9 @@
 // the build fails on a mismatch on purpose.
 import { z } from 'astro/zod';
 
+/** The one contract version the frontend accepts (docs/contract.md); `pnpm contract:check` compares it with the golden file. */
+export const SCHEMA_VERSION = 1;
+
 /** Same rule as the backend (`ContentExport::SLUG_PATTERN`): the slug is a path segment of the page URL. */
 const SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
@@ -53,6 +56,12 @@ export const pageSchema = z.object({
     title: z.string().min(1),
     description: z.string().nullable(),
     blocks: z.array(blockSchema),
+    // Optional fields of contract v1 (added later, so an older backend does not send them): when the content of the page last
+    // changed (feeds the sitemap `lastmod`), `noindex` (page left out of sitemap, llms.txt and Markdown) and a page specific
+    // Open Graph image (falls back to the site image).
+    updatedAt: z.iso.datetime({ offset: true }).optional(),
+    noindex: z.boolean().optional(),
+    ogImage: imageSchema.nullable().optional(),
 });
 
 export const settingsSchema = z.object({
@@ -65,7 +74,7 @@ export const settingsSchema = z.object({
 
 export const exportSchema = z
     .object({
-        schemaVersion: z.literal(1),
+        schemaVersion: z.literal(SCHEMA_VERSION),
         generatedAt: z.string(),
         contentHash: z.string(),
         settings: settingsSchema,

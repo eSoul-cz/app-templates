@@ -1,4 +1,4 @@
-# pnpm 12 reads only registry authentication from `.npmrc`; every other pnpm setting lives in this file.
+# pnpm 12 reads only auth, registry, TLS, proxy and `local-address` settings from `.npmrc`; every other project setting lives in this file.
 # Install scripts never run (supply chain). To let a dependency build, list it under `allowBuilds` and
 # drop this line (`pnpm approve-builds`).
 ignoreScripts: true

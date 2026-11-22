@@ -1,4 +1,4 @@
-# pnpm 12 reads only registry authentication from `.npmrc`; every other pnpm setting lives in this file.
+# pnpm 12 reads only auth, registry, TLS, proxy and `local-address` settings from `.npmrc`; every other project setting lives in this file.
 # Hoisted to the root node_modules so that tools and editors resolve `@inertiajs/core` (a dependency of @inertiajs/vue3).
 publicHoistPattern:
     - '@inertiajs/core'

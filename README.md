@@ -230,9 +230,9 @@ template, applies the entries that affect the project's variant and layers, foll
     only, from a build dir that already had lock files; the dev compose stack was not started.
   - Dev compose runs MariaDB `12.3` and overrides `DB_*` for the `laravel` service only; the dev image runs php-fpm, queue, scheduler and Vite as the
     host user (`WWWUSER`/`WWWGROUP`). Vite is reached directly on `VITE_PORT` (no nginx proxy).
-  - pnpm is pinned to `12.21.0` (`packageManager`); pnpm 12 reads only auth settings from `.npmrc`, so `ignoreScripts: true` and the
-    Inertia `publicHoistPattern` live in `pnpm-workspace.yaml`. Node 26 ships without corepack: the Dockerfiles install pnpm with
-    `npm install --global pnpm@${PNPM_VERSION}`.
+  - pnpm is pinned to `12.21.0` (`packageManager`); pnpm 12 reads only auth, registry, TLS, proxy and `local-address` settings from
+    `.npmrc`, so `ignoreScripts: true` and the Inertia `publicHoistPattern` live in `pnpm-workspace.yaml`. Node 26 ships without corepack:
+    the Dockerfiles install pnpm with `npm install --global pnpm@${PNPM_VERSION}`.
   - Frontend packages follow the reference versions (Vite 8, Vitest 5, ESLint 10, TypeScript 6, Tailwind 4.3); `components.json` uses the
     `new-york` shadcn-vue style and the `@/design-system/ui` alias, but no shadcn component is added yet.
 - `lsr/base`: assumptions, verification and open questions are in [`layers/lsr/base/README.md`](layers/lsr/base/README.md).

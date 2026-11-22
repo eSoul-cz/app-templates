@@ -26,6 +26,19 @@ Migration: what an existing project must do (or "none").
 
 ## Unreleased
 
+### 2026-11-23: The Laravel variants are published from `main`
+
+Affects: the builder (`bin/templates publish`, `Jenkinsfile`); variants `laravel-inertia`, `laravel-filament`, `laravel-inertia-filament`,
+`laravel-lunar` are published to `eSoul-cz/template-<variant>`. No template output changes.
+
+After the builder checks, the `Jenkinsfile` of `main` builds each of these variants, runs their own checks (composer install, PHPStan,
+code style, tests, pnpm audit, lint, typecheck, tests, build) and, only when all passed, runs `bin/templates publish <variant>`: one commit
+whose tree is exactly the build, with the source commit in `.esoul/template.json` (nothing is pushed when nothing changed). The LSR and
+Astro variants follow when their pipelines exist.
+
+Migration: none for projects. The owner creates the Jenkins credential `github-template-publisher` and the Packagist packages with
+their GitHub webhooks (README, "Publishing flow").
+
 ### 2026-11-23: The builder repository adopts the guidelines
 
 Affects: the builder only (`esoul-guidelines.json`, `docs/project_guidelines/`, `AGENTS.md`, `CONTEXT.md`, `composer.json`).

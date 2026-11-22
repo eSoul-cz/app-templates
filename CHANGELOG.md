@@ -19,6 +19,14 @@ What changed, in one or two sentences.
 Migration: what an existing project must do (or "none").
 ```
 
+## 2026-11-22: LSR requires PHP ^8.5
+
+Affects: `lsr-inertia` / layer `lsr/base` (`composer.json`).
+
+`require.php` is `^8.5` instead of `>=8.5`: every PHP 8 release from 8.5 on (8.6 included), but not an untested PHP 9.
+
+Migration: optional; change `"php": ">=8.5"` to `"php": "^8.5"` in `composer.json` and run `composer update --lock`.
+
 ## 2026-11-22: LSR uses the shared coding standard
 
 Affects: `lsr-inertia` / layer `lsr/base`; the builder (code quality only).

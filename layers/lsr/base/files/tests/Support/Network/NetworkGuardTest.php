@@ -4,14 +4,11 @@ declare(strict_types=1);
 
 namespace Tests\Support\Network;
 
-use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Tests\Support\Http\LocalHttpServer;
 
-#[CoversClass(LocalOnlyStreamWrapper::class)]
-#[CoversClass(NetworkGuardExtension::class)]
 final class NetworkGuardTest extends TestCase
 {
     #[Test]

@@ -133,10 +133,11 @@ There are no template version tags: **the `main` HEAD of a variant repository is
 
 1. A change to a layer is a PR against `eSoul-cz/app-templates`; the PR title follows the commit convention. Every change is
    recorded in [`CHANGELOG.md`](CHANGELOG.md) (see below).
-2. CI on the PR builds every variant (`bin/templates build --all`) and runs each variant's checks (composer install, Pint, Larastan,
-   PHPUnit, pnpm lint/test/build as applicable).
-3. On merge to `main` CI builds every variant again (the recorded `commit` is the merge commit) and **force-syncs `build/<variant>`
-   into the `main` branch of `eSoul-cz/template-<variant>` as one commit** whose message is the source PR title. Nothing is tagged.
+2. *Planned, not implemented yet:* CI on the PR builds every variant (`bin/templates build --all`) and runs each variant's checks (composer
+   install, Pint, Larastan, PHPUnit, pnpm lint/test/build as applicable). Today CI runs only the builder's own checks (see Usage).
+3. *Planned, not implemented yet:* on merge to `main` CI builds every variant again (the recorded `commit` is the merge commit) and
+   **force-syncs `build/<variant>` into the `main` branch of `eSoul-cz/template-<variant>` as one commit** whose message is the source PR
+   title. Nothing is tagged.
 4. Packagist (vendor `esoul-cz`, packages `esoul-cz/template-<variant>`) is the primary distribution; it serves `dev-main` of each
    variant repository. `packages.esoul.cz` (Satis) stays a secondary mirror for private packages only. Install:
 
@@ -192,7 +193,7 @@ template, applies the entries that affect the project's variant and layers, foll
   `inheritance: true` in `.coderabbit.yaml` assumes the eSoul GitHub organisation has a central CodeRabbit policy.
 - No versions: variants are consumed as `dev-main`, changes are tracked in one `CHANGELOG.md` for the whole source repo (decision D-12).
   A change is traceable to the source commit through `.esoul/template.json` of the built variant.
-- Publishing and CI are described, not implemented: no Jenkinsfile or GitHub workflow exists in this repo yet.
+- Publishing the variants is described, not implemented: the `Jenkinsfile` checks the builder only (see Usage).
 - `astro-laravel-cms` has no root `composer.json` from the builder's point of view except the stamped stub; if the monorepo should
   not be installable through Satis, drop the stamping for variants without a root composer file.
 - `skeleton:sync` formats the synced skeleton with Pint using `layers/laravel/base/files/pint.json` (Pint is installed into a temp dir),

@@ -1,3 +1,5 @@
+# Git LFS client material (design and source files) stays out of the build context
+assets
 .git
 .github
 .idea

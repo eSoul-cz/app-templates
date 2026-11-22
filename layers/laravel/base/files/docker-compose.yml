@@ -47,6 +47,7 @@ services:
         depends_on:
             - laravel
     mariadb:
+        # The series of the production server (`mariadb_series` of the mariadb role in esoul-infrastructure/ansible): develop on the engine that runs the application.
         image: 'mariadb:12.3'
         ports:
             - '${FORWARD_DB_PORT:-3306}:3306'
@@ -67,7 +68,7 @@ services:
             start_period: 30s
     # Catches every mail of the application in development: SMTP on mailpit:1025 (published on MAIL_PORT for work outside Docker), inbox UI on MAILPIT_UI_PORT.
     mailpit:
-        image: 'axllent/mailpit:latest'
+        image: 'axllent/mailpit:v1.34'
         ports:
             - '${MAILPIT_UI_PORT:-8025}:8025'
             - '${MAIL_PORT:-1025}:1025'

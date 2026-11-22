@@ -133,6 +133,14 @@ and `./temp/queue/tasks.db`).
 Migration: `composer require --dev esoul-cz/guidelines:^0.2`, add the `post-update-cmd`, add `package/mutation-testing` to `esoul-guidelines.json` and run
 `esoul-guidelines sync`; remove the `repositories` entry and run `composer update --lock`; use `mariadb:12.3` in both compose files; append the two lines to
 `.gitattributes` (files already committed to LFS stay there until `git lfs migrate export --include="assets/js/**,assets/css/**"`); write the operations README.
+### 2026-11-23: Laravel variants: local-only seed data, UTC for plain PHP, LFS assets out of the build context, pinned Mailpit
+
+Affects: `laravel-inertia`, `laravel-filament`, `laravel-inertia-filament`, `laravel-lunar` (and the backend of `laravel-cms`) / layer `laravel/base` (`database/seeders`, `docker/*/php.ini`, `.dockerignore`, `docker-compose.yml`, `docker/production/Dockerfile`).
+
+`DatabaseSeeder` no longer creates `test@example.com` everywhere: that account lives in a new `DemoSeeder`, which `DatabaseSeeder` calls only when the application runs in the `local` environment. `date.timezone` of both `php.ini` files is `UTC` (it was `Europe/Prague`; Laravel's `app.timezone` was already UTC). `.dockerignore` excludes `assets` (Git LFS client material). The production Dockerfile runs `wayfinder:generate --with-form` and its header says that nginx runs on the host (the image has no web server). Mailpit is pinned to `axllent/mailpit:v1.34` and the MariaDB tag `12.3` is documented as the production series (`mariadb_series` of the ansible role).
+
+Migration: move any seeded account into a local-only seeder, set `date.timezone=UTC` in both `php.ini` files (apply the business time zone only where a date is shown), add `assets` to `.dockerignore`, use `--with-form` in the Wayfinder step of the Dockerfile, and pin the Mailpit image. A project on another MariaDB series than the server keeps its own tag until it migrates.
+
 ### 2026-11-23: Laravel variants: an operations README, port 8080 in `.env.example`, OTEL placeholders
 
 Affects: `laravel-inertia`, `laravel-filament`, `laravel-inertia-filament`, `laravel-lunar` (and the backend of `laravel-cms`) / layer `laravel/base` (`README.md`, `.env.example`).

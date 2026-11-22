@@ -1,5 +1,5 @@
-# Production image: php-fpm (nginx runs in its own container) with Supervisor running php-fpm, the queue
-# worker and the scheduler. The last stage (`app`) is the release image, which is what the pipeline builds.
+# Production image: php-fpm on port 9000 under Supervisor, which also runs the queue worker and the scheduler. The image
+# contains no web server: nginx runs on the host and reaches php-fpm over FastCGI. The last stage (`app`) is the release image, which is what the pipeline builds.
 #
 #   base            php-fpm-laravel base image + Supervisor + Composer
 #   php_dependencies  production Composer packages (cached while composer.json/lock do not change)
@@ -40,8 +40,9 @@ RUN cp .env.example .env \
 # dump-autoload runs the post-autoload-dump scripts, i.e. package:discover.
 # Generated code of the packages that are installed (Wayfinder, Filament); other variants skip them.
 RUN composer dump-autoload --no-dev --optimize --no-interaction \
-    && for command in wayfinder:generate filament:optimize; do \
-        if php artisan list --raw | grep -q "^${command} "; then php artisan "${command}"; fi; \
+    && for command in "wayfinder:generate --with-form" filament:optimize; do \
+        name="${command%% *}"; \
+        if php artisan list --raw | grep -q "^${name} "; then php artisan ${command}; fi; \
     done \
     && php artisan config:cache \
     && php artisan route:cache \

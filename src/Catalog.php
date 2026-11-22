@@ -92,19 +92,29 @@ final readonly class Catalog
             throw new TemplateException(sprintf('%s: "into" must be a relative path without "..", made of letters, digits, ".", "_" and "-".', $where));
         }
 
-        $exclude = $raw->exclude ?? [];
-        if ( ! is_array($exclude)) {
+        $globs = self::globList($raw->exclude ?? []);
+        if ($globs === null) {
             throw new TemplateException(sprintf('%s: "exclude" must be a list of glob strings.', $where));
         }
+
+        return new LayerEntry($raw->layer, trim($into, '/'), $globs);
+    }
+
+    /** @return list<string>|null the globs, or null when the value is not an array of strings */
+    private static function globList(mixed $value): ?array {
+        if ( ! is_array($value)) {
+            return null;
+        }
+
         $globs = [];
-        foreach ($exclude as $glob) {
+        foreach ($value as $glob) {
             if ( ! is_string($glob)) {
-                throw new TemplateException(sprintf('%s: "exclude" must be a list of glob strings.', $where));
+                return null;
             }
             $globs[] = $glob;
         }
 
-        return new LayerEntry($raw->layer, trim($into, '/'), $globs);
+        return $globs;
     }
 
     private static function requiredString(stdClass $data, string $key, string $file): string {

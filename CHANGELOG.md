@@ -26,6 +26,18 @@ Migration: what an existing project must do (or "none").
 
 ## Unreleased
 
+### 2026-11-23: Guidelines 0.2
+
+Affects: every variant / the builder (`composer.json`, `composer.lock`).
+
+The builder requires `esoul-cz/guidelines` `^0.2` (it was `^0.1`, which for a `0.x` release can never resolve to 0.2) and renders the
+guidelines of every variant with it: `dependencies.md` and `public-website.md` are new, the severity names changed. The layers of each
+stack declare the guideline layers they need through their own `merge/esoul-guidelines.json`.
+
+Migration: in the project raise the constraint to `^0.2`, run `composer update esoul-cz/guidelines`, then
+`vendor/bin/esoul-guidelines sync` and commit the result. A project without Composer (a static Astro site) updates the global
+installer instead (`composer global update esoul-cz/guidelines`).
+
 ### 2026-11-23: PR template and CONTEXT.md follow the workflow guideline
 
 Affects: every variant / layer `common` (`.github/PULL_REQUEST_TEMPLATE.md`, `CONTEXT.md`).

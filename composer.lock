@@ -4,20 +4,20 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "85508e25f366d448af2b211a1c570103",
+    "content-hash": "1ac86ea557ef4f10db57ad5da34789b4",
     "packages": [
         {
             "name": "esoul-cz/guidelines",
-            "version": "v0.1.1",
+            "version": "v0.2.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/eSoul-cz/guidelines.git",
-                "reference": "70ef1a3e1871d0687af3954e9523911b3b4e149d"
+                "reference": "6892470f13fbb272a8809757d2c8f71b32addb5b"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/eSoul-cz/guidelines/zipball/70ef1a3e1871d0687af3954e9523911b3b4e149d",
-                "reference": "70ef1a3e1871d0687af3954e9523911b3b4e149d",
+                "url": "https://api.github.com/repos/eSoul-cz/guidelines/zipball/6892470f13fbb272a8809757d2c8f71b32addb5b",
+                "reference": "6892470f13fbb272a8809757d2c8f71b32addb5b",
                 "shasum": ""
             },
             "require": {
@@ -27,6 +27,12 @@
                 "symfony/yaml": "^7.4 || ^8.0"
             },
             "require-dev": {
+                "esoul-cz/coding-standard": "^0.1",
+                "phpstan/extension-installer": "^1",
+                "phpstan/phpstan": "^2",
+                "phpstan/phpstan-deprecation-rules": "^2",
+                "phpstan/phpstan-phpunit": "^2",
+                "phpstan/phpstan-strict-rules": "^2",
                 "phpunit/phpunit": "^12.0 || ^13.0"
             },
             "bin": [
@@ -45,10 +51,10 @@
             "description": "Layered, mergeable project guidelines for eSoul projects (Laravel, LSR, Astro) with drift detection.",
             "support": {
                 "issues": "https://github.com/eSoul-cz/guidelines/issues",
-                "source": "https://github.com/eSoul-cz/guidelines/tree/v0.1.1"
+                "source": "https://github.com/eSoul-cz/guidelines/tree/v0.2.1"
             },
-            "time": "2026-11-22T11:41:43+00:00",
-            "published-time": "2026-11-22T11:42:01+00:00"
+            "time": "2026-11-22T23:00:41+00:00",
+            "published-time": "2026-11-22T23:00:53+00:00"
         },
         {
             "name": "psr/container",

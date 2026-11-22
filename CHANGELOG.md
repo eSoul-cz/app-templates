@@ -19,6 +19,18 @@ What changed, in one or two sentences.
 Migration: what an existing project must do (or "none").
 ```
 
+## 2026-11-22: LSR uses the shared coding standard
+
+Affects: `lsr-inertia` / layer `lsr/base`; the builder (code quality only).
+
+`.php-cs-fixer.php` of the LSR template builds its config with `ESoul\CodingStandard\Config::create()` from `esoul-cz/coding-standard`
+(the same rules, now kept in one package) instead of a copied rules array; `friendsofphp/php-cs-fixer` comes in through that package.
+The builder itself is now checked with PHPStan (level max) and the same coding standard; its output is unchanged.
+
+Migration: `composer remove --dev friendsofphp/php-cs-fixer`, `composer require --dev esoul-cz/coding-standard:^0.1`, then replace the
+rules in `.php-cs-fixer.php` with `return ESoul\CodingStandard\Config::create($finder, __DIR__ . '/temp/tools/php-cs-fixer.cache');`
+and run `composer cs` (project-specific rule changes go into `->setRules([...Config::rules(), ...])`).
+
 ## 2026-11-22: Guidelines 0.1.1
 
 Affects: all variants / the builder (`composer.lock`).

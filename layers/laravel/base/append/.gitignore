@@ -3,3 +3,4 @@
 /.pnpm-store
 /docker-compose.override.yml
 /test-coverage/
+/.ci/

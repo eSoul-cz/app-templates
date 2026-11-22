@@ -26,6 +26,14 @@ Migration: what an existing project must do (or "none").
 
 ## Unreleased
 
+### 2026-11-23: Laravel variants write a JUnit log of the PHP tests
+
+Affects: `laravel-inertia`, `laravel-filament`, `laravel-inertia-filament`, `laravel-lunar` (and the backend of `laravel-cms`) / layer `laravel/base` (`phpunit.xml`, `.gitignore`, `.dockerignore`).
+
+`phpunit.xml` logs JUnit to `.ci/junit/phpunit.xml` (also under `composer test` and Paratest), so the shared pipeline can publish per-test times (jenkins-libraries#8). `.ci/` is gitignored and kept out of the image build context.
+
+Migration: add `<logging><junit outputFile=".ci/junit/phpunit.xml"/></logging>` to `phpunit.xml`, `/.ci/` to `.gitignore` and `.ci` to `.dockerignore`.
+
 ### 2026-11-23: LSR writes a JUnit log and the `Jenkinsfile` names the `lsrPipeline` call
 
 Affects: `lsr-inertia` / layer `lsr/base` (`phpunit.xml`, `append/.gitignore`, `Jenkinsfile`).

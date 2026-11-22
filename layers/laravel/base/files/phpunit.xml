@@ -19,6 +19,9 @@
             <group>quarantine</group>
         </exclude>
     </groups>
+    <logging>
+        <junit outputFile=".ci/junit/phpunit.xml"/>
+    </logging>
     <source>
         <include>
             <directory>app</directory>

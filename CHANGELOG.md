@@ -26,6 +26,14 @@ Migration: what an existing project must do (or "none").
 
 ## Unreleased
 
+### 2026-11-23: `laravel-lunar` registers Lunar's panel in its own provider
+
+Affects: `laravel-lunar` / layer `laravel/lunar` (`app/Domain/Providers/Filament/LunarPanelProvider.php`, `bootstrap/providers.php`, `app/Domain/Providers/AppServiceProvider.php`).
+
+`LunarPanel::panel(...)->register()` moved from `AppServiceProvider` into `App\Domain\Providers\Filament\LunarPanelProvider`, listed in `bootstrap/providers.php` after `AppServiceProvider` (the layer no longer overrides `AppServiceProvider`, which is the base's empty one again). Lunar keeps its default theme; a brand logo or render hooks go into the panel callback of the provider.
+
+Migration: create `LunarPanelProvider` with the registration, add it to `bootstrap/providers.php` and remove the registration from `AppServiceProvider`.
+
 ### 2026-11-23: `Money::proportion()`
 
 Affects: `laravel-inertia`, `laravel-filament`, `laravel-inertia-filament`, `laravel-lunar` (and the backend of `laravel-cms`) / layer `laravel/base` (`app/Domain/ValueObjects/Money.php`).

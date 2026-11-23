@@ -26,6 +26,14 @@ Migration: what an existing project must do (or "none").
 
 ## Unreleased
 
+### 2026-11-23: Astro CI checks the guidelines with the version the project recorded
+
+Affects: `astro-static`, `astro-cms-frontend`, `astro-ssr` / layers `astro/static`, `astro/cms-client`, `astro/ssr` (`Jenkinsfile`, `README.md`); `astro-cms` / layer `astro-cms/root` (`README.md`).
+
+`astroPipeline` now runs `esoul-guidelines check` itself, as the stage `Guidelines check` among the static checks, whenever the project has an `esoul-guidelines.lock`: it downloads the PHAR of the release recorded in the lock (`package_version`), verifies its checksum and runs it in the PHP test image, so a guidelines release never breaks the check of a project that has not synced to it. The `Guidelines` item of `extraChecks` (the `esoul-guidelines:0.3` Docker image) is removed from the three `Jenkinsfile`s. The README "Guidelines" sections say that CI needs nothing from you and that locally you use Composer global, the PHAR of the recorded version, or the Docker image (now optional).
+
+Migration: in an existing Astro project delete the `Guidelines` item from `extraChecks` in the `Jenkinsfile` (the library's stage runs without it; until deleted both run, and the old one keeps the image's version) and update the "Guidelines" README section. Nothing else: the check needs `esoul-guidelines.lock` in the repository, which the template already has.
+
 ### 2026-11-23: Render guidelines 0.3.4
 
 Affects: every variant / every layer that renders the guidelines; the builder.

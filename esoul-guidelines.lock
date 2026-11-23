@@ -1,6 +1,6 @@
 {
     "schema_version": 1,
-    "package_version": "v0.3.1",
+    "package_version": "v0.3.2",
     "layers": [
         "general",
         "profile/internal"
@@ -13,9 +13,9 @@
         },
         "docs/project_guidelines/code-review.md": {
             "block": "code-review",
-            "sha256": "dd60199c3c424fc9664f2dd1cc5a4cc78027a233b2128d6e39faed315641c8a9",
+            "sha256": "4b9b5c7efad1973a1cd0c4a73ea12cc5e2fd9172fdc742640f2cae96bd457031",
             "sources": {
-                "general/code-review.md": "c18cf5c8d9b3f05360ae9a0f3e1420d09062489830c6b4b98938374447b2a697",
+                "general/code-review.md": "23d9d99c4b3910df0a99e0e31b9a84b2091b9688a01c2462fd15c6f62e0e6b7d",
                 "profile/internal/code-review.md": "8ef17c63f1bab4a64ba0c5dbe1c894cb7e9c42c9af7b6300d09a29baf0e135d1"
             }
         },
@@ -35,9 +35,9 @@
         },
         "docs/project_guidelines/documentation.md": {
             "block": "documentation",
-            "sha256": "b4db756eb409d1fbcd37de3df96835578a14a661b4adea18c33c83ee169f5757",
+            "sha256": "d12fe20b533654006559513de648eb7d4d70583836dfcb2c4cf0f15979d34fc3",
             "sources": {
-                "general/documentation.md": "964134b3a703e4c587888a7a4a187b7bc25d7d83bbb252ace9ffbdad0a15d81c"
+                "general/documentation.md": "56da7cbb2b3c96beea9c6e281ba0ffb535dad1ab391ded765d341f1b5b2aa54d"
             }
         },
         "docs/project_guidelines/domain.md": {
@@ -60,9 +60,9 @@
         },
         "docs/project_guidelines/security-and-data.md": {
             "block": "security-and-data",
-            "sha256": "0a6f41a517978296ea4586356d6ca94bf28ceb1ad279cc0d20b41e5e48d52652",
+            "sha256": "5c5e199a3a37efadaaae46fa33058367b81ff2be81d47cf4c7e28eb6f636613a",
             "sources": {
-                "general/security-and-data.md": "12e4634f39418782ca1ca2c312fc02f2886310c3e76a84a2ebb2942b8951d58a"
+                "general/security-and-data.md": "02068d639ce4538f9bbfda6b659d0c6fb2d5b38ab78079e43e5a7e6d752cdc23"
             }
         },
         "docs/project_guidelines/testing.md": {
@@ -74,9 +74,9 @@
         },
         "docs/project_guidelines/workflow.md": {
             "block": "workflow",
-            "sha256": "b76508ff938d91e904f457acafaef5b1256157fbf5c439b50077a0be610ab7bc",
+            "sha256": "90bdbff93a97fded6894f6ead2131224e26c734d2bbcaa83305127c653a63a8c",
             "sources": {
-                "general/workflow.md": "10cd92000d6571e5208950fbf43a11c4cfc6deb5e9029e04c7470a82009bd53d",
+                "general/workflow.md": "e280f228ae461f03802d99758dfd5c9ed1873552548979fb10020f2af8350ce0",
                 "profile/internal/workflow.md": "bdeb81d90e06ddff96f94c446bb666f15c1824aaaab0c626e1f1bd893e3d40a4"
             }
         }

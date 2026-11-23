@@ -26,6 +26,14 @@ Migration: what an existing project must do (or "none").
 
 ## Unreleased
 
+### 2026-11-23: Render guidelines 0.3.2
+
+Affects: every variant / every layer that renders the guidelines; the builder.
+
+The builder renders with `esoul-cz/guidelines` v0.3.2: an anonymised sample of faulty records MAY go into an issue or task and exports of public data are covered by the public data exception; an agent MAY write to local data with approval, MUST NOT write to production data and SHOULD NOT write to staging data; the legacy severity names (Blocker, High, Medium, Low) map to Critical, Major, Minor, Nitpick; a committed generated PDF is removed with `git rm --cached`. The rendered `docs/project_guidelines/` (`code-review.md`, `documentation.md`, `security-and-data.md`, `workflow.md`) change accordingly.
+
+Migration: run `esoul-guidelines sync` once (after `composer update esoul-cz/guidelines`) and commit the changed `esoul-guidelines.lock` and `docs/project_guidelines/`.
+
 ### 2026-11-23: Every variant is published; the `Check <variant>` stage knows four kinds of checks
 
 Affects: every variant (publishing: `lsr-inertia`, `laravel-cms`, `astro-static`, `astro-cms-frontend`, `astro-cms`, `astro-ssr` join the list); the builder (`Jenkinsfile`).

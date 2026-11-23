@@ -96,7 +96,9 @@ The stamp also **prepends two steps to `scripts.post-create-project-cmd`** (list
 Finally it **renders the project guidelines**: it runs `esoul-guidelines sync --no-interaction` (the esoul-cz/guidelines installer,
 a dependency of this repository: `vendor/bin/esoul-guidelines`, override with `--guidelines-bin`) in the variant root. Every variant therefore ships
 `docs/project_guidelines/`, the guidelines block in `AGENTS.md` and `esoul-guidelines.lock` ready-made; a project created from it
-updates them later with `composer update esoul-cz/guidelines` + `vendor/bin/esoul-guidelines sync`. A missing installer, an unknown
+updates them later with `composer update esoul-cz/guidelines` + `vendor/bin/esoul-guidelines sync`. The Astro frontends and the SSR application
+have no Composer dependency: their README ("Guidelines") documents `composer global`, the PHAR and the Docker image, and their `Jenkinsfile` runs
+`esoul-guidelines check` in the image as an `extraChecks` stage `Guidelines` of `astroPipeline` (the image's entrypoint is cleared with `--entrypoint=`). A missing installer, an unknown
 guideline layer or a failing `sync` fails the build.
 
 ### The `common` layer

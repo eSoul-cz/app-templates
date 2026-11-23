@@ -26,6 +26,14 @@ Migration: what an existing project must do (or "none").
 
 ## Unreleased
 
+### 2026-11-23: Astro projects run `esoul-guidelines` without PHP, and CI checks it
+
+Affects: `astro-static`, `astro-cms-frontend`, `astro-ssr` / layers `astro/static`, `astro/cms-client`, `astro/ssr` (`README.md`, `Jenkinsfile`); `astro-cms` / layer `astro-cms/root` (`README.md`).
+
+The three Astro layers have no Composer dependency, so `vendor/bin/esoul-guidelines` does not exist in a project created from them. Each README has a "Guidelines" section with the three ways of the guidelines package for repositories without PHP (Composer global, the PHAR of the release, the Docker image `rg.fr-par.scw.cloud/testing-images/esoul-guidelines:0.3`), Docker recommended for CI and Composer global or the PHAR locally. Each `Jenkinsfile` gets an `extraChecks` item `Guidelines` that runs `esoul-guidelines check` in that image (`options: '--entrypoint='`, because the image's entrypoint is the command and the step runs `/bin/sh -c <command>`); a drifted or outdated `docs/project_guidelines/`, `AGENTS.md` block or lock now fails the build. The `astro-cms` root has a `composer.json` (so `vendor/bin/esoul-guidelines` works) and no pipeline; its README says how to run `check`.
+
+Migration: in an existing Astro project add the `Guidelines` item to `extraChecks` in the `Jenkinsfile` (copy it from the template) and the "Guidelines" README section; run `check` once first (`docker run --rm -v "$PWD:/app" -w /app --user "$(id -u):$(id -g)" rg.fr-par.scw.cloud/testing-images/esoul-guidelines:0.3 check`), and `sync` if it reports outdated content. The `0.3` tag of the image carries the release that eSoul-cz/ci-images pins (`guidelinesVersion`); while that is older than the release the project was rendered with, `check` reports outdated content, so bump it in ci-images first.
+
 ### 2026-11-23: Render guidelines 0.3.2
 
 Affects: every variant / every layer that renders the guidelines; the builder.

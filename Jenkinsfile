@@ -27,7 +27,7 @@ def publishable = [
 // A fixed --commit keeps that build independent of git inside the test container.
 // These checks may run on the Quick node (label quick, reserved for the quick jobs of the infrastructure repositories)
 // or on a general one, whichever has a free executor, and have to end within the 15 minutes that node allows.
-// Publishing below asks for its own node and is not bound by that.
+// Publishing below asks for a node of its own and keeps its own, longer time limit.
 phpPackagePipeline(
     additionalTests: [[name: 'Build all variants', command: 'php bin/templates build --all --commit=0000000']],
     matrix: [
@@ -59,7 +59,11 @@ def publishVariants(Map publishable) {
     // The container images of the checks, as the variants' own pipelines use them (`laravelPipeline`, `lsrPipeline`, `astroPipeline`).
     def images = [php: phpImage, node: nodeImage]
 
-    node {
+    // On the Quick node or a general one, like the checks above, so that a publish does not wait behind the long test
+    // runs. On trial since 2026-11-23: Quick has one executor and is meant for builds of up to 15 minutes, and this step
+    // keeps its own 90 minute limit while its real duration is measured. If it turns out to hold the node for long, it
+    // goes back to a plain `node`.
+    node('quick || general') {
         try {
             timeout(time: 90, unit: 'MINUTES') {
                 String sourceCommit

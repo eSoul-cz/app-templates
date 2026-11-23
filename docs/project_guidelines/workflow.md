@@ -13,8 +13,10 @@ How a change travels from a prepared issue to a merged pull request. The tasking
 - One request is one independently deliverable result. When separate work emerges during a task,
   record it separately instead of widening the current one.
 - The title names the result: a context followed by an action. When an issue or task exists, it
-  and the pull request carry the same title; the pull request title wraps it in the commit format
-  ([Pull requests](#pull-requests)).
+  and the pull request carry the same English title; the pull request title wraps it in the
+  commit format ([Pull requests](#pull-requests)). In a project whose tracker titles are Czech,
+  the tracker keeps its Czech titles and the pull request title is an English commit-style title
+  of the same result that links them.
 - Titles carry **no prefix** such as `[BE]` or `[FE]`, and never a slice or phase identifier. The
   work category is a label on the issue (GitHub) and on the task (Freelo).
 - Work blocked by an open dependency, an open question or a `proposed` ADR is not ready to start
@@ -76,7 +78,7 @@ How a change travels from a prepared issue to a merged pull request. The tasking
   ([code-review.md](code-review.md#findings-stay-in-the-pull-request)).
 - The pull request title follows the commit format (`:emoji: [optional-context] Message`) because
   it becomes the squash commit; the message part is the title shared with the issue and the task,
-  when they exist.
+  when they exist (see [Tasking](#tasking) for projects with Czech tracker titles).
 - Set a reviewer when one is available; otherwise the owner's explicit go-ahead is enough. Set
   every contributor as **Assignee**.
 - Fill in the repository's pull request template. It links the issue (`Closes #<issue>`) when
@@ -91,7 +93,7 @@ How a change travels from a prepared issue to a merged pull request. The tasking
   the architecture or to an external contract comes with its ADR in the same pull request
   ([documentation.md](documentation.md#documentation-rides-with-the-change)).
 - Reviews follow [code-review.md](code-review.md): CodeRabbit and the owner's go-ahead, every
-  finding answered, and the `final-pr-review` skill to finish the pull request.
+  finding answered, and the `esoul-review` skill to finish the pull request.
 - A green `Jenkins` check is required before merge.
 - **The author merges**, as a human, after the owner's go-ahead (or a reviewer's approval) and a
   green build, with a **squash merge** whose message is the pull request title. Agents MUST NOT

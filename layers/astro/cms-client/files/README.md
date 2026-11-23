@@ -66,10 +66,11 @@ is generated from them.
 
 ## Delivery
 
-`Jenkinsfile` (`Checks`, then `dockerBuildMultiArch` + `deployKomodoStack` on the deploy branches; a publish from the backend starts it with
-`CMS_PUBLISH_ID` and the result goes back to the backend). The `Dockerfile` runs `pnpm build` and `pnpm verify` against the real export; the final stage is
-`FROM scratch` with `dist/` only. Rollback is redeploying the previous image. NGINX (one site definition with the backend, see the `astro-cms` template)
-serves `current` and `/_cms/` media from the backend's bind-mounted directory.
+`Jenkinsfile`: one call of `astroPipeline` (image mode): checks on the fixture for pull requests; on the deploy branches the real export is built once,
+verified (`pnpm verify`) and tested in the browser, then `dockerBuildMultiArch` builds the image from that exact `dist/` and `deployKomodoStack` rolls it out.
+A publish from the backend starts it with `CMS_PUBLISH_ID` and the result goes back to the backend. The `Dockerfile` is `FROM scratch` + `COPY dist/ /dist/`: no
+build stage, no build argument, no token in the image build. Rollback is redeploying the previous image. NGINX (one site definition with the backend, see the
+`astro-cms` template) serves `current` and `/_cms/` media from the backend's bind-mounted directory.
 
 - Preview URL: _TBD_ (HTTP basic auth in the web server; the password is a Komodo variable, never in the repository).
 - Build agent address (has to be in `CMS_API_ALLOWED_IPS` of the backend): _TBD_.

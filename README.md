@@ -156,7 +156,7 @@ There are no template version tags: **the `main` HEAD of a variant repository is
    for each. `publish` builds a pristine copy (the recorded `commit` is the commit being built) and **syncs it into `main` of
    `eSoul-cz/template-<variant>` as one commit** on top of the current tip: the commit's tree is exactly the build, its message is the
    subject of the source commit plus the line `Built from app-templates commit <sha>.`, and nothing is pushed when the tree equals the
-   tip's. Nothing is tagged. The LSR and Astro variants join the list when their pipelines exist (J4, J5/J6/J8).
+   tip's. Nothing is tagged. The LSR and Astro pipelines (`lsrPipeline`, `astroPipeline`) exist, but those variants join the list only with the checks their own CI runs (Composer and pnpm without Laravel, or pnpm only), which the `Check <variant>` stage does not define yet.
 
    `bin/templates publish <variant> --dry-run` builds and compares with the remote without pushing; `--repo`, `--branch`, `--message`
    and `--commit` override the defaults (`https://github.com/<package>.git`, `main`, the source commit's subject, `HEAD`). With
@@ -286,12 +286,12 @@ template, applies the entries that affect the project's variant and layers, foll
 - Astro layers (`astro/static`, `astro/cms-client`, `astro/ssr`, `astro-cms/root`) and `laravel/cms`: a site with a CMS is three repositories, each created
   from its own template: `laravel-cms` (backend), `astro-cms-frontend` and the thin root `astro-cms` (documentation, the contract, the
   NGINX example and `bin/add-submodules`, which adds the other two as submodules). Each repository has its own `esoul-guidelines.json`,
-  Jenkinsfile and pipeline (D-22 is reversed); the Jenkinsfiles compose the existing library steps and name the planned `astroPipeline` /
-  `staticSitePipeline` (J5/J8) in a marked comment.
+  Jenkinsfile and pipeline (D-22 is reversed); the Jenkinsfiles are one call of `astroPipeline` (`astro-cms-frontend`: image mode with the
+  CMS publish callback; `astro-static`: static mode).
   - The admin lives on the site's domain under `/admin` (default) or on `admin.<domain>`; `docker/nginx.example` holds both server layouts
-    (Mode B commented) and the root README explains how to choose (decision D-17). No code differs: only nginx, `APP_URL`, `cmsApiUrl`.
-    `SESSION_DOMAIN` stays `null` in both, CORS is not needed because the static build fetches the export server-side. The Jenkinsfile
-    example still shows the same-domain `cmsApiUrl`.
+    (Mode B commented) and the root README explains how to choose (decision D-17). No code differs: only nginx, `APP_URL`, and the
+    `CMS_API_URL` and `cms.callbackUrl` of the frontend Jenkinsfile.
+    `SESSION_DOMAIN` stays `null` in both, CORS is not needed because the static build fetches the export server-side.
   - `astro/cms-client` replaces `astro.config.mjs` of `astro/static` (it registers the media integration) and deletes `src/pages/index.astro`
     (the home page is rendered from the export by `[...slug].astro`). `scripts/verify-dist.mjs` loads an optional `scripts/verify-extra.mjs`.
   - Content model is minimal and generic: pages (slug, title, `isHome`, description, blocks `heading` / `text` / `image`) and one settings

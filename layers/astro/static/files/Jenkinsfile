@@ -1,100 +1,33 @@
-// Static site WITHOUT a CMS (archetype A-static): checks, then `deployStaticSite` (atomic release, `current` link).
+// Static site WITHOUT a CMS (archetype A-static): one call of `astroPipeline` in static mode from the eSoul Jenkins libraries
+// (`pipelines/vars/astroPipeline.txt`). It runs the checks of the Astro guideline in disposable containers (install, audit, lint,
+// format, type check, unit tests, build, `pnpm verify`, Playwright), then on the deploy branches `deployStaticSite`: an atomic release
+// into `releases/<id>` and the `current` link, checked on the live site and switched back on a mismatch (framework/astro/deployment.md,
+// "Site without a CMS"). The build that is deployed is the one that was verified and tested.
 //
-// PLANNED (jenkins-libraries, J5/J8): one call `staticSitePipeline(...)` will replace this file. It does not exist yet, so this
-// Jenkinsfile composes the existing steps (`fullNodeTest`, `buildStaticSite`, `deployStaticSite`) in the order the guidelines
-// describe (framework/astro/deployment.md, "Site without a CMS"). When the step exists, keep the values below and delete the code.
-//
-// Replace the example values. Credentials (Jenkins): `scaleway_secret_key` (registry login for the test images) and
-// `deploy_ssh` (SSH key of the deploy user).
-@Library(['dockerHelpers', 'testing', 'deploy']) _
+// Replace the example values. Credentials (Jenkins): `scaleway_secret_key` (registry login for the test images) and `deploy_ssh`
+// (SSH key of the deploy user).
+@Library(['dockerHelpers', 'testing', 'deploy', 'pipelines']) _
 
-def site = [
-    // Node image of the checks and of the build (Debian-based: Playwright needs it), inside the test registry.
-    nodeImage     : 'rg.fr-par.scw.cloud/testing-images/node:26',
-    registryHost  : 'rg.fr-par.scw.cloud',
-    // Canonical origin baked into the build (SITE_URL) and release root on the server (current/, releases/, shared/).
-    siteUrl       : 'https://example-project.example.com',
-    deployPath    : '/data/apps/example-project/web',
-    deployServer  : 'localhost',
-    // `true` while the site is a protected preview (noindex everywhere, no sitemap); the launch step sets it to `false`.
-    noindex       : 'true',
+astroPipeline(
+    mode: 'static',
+    nodeImage: 'node:26',
+    env: [
+        // Canonical origin baked into the build.
+        SITE_URL: 'https://example-project.example.com',
+        // `true` while the site is a protected preview (noindex everywhere, no sitemap); the launch step sets it to `false`.
+        PUBLIC_NOINDEX: 'true',
+    ],
+    checks: [
+        test: true,
+        // Playwright specs against the built dist/ (desktop 1440 px and mobile 390 px). The image has to be the one whose Playwright
+        // version equals `@playwright/test` in package.json (the browser builds must match): change both together.
+        smoke: [enabled: true, image: 'mcr.microsoft.com/playwright:v1.65.1-noble'],
+    ],
     deployBranches: ['main'],
-]
-
-properties([disableConcurrentBuilds(abortPrevious: env.CHANGE_ID != null)])
-
-node {
-    try {
-        timeout(time: 60, unit: 'MINUTES') {
-            stage('Checkout') {
-                withEnv(['GIT_LFS_SKIP_SMUDGE=1']) {
-                    checkout scm
-                }
-            }
-
-            stage('Docker Login') {
-                withCredentials([string(credentialsId: 'scaleway_secret_key', variable: 'SECRET')]) {
-                    dockerRegistryLogin(registryUrl: site.registryHost, password: env.SECRET)
-                }
-            }
-
-            // Checks stage: mandatory, runs before anything is deployed (guidelines: framework/astro/tools.md).
-            // The build is the one that is deployed, so SITE_URL and PUBLIC_NOINDEX are the production values.
-            stage('Checks') {
-                def buildEnv = [SITE_URL: site.siteUrl, PUBLIC_NOINDEX: site.noindex]
-
-                // Install, then in parallel: eslint, prettier, astro check, Vitest, audit.
-                fullNodeTest(
-                    image: site.nodeImage,
-                    eslintCommand: 'pnpm run eslint',
-                    prettierCommand: 'pnpm run format:check',
-                    typecheck: true,
-                    typecheckCommand: 'pnpm run check',
-                    test: true,
-                    testCommand: 'pnpm run test',
-                    additionalTests: [[name: 'Dependency audit', command: 'pnpm audit']],
-                )
-
-                // Build, then verify the output (the packages are installed already).
-                buildStaticSite(
-                    image: site.nodeImage,
-                    env: buildEnv,
-                    installEnabled: false,
-                    verifyEnabled: true,
-                )
-
-                // Playwright smoke and SEO specs against the built dist/ (desktop 1440 px and mobile 390 px).
-                fullNodeTest(
-                    image: site.nodeImage,
-                    install: false,
-                    eslint: false,
-                    prettier: false,
-                    playwright: true,
-                    playwrightImage: site.nodeImage,
-                    playwrightCommand: 'pnpm run test:e2e',
-                    playwrightEnv: buildEnv,
-                )
-            }
-
-            if (site.deployBranches.contains(env.BRANCH_NAME)) {
-                stage('Deploy') {
-                    lock('deploy-example-project') {
-                        sshagent(credentials: ['deploy_ssh']) {
-                            deployStaticSite(
-                                sourceDir: 'dist/',
-                                deployPath: site.deployPath,
-                                deployServer: site.deployServer,
-                                sharedDirs: ['_astro'],
-                                // Switches back and fails the build when the live site does not serve the new release marker.
-                                verify: [url: site.siteUrl, cacheHeaders: true],
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    } finally {
-        sh 'sudo /usr/local/sbin/jenkins-fix-workspace "$WORKSPACE" || true'
-        cleanWs()
-    }
-}
+    // Release root on the server (current/, releases/, shared/) and the SSH host.
+    deployPath: '/data/apps/example-project/web',
+    deployServer: 'localhost',
+    sharedDirs: ['_astro'],
+    // Switches back and fails the build when the live site does not serve the new release marker.
+    verify: [url: 'https://example-project.example.com', cacheHeaders: true],
+)

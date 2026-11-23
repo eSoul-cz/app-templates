@@ -1,6 +1,8 @@
 import { expect, test } from './fixtures';
 
-// Specs of the CMS pages over the fixture (CMS_SOURCE=fixture, generated from the backend golden export).
+// Specs of the CMS pages over the fixture (CMS_SOURCE=fixture, generated from the backend golden export). A build that deploys runs
+// the browser tests against the build of the real export, whose pages these specs cannot know, so they run for the fixture only.
+test.skip(process.env.CMS_SOURCE !== 'fixture', 'These specs read the committed fixture; a build of the live export has other content.');
 
 test('a page advertises its Markdown version and the endpoint serves the same facts', async ({ page, request }) => {
     await page.goto('/about/');

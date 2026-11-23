@@ -49,11 +49,11 @@ Values are build arguments (`.env.example` lists them); the process environment 
 
 - Preview URL: _TBD_ (HTTP basic auth in the web server; the password is a Komodo variable, never in the repository).
 - Deliberate deviations from the design: _none yet_.
-- Launch: remove basic auth, set `noindex: 'false'` in the `Jenkinsfile`, deploy, then verify headers, `robots.txt`, the sitemap and indexability.
+- Launch: remove basic auth, set `PUBLIC_NOINDEX: 'false'` in the `Jenkinsfile`, deploy, then verify headers, `robots.txt`, the sitemap and indexability.
 
 ## Delivery
 
-`Jenkinsfile`: install, `Checks` (lint, format, type check, tests, audit, build, verify, Playwright), then `deployStaticSite` uploads
-`dist/` to `releases/<id>/` under `deployPath`, shares the hashed `_astro` files between releases and switches `current` atomically; the
-live site is checked for the release marker and cache headers and switched back on a mismatch. NGINX serves `current` and
-`shared/_astro/` (`root <deployPath>/current;` and `location ^~ /_astro/ { root <deployPath>/shared; }`).
+`Jenkinsfile`: one call of `astroPipeline` (static mode): install, audit, lint, format, type check, tests, build, verify and the Playwright specs
+(`Checks`), then `deployStaticSite` uploads `dist/` to `releases/<id>/` under `deployPath`, shares the hashed `_astro` files between releases and
+switches `current` atomically; the live site is checked for the release marker and cache headers and switched back on a mismatch. NGINX serves
+`current` and `shared/_astro/` (`root <deployPath>/current;` and `location ^~ /_astro/ { root <deployPath>/shared; }`).

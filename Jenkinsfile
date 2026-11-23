@@ -3,8 +3,8 @@
 // The variants that are published to eSoul-cz/template-<variant> from `main`, in one place. `wayfinder` says
 // whether the variant has Laravel Wayfinder (routes are generated before the JS build) and `js` which JS checks
 // its own CI runs: `full` (eslint, prettier, typecheck, tests, build) or `assets` (the asset build only).
-// Enable LSR after J4 (`lsrPipeline`) and the Astro templates after J5/J6/J8 by adding them here, with the
-// commands their own CI runs (README, "Publishing flow").
+// The LSR and Astro variants (`lsrPipeline` and `astroPipeline` exist) are added here only together with a check stage for their own CI:
+// the `Check <variant>` stage below runs the Laravel checks (artisan, Wayfinder), which they do not have (README, "Publishing flow").
 def publishable = [
     'laravel-inertia'         : [wayfinder: true, js: 'full'],
     'laravel-filament'        : [wayfinder: false, js: 'assets'],

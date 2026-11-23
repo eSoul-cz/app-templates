@@ -74,7 +74,7 @@ editor ── Publish ─▶ StartPublishCommand ─▶ Jenkins job of the front
    ▲  (Filament)      │ checks the export,    │                                  │ GET /cms-api/v1/export                 │ deploy hook: releases/<id>, `current` switch
    │                  │ writes a `publishes`  │                                  │ (bearer token, Zod-validated,          ▼
    │                  │ row (queued)          │                                  │  /_cms media HEAD-checked)       web/current -> releases/<id>
-   └──── status ◀──── POST /cms-api/v1/publishes/<id>/status (callback, bearer token) ◀── finally block of the Jenkinsfile
+   └──── status ◀──── POST /cms-api/v1/publishes/<id>/status (callback, bearer token) ◀── `cms` callback of the frontend Jenkinsfile
 ```
 
 1. An editor saves pages and settings in Filament. Nothing is public yet: the **Publish** page shows "unpublished changes".

@@ -15,7 +15,7 @@
 #   CMS_ADMIN_PATH_MODE  false (default)                       true     (Livewire update/upload routes under /admin)
 #   CMS_FORMS_ALLOWED_ORIGINS  https://example.com             https://example.com
 #   CMS_API_URL       https://admin.example.com/cms-api/v1     https://example.com/cms-api/v1
-#                     (frontend build, Jenkinsfile `cmsApiUrl`)
+#                     (frontend build, Jenkinsfile `releaseEnv.CMS_API_URL`)
 #   SITE_URL          https://example.com                      https://example.com
 #   TRUSTED_PROXIES   the TLS proxy in front of nginx (both modes), never `*`
 #   CORS              not needed: the static build fetches the export server-side (Node, in Jenkins) and visitors' browsers

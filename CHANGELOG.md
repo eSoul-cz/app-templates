@@ -26,6 +26,14 @@ Migration: what an existing project must do (or "none").
 
 ## Unreleased
 
+### 2026-11-23: One-call Jenkinsfiles (`lsrPipeline`, `astroPipeline`) and the verified-build image of `astro-cms-frontend`
+
+Affects: `lsr-inertia`, `astro-static`, `astro-cms-frontend`, `astro-cms` (documentation only) / layers `lsr/base`, `astro/static`, `astro/cms-client`, `astro-cms/root`.
+
+The Jenkinsfiles are now one call of the pipelines the eSoul Jenkins libraries ship: `lsr/base` calls `lsrPipeline` (smoke test with `docker-compose.ci.yml`, a deploy rule for `main` / `master`, no stack until set), `astro/static` calls `astroPipeline` in static mode and `astro/cms-client` calls it in image mode with the CMS publish callback (`cms`). The Astro pipeline builds once, verifies that build (`pnpm verify`), runs the Playwright specs in a pinned Playwright image (`checks.smoke.image`, `mcr.microsoft.com/playwright:v1.65.1-noble`) and delivers exactly that `dist/`. `@playwright/test` is pinned to `1.65.1` in `astro/static` (the image and the package must be the same version; change both together). The `astro-cms-frontend` `Dockerfile` is `FROM scratch` + `COPY dist/ /dist/` (no build stage, no `CMS_API_TOKEN` build argument; the token exists only in the check containers of a build that deploys), its `.dockerignore` lets only `dist` into the context, and the image keeps the build under `/dist` as the Komodo hook expects. `e2e/cms.spec.ts` runs only for `CMS_SOURCE=fixture`: a build that deploys tests the real export, whose pages it cannot know. Images are tagged `latest` and the Git tags of the commit (the build-number tag is gone).
+
+Migration: replace `Jenkinsfile` (and, for `astro-cms-frontend`, `Dockerfile` and `.dockerignore`) with the template's, keep your values (image, stack, URLs, credential ids, `noindex`), and add the `pipelines` library to the job (`@Library(['dockerHelpers', 'testing', 'deploy', 'pipelines'])`). Pin `@playwright/test` to the version of the Playwright image; `astro-cms-frontend` also adds the `test.skip` line of `e2e/cms.spec.ts`. The Komodo hook of an existing `astro-cms-frontend` stack that copied the image root must copy `/dist` (`deploy/static-site-release.md` in the libraries). `astro-ssr` keeps its composed Jenkinsfile.
+
 ### 2026-11-23: Guidelines 0.3 and the Lunar guideline layers
 
 Affects: `laravel-inertia`, `laravel-filament`, `laravel-inertia-filament`, `laravel-lunar`, `laravel-cms`, `lsr-inertia`, `astro-cms` / layers `laravel/base`, `lsr/base`, `astro-cms/root`, `laravel/lunar`; the builder.

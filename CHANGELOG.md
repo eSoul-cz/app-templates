@@ -26,6 +26,14 @@ Migration: what an existing project must do (or "none").
 
 ## Unreleased
 
+### 2026-11-23: Render guidelines 0.3.1
+
+Affects: every variant / every layer that renders the guidelines; the builder.
+
+The builder renders with `esoul-cz/guidelines` v0.3.1 (PHAR support): the managed block of `AGENTS.md` now says to run `esoul-guidelines sync` (with `vendor/bin/esoul-guidelines sync` named for a Composer dependency), so a v0.3.0 render is reported outdated by a v0.3.1 `check`.
+
+Migration: run `esoul-guidelines sync` once (after `composer update esoul-cz/guidelines`) and commit the changed `AGENTS.md`, `esoul-guidelines.lock` and `docs/project_guidelines/`.
+
 ### 2026-11-23: One-call Jenkinsfiles (`lsrPipeline`, `astroPipeline`) and the verified-build image of `astro-cms-frontend`
 
 Affects: `lsr-inertia`, `astro-static`, `astro-cms-frontend`, `astro-cms` (documentation only) / layers `lsr/base`, `astro/static`, `astro/cms-client`, `astro-cms/root`.

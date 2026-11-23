@@ -3,7 +3,7 @@
 <!-- esoul-guidelines:begin agents -->
 ## Project guidelines
 
-Before changing code, read [docs/project_guidelines/index.md](docs/project_guidelines/index.md) and the guidelines that cover what you touch. They take precedence over generic framework documentation and generated advice. This block is managed by `esoul-guidelines`; do not edit it, run `vendor/bin/esoul-guidelines sync` instead.
+Before changing code, read [docs/project_guidelines/index.md](docs/project_guidelines/index.md) and the guidelines that cover what you touch. They take precedence over generic framework documentation and generated advice. This block is managed by `esoul-guidelines`; do not edit it, run `esoul-guidelines sync` (`vendor/bin/esoul-guidelines sync` where the package is a Composer dependency of the project) instead.
 
 Rules for every task:
 

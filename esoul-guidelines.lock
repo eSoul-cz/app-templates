@@ -1,6 +1,6 @@
 {
     "schema_version": 1,
-    "package_version": "v0.3.0",
+    "package_version": "v0.3.1",
     "layers": [
         "general",
         "profile/internal"
@@ -9,7 +9,7 @@
     "files": {
         "AGENTS.md": {
             "block": "agents",
-            "sha256": "f044a6b8852f8fdd7609a63a7434a46a5a6eb21e1fd1bcc00bef9c4678e45659"
+            "sha256": "df46ccec16d680a9f3bcbe54b9195e3035fc11cbb08c1ed1c671b05e810520d2"
         },
         "docs/project_guidelines/code-review.md": {
             "block": "code-review",

@@ -8,18 +8,18 @@ Future home: GitHub repo `eSoul-cz/app-templates`. Inside `esoul-infrastructure`
 The built variants are published as `eSoul-cz/template-<variant>` (Packagist `esoul-cz/template-<variant>`) and attached to the
 infrastructure repo as submodules at `templates/<variant>/`.
 
-| Variant | Layers |
-| --- | --- |
-| `laravel-inertia` | common, laravel/skeleton, laravel/base, laravel/inertia-vue |
-| `laravel-filament` | common, laravel/skeleton, laravel/base, laravel/filament |
-| `laravel-inertia-filament` | common, laravel/skeleton, laravel/base, laravel/inertia-vue, laravel/filament |
-| `laravel-lunar` | common, laravel/skeleton, laravel/base, laravel/inertia-vue, laravel/lunar |
-| `lsr-inertia` | common, lsr/base |
-| `laravel-cms` | common, laravel/skeleton, laravel/base, laravel/filament, laravel/cms |
-| `astro-static` | common, astro/static |
-| `astro-cms-frontend` | common, astro/static, astro/cms-client |
-| `astro-cms` | common, astro-cms/root (thin monorepo root; the frontend and the `laravel-cms` backend are its git submodules) |
-| `astro-ssr` | common, astro/ssr |
+| Variant | Layers | Published, checks (`kind`) |
+| --- | --- | --- |
+| `laravel-inertia` | common, laravel/skeleton, laravel/base, laravel/inertia-vue | yes, `laravel` |
+| `laravel-filament` | common, laravel/skeleton, laravel/base, laravel/filament | yes, `laravel` |
+| `laravel-inertia-filament` | common, laravel/skeleton, laravel/base, laravel/inertia-vue, laravel/filament | yes, `laravel` |
+| `laravel-lunar` | common, laravel/skeleton, laravel/base, laravel/inertia-vue, laravel/lunar | yes, `laravel` |
+| `lsr-inertia` | common, lsr/base | yes, `lsr` |
+| `laravel-cms` | common, laravel/skeleton, laravel/base, laravel/filament, laravel/cms | yes, `laravel` |
+| `astro-static` | common, astro/static | yes, `astro` |
+| `astro-cms-frontend` | common, astro/static, astro/cms-client | yes, `astro` (fixture source) |
+| `astro-cms` | common, astro-cms/root (thin monorepo root; the frontend and the `laravel-cms` backend are its git submodules) | yes, `root` |
+| `astro-ssr` | common, astro/ssr | yes, `astro` |
 
 ## Usage
 
@@ -139,7 +139,7 @@ about `composer.json`, `package.json`, `.gitignore`, `.env.example`, ... goes th
 1. Add `variants/<name>.json` (`name` must equal the file name, `package` is `esoul-cz/template-<name>`, `description`, `layers`).
 2. `bin/templates list` shows it; CI picks it up through `build --all` automatically.
 3. To publish it: create the empty target repo `eSoul-cz/template-<name>`, register it on Packagist and add the repository webhook (see
-   "Publishing flow"), and add the variant to `publishable` at the top of the `Jenkinsfile` with the checks its own CI runs.
+   "Publishing flow"), and add the variant to `publishable` at the top of the `Jenkinsfile` with the `kind` of checks its own CI runs.
 
 ## Publishing flow
 
@@ -150,13 +150,22 @@ There are no template version tags: **the `main` HEAD of a variant repository is
 2. A PR build runs the builder checks and `bin/templates build --all` (every variant must build); it runs no variant checks and
    publishes nothing.
 3. On `main` the `Jenkinsfile` has a second part after the builder checks (stages `Publish: checkout`, `Publish: prepare`, `Check <variant>`,
-   `Publish variants`): for each variant in `publishable` (the first lines of the `Jenkinsfile`: today the four Laravel variants) it builds
-   the variant, runs the checks the variant's own CI runs (composer install, PHPStan, code style, tests, and `pnpm` install, audit, lint,
-   typecheck, tests and build where the variant has them), and only when **every** variant passed it runs `bin/templates publish <variant>`
-   for each. `publish` builds a pristine copy (the recorded `commit` is the commit being built) and **syncs it into `main` of
+   `Publish variants`): for each variant in `publishable` (the first lines of the `Jenkinsfile`: every variant) it builds the variant, runs
+   the checks the variant's own CI runs, and only when **every** variant passed it runs `bin/templates publish <variant>` for each. The
+   checks depend on the variant's `kind` (one function, `variantChecks`, in the `Jenkinsfile`; pnpm installs with `--no-frozen-lockfile`
+   because a template has no lock file):
+
+   | `kind` | Variants | Checks |
+   | --- | --- | --- |
+   | `laravel` | the `laravel-*` variants | PHP image: `composer install`, `.env` and app key, Wayfinder routes where the variant has them, PHPStan, code style, tests; Node image: `pnpm` install, audit and the JS checks the variant has (`full`: lint, format, typecheck, tests, build; `assets`: build) |
+   | `lsr` | `lsr-inertia` | PHP image: `composer install`, `composer phpstan:ci`, `composer cs`, `composer test`; Node image: `pnpm` install, `eslint`, `format:check`, `tsc`, `test`, `build` |
+   | `astro` | `astro-static`, `astro-cms-frontend`, `astro-ssr` | Node image: `pnpm` install, `eslint`, `format:check`, `check`, `test`, `build`, `verify`; `astro-cms-frontend` builds from the committed fixture (`CMS_SOURCE=fixture`) and also runs `pnpm run fixture:check` |
+   | `root` | `astro-cms` | PHP image, nothing is built: `bin/add-submodules` parses and prints its usage, and `docs/contract.md` exists and is linked from the README |
+
+   `publish` builds a pristine copy (the recorded `commit` is the commit being built) and **syncs it into `main` of
    `eSoul-cz/template-<variant>` as one commit** on top of the current tip: the commit's tree is exactly the build, its message is the
    subject of the source commit plus the line `Built from app-templates commit <sha>.`, and nothing is pushed when the tree equals the
-   tip's. Nothing is tagged. The LSR and Astro pipelines (`lsrPipeline`, `astroPipeline`) exist, but those variants join the list only with the checks their own CI runs (Composer and pnpm without Laravel, or pnpm only), which the `Check <variant>` stage does not define yet.
+   tip's. Nothing is tagged. The images are those of the variants' own pipelines (the PHP and Node testing images).
 
    `bin/templates publish <variant> --dry-run` builds and compares with the remote without pushing; `--repo`, `--branch`, `--message`
    and `--commit` override the defaults (`https://github.com/<package>.git`, `main`, the source commit's subject, `HEAD`). With
@@ -287,7 +296,7 @@ template, applies the entries that affect the project's variant and layers, foll
   from its own template: `laravel-cms` (backend), `astro-cms-frontend` and the thin root `astro-cms` (documentation, the contract, the
   NGINX example and `bin/add-submodules`, which adds the other two as submodules). Each repository has its own `esoul-guidelines.json`,
   Jenkinsfile and pipeline (D-22 is reversed); the Jenkinsfiles are one call of `astroPipeline` (`astro-cms-frontend`: image mode with the
-  CMS publish callback; `astro-static`: static mode).
+  CMS publish callback; `astro-static`: static mode; `astro-ssr`: image mode with `useVerifiedBuild: false`, its image builds from source).
   - The admin lives on the site's domain under `/admin` (default) or on `admin.<domain>`; `docker/nginx.example` holds both server layouts
     (Mode B commented) and the root README explains how to choose (decision D-17). No code differs: only nginx, `APP_URL`, and the
     `CMS_API_URL` and `cms.callbackUrl` of the frontend Jenkinsfile.

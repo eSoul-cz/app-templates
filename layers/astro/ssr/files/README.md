@@ -38,7 +38,8 @@ pnpm dev                                   # http://localhost:4321, admin at /ad
 | `pnpm test:e2e`                | Playwright against the built server (`pnpm build` first); every spec file starts its own server                |
 
 The read-only checks, in the order Jenkins runs them: `pnpm audit`, `pnpm eslint`, `pnpm format:check`, `pnpm check`, `pnpm test`,
-`pnpm build`, `pnpm verify`, then `pnpm test:e2e`. `pnpm audit` ignores only the advisories listed with a reason and a review date in
+`pnpm build`, `pnpm verify`; `pnpm test:e2e` runs locally (`pnpm build` first), the pipeline runs it only in a pinned Playwright image
+(see the `Jenkinsfile`). `pnpm audit` ignores only the advisories listed with a reason and a review date in
 `pnpm-workspace.yaml`, next to `minimumReleaseAge` and the `allowBuilds` list.
 
 ## Settings
@@ -150,13 +151,13 @@ bind-mounted at `/app/data`, and the host NGINX proxies to it.
   (`docker cp`). Where there is no such hook, set `CLIENT_COPY_DIR` (for example `/app/client-out`, bind-mounted from the host): the
   entrypoint copies `dist/client` there on every start, so a new image never leaves the old files behind.
 - **Build argument `SITE_URL`.** `security.allowedDomains` is baked into the server build, so `SITE_URL` is passed to
-  `docker build --build-arg SITE_URL=https://example.com` (the `Jenkinsfile` does, per deploy rule) and stays the runtime default.
+  `docker build --build-arg SITE_URL=https://example.com` (the `Jenkinsfile` does, as `buildArgs`) and stays the runtime default.
   `pnpm verify` fails when the baked domain does not match `SITE_URL`. Secrets are never build arguments.
 - `docker-compose.yml` is for a local smoke test of the image (`docker compose up --build`); the deployed stack is rendered from the
   manifest `apps/<client>/<name>.yaml` (`shape: node-http`) of the infrastructure repository, with `SESSION_SECRET` as a secret.
-- `Jenkinsfile`: the `Checks` stage (install, `pnpm audit`, ESLint, Prettier, `astro check`, Vitest, build, `pnpm verify`; the e2e
-  specs on demand), then `dockerBuildMultiArch` and `deployKomodoStack` for the branches of `deployRules`. A one-call `astroPipeline`
-  step is planned in the Jenkins libraries; until then the file composes the existing steps.
+- `Jenkinsfile`: one call of `astroPipeline` in image mode with `useVerifiedBuild: false` (this image builds from source): the checks
+  (install, `pnpm audit`, ESLint, Prettier, `astro check`, Vitest, build, `pnpm verify`), then `dockerBuildMultiArch` and
+  `deployKomodoStack` for the deploy branches. One origin (`SITE_URL`), one tag set and one stack per job.
 
 ### Host NGINX
 

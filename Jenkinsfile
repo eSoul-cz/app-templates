@@ -1,15 +1,26 @@
 @Library(['testing', 'dockerHelpers', 'pipelines']) _
 
-// The variants that are published to eSoul-cz/template-<variant> from `main`, in one place. `wayfinder` says
-// whether the variant has Laravel Wayfinder (routes are generated before the JS build) and `js` which JS checks
-// its own CI runs: `full` (eslint, prettier, typecheck, tests, build) or `assets` (the asset build only).
-// The LSR and Astro variants (`lsrPipeline` and `astroPipeline` exist) are added here only together with a check stage for their own CI:
-// the `Check <variant>` stage below runs the Laravel checks (artisan, Wayfinder), which they do not have (README, "Publishing flow").
+// The variants that are published to eSoul-cz/template-<variant> from `main`, in one place. `kind` says which checks the variant's own
+// CI runs (defined once in `variantChecks` below):
+//   laravel  composer install, artisan setup, PHPStan, code style, tests and the JS checks; `wayfinder` says whether the variant has
+//            Laravel Wayfinder (routes are generated before the JS build) and `js` which JS checks its own CI runs: `full` (audit,
+//            eslint, prettier, typecheck, tests, build) or `assets` (audit and the asset build only).
+//   lsr      the same for an LSR application (Composer and pnpm, no Laravel): PHPStan, code style, tests, then the JS checks.
+//   astro    pnpm only: eslint, prettier, `astro check`, tests, build and `pnpm verify`. `env` is added to the check container and
+//            `extra` is a list of further commands (the contract check of the CMS frontend).
+//   root     no build: the monorepo root of `astro-cms` ships a script and the contract document, so those are checked.
 def publishable = [
-    'laravel-inertia'         : [wayfinder: true, js: 'full'],
-    'laravel-filament'        : [wayfinder: false, js: 'assets'],
-    'laravel-inertia-filament': [wayfinder: true, js: 'full'],
-    'laravel-lunar'           : [wayfinder: true, js: 'full'],
+    'laravel-inertia'         : [kind: 'laravel', wayfinder: true, js: 'full'],
+    'laravel-filament'        : [kind: 'laravel', wayfinder: false, js: 'assets'],
+    'laravel-inertia-filament': [kind: 'laravel', wayfinder: true, js: 'full'],
+    'laravel-lunar'           : [kind: 'laravel', wayfinder: true, js: 'full'],
+    'laravel-cms'             : [kind: 'laravel', wayfinder: false, js: 'assets'],
+    'lsr-inertia'             : [kind: 'lsr'],
+    'astro-static'            : [kind: 'astro'],
+    // Builds from the committed fixture (the pipeline's `checkEnv`), never from a backend.
+    'astro-cms-frontend'      : [kind: 'astro', env: [CMS_SOURCE: 'fixture'], extra: ['pnpm run fixture:check']],
+    'astro-ssr'               : [kind: 'astro'],
+    'astro-cms'               : [kind: 'root'],
 ]
 
 // The builder only: composer validation, PHPStan, code style, audit and tests, and `build --all` on every pull request.
@@ -40,11 +51,8 @@ def publishVariants(Map publishable) {
     def nodeImage = "${registry}/node:26"
     def checks = 'build/checks'
 
-    // The JS checks of the variants' own CI (`laravelPipeline` defaults), with the audit unfiltered as the dependencies guideline asks.
-    def jsCommands = [
-        full  : 'pnpm install --no-frozen-lockfile && pnpm audit && pnpm run eslint && pnpm run format:check && pnpm run tsc && pnpm run test --maxWorkers=1 --testTimeout=10000 && pnpm run build',
-        assets: 'pnpm install --no-frozen-lockfile && pnpm audit && pnpm run build',
-    ]
+    // The container images of the checks, as the variants' own pipelines use them (`laravelPipeline`, `lsrPipeline`, `astroPipeline`).
+    def images = [php: phpImage, node: nodeImage]
 
     node {
         try {
@@ -73,21 +81,14 @@ def publishVariants(Map publishable) {
                     stage("Check ${name}") {
                         runCommandInTest(image: phpImage, command: "php bin/templates build ${name} --out=${checks} --commit=${sourceCommit}".toString())
 
-                        def prepare = 'cp .env.example .env && php artisan key:generate --ansi && php artisan config:clear'
-                        if (variant.wayfinder) {
-                            prepare += ' && php artisan wayfinder:generate'
+                        for (Map check : variantChecks(variant)) {
+                            runCommandInTest(
+                                image: images[check.image],
+                                workspace: "${env.WORKSPACE}/${checks}/${name}".toString(),
+                                command: check.command,
+                                env: check.env ?: [:],
+                            )
                         }
-                        runCommandInTest(
-                            image: phpImage,
-                            workspace: "${env.WORKSPACE}/${checks}/${name}".toString(),
-                            command: "composer install --no-interaction --no-progress --optimize-autoloader && ${prepare} && composer run phpstan && composer run cs && composer run test".toString(),
-                        )
-                        runCommandInTest(
-                            image: nodeImage,
-                            workspace: "${env.WORKSPACE}/${checks}/${name}".toString(),
-                            command: jsCommands[variant.js],
-                            env: [WAYFINDER_TYPES_PREGENERATED: 'true', CI: 'true'],
-                        )
                     }
                 }
 
@@ -113,5 +114,55 @@ def publishVariants(Map publishable) {
             sh 'sudo /usr/local/sbin/jenkins-fix-workspace "$WORKSPACE" || true'
             cleanWs()
         }
+    }
+}
+
+/**
+ * The checks of one publishable variant, run in order in its built directory: a list of [image: 'php' | 'node', command: ..., env: ...].
+ * The commands are the ones the variant's own CI runs; a template has no lock file, so pnpm installs with `--no-frozen-lockfile`
+ * (the audit stays unfiltered, as the dependencies guideline asks). A command is embedded in `docker run ... /bin/sh -c "<command>"`
+ * by `runCommandInTest`: it must not hold a double quote, a dollar sign or a backtick.
+ */
+def variantChecks(Map variant) {
+    def pnpmInstall = 'pnpm install --no-frozen-lockfile'
+    def composerInstall = 'composer install --no-interaction --no-progress --optimize-autoloader'
+
+    switch (variant.kind) {
+        case 'laravel':
+            // The JS checks of `laravelPipeline` (its defaults).
+            def jsCommands = [
+                full  : "${pnpmInstall} && pnpm audit && pnpm run eslint && pnpm run format:check && pnpm run tsc && pnpm run test --maxWorkers=1 --testTimeout=10000 && pnpm run build",
+                assets: "${pnpmInstall} && pnpm audit && pnpm run build",
+            ]
+            def prepare = 'cp .env.example .env && php artisan key:generate --ansi && php artisan config:clear'
+            if (variant.wayfinder) {
+                prepare += ' && php artisan wayfinder:generate'
+            }
+            return [
+                [image: 'php', command: "${composerInstall} && ${prepare} && composer run phpstan && composer run cs && composer run test".toString()],
+                [image: 'node', command: jsCommands[variant.js].toString(), env: [WAYFINDER_TYPES_PREGENERATED: 'true', CI: 'true']],
+            ]
+        case 'lsr':
+            // `lsrPipeline` defaults: Composer scripts phpstan:ci, cs, test; pnpm scripts eslint, format:check, tsc, test, build.
+            return [
+                [image: 'php', command: "${composerInstall} && composer phpstan:ci && composer cs && composer test".toString()],
+                [image: 'node', command: "${pnpmInstall} && pnpm eslint && pnpm format:check && pnpm tsc && pnpm test && pnpm build".toString(), env: [CI: 'true']],
+            ]
+        case 'astro':
+            // `astroPipeline` checks (every Astro variant has all of these scripts); the variant's `env` and `extra` commands come last.
+            def commands = [pnpmInstall, 'pnpm eslint', 'pnpm format:check', 'pnpm check', 'pnpm test', 'pnpm build', 'pnpm verify']
+            for (String extra : (variant.extra ?: [])) {
+                commands << extra
+            }
+            return [
+                [image: 'node', command: commands.join(' && '), env: [CI: 'true'] + (variant.env ?: [:])],
+            ]
+        case 'root':
+            // Nothing to build: the script prints its usage (and exits 2) without arguments, and the README names the contract file.
+            return [
+                [image: 'php', command: "sh -n bin/add-submodules && sh bin/add-submodules 2>&1 | grep -q 'Usage: sh bin/add-submodules' && test -s docs/contract.md && grep -q 'docs/contract.md' README.md"],
+            ]
+        default:
+            error("Unknown kind '${variant.kind}' of a publishable variant")
     }
 }

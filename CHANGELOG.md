@@ -26,6 +26,22 @@ Migration: what an existing project must do (or "none").
 
 ## Unreleased
 
+### 2026-11-23: Every variant is published; the `Check <variant>` stage knows four kinds of checks
+
+Affects: every variant (publishing: `lsr-inertia`, `laravel-cms`, `astro-static`, `astro-cms-frontend`, `astro-cms`, `astro-ssr` join the list); the builder (`Jenkinsfile`).
+
+The `publishable` list of the builder `Jenkinsfile` now holds every variant. Each entry declares its `kind`, and one function (`variantChecks`) defines the checks of a kind, in the PHP or Node testing image: `laravel` (as before; `laravel-cms` is one, asset build only), `lsr` (`composer install`, `phpstan:ci`, `cs`, `test`, then `pnpm` install, `eslint`, `format:check`, `tsc`, `test`, `build`), `astro` (`pnpm` install, `eslint`, `format:check`, `check`, `test`, `build`, `verify`; `astro-cms-frontend` builds from the committed fixture with `CMS_SOURCE=fixture` and adds `pnpm run fixture:check`) and `root` (`astro-cms`: `bin/add-submodules` parses and prints its usage, `docs/contract.md` exists and is linked from the README). `pnpm` installs with `--no-frozen-lockfile` because a template has no lock file. Publishing still needs the empty `eSoul-cz/template-<variant>` repositories, their Packagist packages and webhooks (README, "Publishing flow").
+
+Migration: none for a project; the repositories `template-lsr-inertia`, `template-laravel-cms`, `template-astro-static`, `template-astro-cms-frontend`, `template-astro-cms` and `template-astro-ssr` must exist and accept pushes from the `github-app-esoul` installation before the next build of `main`, or that build fails at `Publish variants`.
+
+### 2026-11-23: `astro-ssr` uses the one-call `astroPipeline`
+
+Affects: `astro-ssr` / layer `astro/ssr` (`Jenkinsfile`, `README.md`).
+
+The composed scripted pipeline is replaced by one call of `astroPipeline` in image mode with `useVerifiedBuild: false` (the `Dockerfile` builds from source, target `production`, with the build argument `SITE_URL`, which `buildArgs` and `env` set to the same origin). The checks are the step's: install, audit, lint, format, `pnpm check`, tests, build, `pnpm verify`, then the multi-architecture image and the Komodo deployment. What the step does not offer: a `siteUrl` and tag set per deploy rule (one origin, the tags `latest` plus Git tags and one stack per job; a second environment with its own domain is a second job) and the `RUN_E2E` parameter (the Playwright specs run in the pipeline only with `checks.smoke` and a pinned Playwright image; otherwise locally with `pnpm build && pnpm test:e2e`).
+
+Migration: replace `Jenkinsfile` with the template's, keep your values (`image`, `stack`, the origin in `env` and `buildArgs`, deploy branches), and add the `pipelines` library to the job (`@Library(['dockerHelpers', 'testing', 'deploy', 'pipelines'])`). A project with several deploy rules (staging and production on different domains) keeps its composed Jenkinsfile.
+
 ### 2026-11-23: Render guidelines 0.3.1
 
 Affects: every variant / every layer that renders the guidelines; the builder.

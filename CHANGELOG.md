@@ -26,6 +26,14 @@ Migration: what an existing project must do (or "none").
 
 ## Unreleased
 
+### 2026-11-23: Render guidelines 0.3.4
+
+Affects: every variant / every layer that renders the guidelines; the builder.
+
+The builder renders with `esoul-cz/guidelines` v0.3.4: the skill `esoul-review` replaces `final-pr-review` and `pre-pr-review` (`code-review.md`, `workflow.md`); the issue-first rule has an exception for small administrative work (`workflow.md`); a new project's issue, task and pull request share one English title, while a project with Czech tracker titles keeps them and gets an English commit-style pull request title (`workflow.md`); a gitignored local folder `_reference/` MAY hold non-anonymised client material (`security-and-data.md`); a project MAY name its decision register in `CONTEXT.md` (`documentation.md`, `domain.md`). The rendered `docs/project_guidelines/` change accordingly.
+
+Migration: run `esoul-guidelines sync` once (after `composer update esoul-cz/guidelines`) and commit the changed `esoul-guidelines.lock` and `docs/project_guidelines/`.
+
 ### 2026-11-23: Astro projects run `esoul-guidelines` without PHP, and CI checks it
 
 Affects: `astro-static`, `astro-cms-frontend`, `astro-ssr` / layers `astro/static`, `astro/cms-client`, `astro/ssr` (`README.md`, `Jenkinsfile`); `astro-cms` / layer `astro-cms/root` (`README.md`).

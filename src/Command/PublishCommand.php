@@ -82,7 +82,8 @@ final class PublishCommand extends Command
 
         try {
             $variant = $catalog->variant($name);
-            $repo = is_string($repo) ? $repo : sprintf('https://github.com/%s.git', $variant->package);
+            // The Composer vendor is lowercase (`esoul-cz`); the GitHub organisation is `eSoul-cz`, which avoids GitHub's "repository moved" redirect.
+            $repo = is_string($repo) ? $repo : sprintf('https://github.com/eSoul-cz/%s.git', basename($variant->package));
             $message = is_string($message) ? $message : ($source->subject($commit) ?? sprintf('Sync %s from app-templates %s', $name, substr($commit, 0, 7)));
 
             // Always a fresh build: what is published is never a directory the variant's own checks have installed into.

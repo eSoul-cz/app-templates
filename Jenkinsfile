@@ -25,12 +25,17 @@ def publishable = [
 
 // The builder only: composer validation, PHPStan, code style, audit and tests, and `build --all` on every pull request.
 // A fixed --commit keeps that build independent of git inside the test container.
+// These checks may run on the Quick node (label quick, reserved for the quick jobs of the infrastructure repositories)
+// or on a general one, whichever has a free executor, and have to end within the 15 minutes that node allows.
+// Publishing below asks for its own node and is not bound by that.
 phpPackagePipeline(
     additionalTests: [[name: 'Build all variants', command: 'php bin/templates build --all --commit=0000000']],
     matrix: [
         [name: 'PHP 8.4', image: 'php:8.4', update: ''],
         [name: 'PHP 8.6', image: 'php:8.6', update: ''],
     ],
+    nodeLabel: 'quick',
+    nodeLabelFallback: 'general',
 )
 
 // Publishing runs only for `main` (never for a change request) and only after the builder checks above passed.

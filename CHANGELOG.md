@@ -26,6 +26,14 @@ Migration: what an existing project must do (or "none").
 
 ## Unreleased
 
+### 2026-11-24: Laravel variants ignore `boost.json` and `.mcp.json`
+
+Affects: `laravel-inertia`, `laravel-filament`, `laravel-inertia-filament`, `laravel-lunar`, `laravel-cms` / layer `laravel/base` (`.gitignore`).
+
+`framework/laravel/tools.md` of the guidelines says Laravel Boost's `boost.json` and `.mcp.json` are gitignored (every developer runs `php artisan boost:install` once after cloning), but the template `.gitignore` did not list them, so the first `boost:install` left two untracked files that were easy to commit by accident. Both are now ignored.
+
+Migration: add `/boost.json` and `/.mcp.json` to the project's `.gitignore`; when one of them is already committed, remove it from the index (`git rm --cached boost.json .mcp.json`).
+
 ### 2026-11-24: The `astro-cms` setup commands name `dev-main`
 
 Affects: `astro-cms` / layer `astro-cms/root` (`README.md`).

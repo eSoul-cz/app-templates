@@ -134,9 +134,9 @@ rules). Each stack layer adds its guideline layers through its own `merge/esoul-
 Only existing guideline layers may be listed (`laravel-lunar` lists `package/filament` and `package/lunar`).
 
 Every layer that ships a framework `composer.json` (the Laravel layers, `lsr/base`, the Astro CMS root) requires `esoul-cz/guidelines`
-`^0.4` and adds `"esoul-guidelines sync"` to `scripts.post-update-cmd`, after Laravel Boost's `boost:update` where there is one, so
-`composer update` re-renders `docs/project_guidelines/` (the installer README, "Sync on `composer update`"). Under 0.x `^0.4` stops before
-0.5.0: the builder's own constraint and the layers' are raised together with each minor.
+`^0.5` and adds `"esoul-guidelines sync"` to `scripts.post-update-cmd`, after Laravel Boost's `boost:update` where there is one, so
+`composer update` re-renders `docs/project_guidelines/` (the installer README, "Sync on `composer update`"). Under 0.x `^0.5` stops before
+0.6.0: the builder's own constraint and the layers' are raised together with each minor.
 
 ### The `laravel/skeleton` layer
 
@@ -289,7 +289,7 @@ project's; the skill resolves conflicts with them, it does not overwrite them.
 - `skeleton:sync` formats the synced skeleton with Pint using `layers/laravel/base/files/pint.json` (Pint is installed into a temp dir),
   so untouched upstream files pass the base layer's `composer cs`; it skips the step when that file does not exist.
 - Laravel layers (`laravel/base`, `inertia-vue`, `filament`, `lunar`):
-  - `esoul-cz/guidelines` (`require-dev ^0.4`) comes from Packagist. It is not a Composer plugin: `post-update-cmd` runs `esoul-guidelines sync`.
+  - `esoul-cz/guidelines` (`require-dev ^0.5`) comes from Packagist. It is not a Composer plugin: `post-update-cmd` runs `esoul-guidelines sync`.
   - `bootstrap/providers.php` is an explicit list owned by the LAST layer of a variant that touches it (base: `AppServiceProvider`;
     filament and `laravel/cms` overwrite it). No provider auto-discovery.
   - Layout follows the `framework/laravel` guideline: Eloquent models (including `User`) in `App\Infrastructure\Models`, controllers in

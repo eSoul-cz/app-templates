@@ -26,6 +26,14 @@ Migration: what an existing project must do (or "none").
 
 ## Unreleased
 
+### 2026-11-24: Render guidelines 0.5.0
+
+Affects: every variant / every layer that renders the guidelines (`workflow.md`, `documentation.md`, `domain.md`, `dependencies.md`, `deployment.md` and, per stack, `tools.md` of the Laravel, LSR, Astro and Laravel-Inertia layers); the layers that require the package (`laravel/base`, `lsr/base`, `astro-cms/root`) now require `^0.5`; the builder.
+
+The builder and the variants render with `esoul-cz/guidelines` v0.5.0. The title shape is `Context: Result` and the commit standard is the developer's own; a section "Hotfix" (workflow), a Rollback bullet (deployment), a section "Project exceptions" (documentation: a rule the project deliberately does not follow is recorded in `esoul-guidelines.json` `exceptions` with the accepted ADR, and `esoul-guidelines check` validates it), the recorded small-admin decision (workflow), numbers and calculations only from the client's materials (domain), known pitfalls in the Laravel, LSR, Astro and Laravel-Inertia `tools.md`, and the `Guidelines check` stage of `laravelPipeline`, `lsrPipeline` and `astroPipeline` (deployment; `testDockerBuild: [noCache: true]` is no longer offered).
+
+Migration: raise the constraint and update in one command, `composer require --dev esoul-cz/guidelines:^0.5 -W`: below 1.0 `^0.4` stops before 0.5.0, so `composer update esoul-cz/guidelines` alone leaves the project on 0.4.x. The command runs the `post-update-cmd` (`esoul-guidelines sync`); commit `composer.json`, `composer.lock`, the changed `esoul-guidelines.lock` and `docs/project_guidelines/`. A repository without Composer syncs with the v0.5.0 PHAR or image.
+
 ### 2026-11-24: "Getting started" names `git lfs pull`, GitHub and Komodo, and treats the skills as committed
 
 Affects: every variant / layers `common` (`CONTEXT.md`), `laravel/base`, `lsr/base`, `astro/static`, `astro/ssr`, `astro/cms-client`, `astro-cms/root` (`README.md`).

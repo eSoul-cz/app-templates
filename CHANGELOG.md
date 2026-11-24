@@ -26,6 +26,14 @@ Migration: what an existing project must do (or "none").
 
 ## Unreleased
 
+### 2026-11-24: The commit convention in CONTEXT.md says Gitmoji is recommended
+
+Affects: every variant / layer `common` (`CONTEXT.md`, section "Commit convention"); this repository's own `CONTEXT.md`.
+
+The section states what the guidelines require (commit messages are English and describe what the commit does) and that the project uses the recommended Gitmoji format, which a developer MAY replace with their own commit standard; the agents of a developer who has none use the Gitmoji format. The example and the format rules stay.
+
+Migration: a project created earlier replaces the first paragraph and the last paragraph of its "Commit convention" section with the new wording, or records its own convention there.
+
 ### 2026-11-24: Renovate commits carry a Gitmoji prefix
 
 Affects: every variant / layer `common` (`renovate.json5`).

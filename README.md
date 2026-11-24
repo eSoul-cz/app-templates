@@ -250,7 +250,7 @@ template, applies the entries that affect the project's variant and layers, foll
 - `skeleton:sync` formats the synced skeleton with Pint using `layers/laravel/base/files/pint.json` (Pint is installed into a temp dir),
   so untouched upstream files pass the base layer's `composer cs`; it skips the step when that file does not exist.
 - Laravel layers (`laravel/base`, `inertia-vue`, `filament`, `lunar`):
-  - `esoul-cz/guidelines` (`require-dev ^0.2`) comes from Packagist. It is not a Composer plugin: `post-update-cmd` runs `esoul-guidelines sync`.
+  - `esoul-cz/guidelines` (`require-dev ^0.4`) comes from Packagist. It is not a Composer plugin: `post-update-cmd` runs `esoul-guidelines sync`.
   - `bootstrap/providers.php` is an explicit list owned by the LAST layer of a variant that touches it (base: `AppServiceProvider`;
     filament and `laravel/cms` overwrite it). No provider auto-discovery.
   - Layout follows the `framework/laravel` guideline: Eloquent models (including `User`) in `App\Infrastructure\Models`, controllers in

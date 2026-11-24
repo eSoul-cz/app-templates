@@ -26,6 +26,14 @@ Migration: what an existing project must do (or "none").
 
 ## Unreleased
 
+### 2026-11-24: Render guidelines 0.4.0
+
+Affects: every variant / every layer that renders the guidelines (`workflow.md`, `code-review.md`, `documentation.md` and, per stack, `architecture.md`, `requests-and-validation.md` and the Inertia-Vue `frontend.md`); the layers that require the package (`laravel/base`, `lsr/base`, `astro-cms/root`) now require `^0.4`; the builder.
+
+The builder and the variants render with `esoul-cz/guidelines` v0.4.0. Gitmoji is a recommended commit format: English, descriptive commit messages and pull request titles are required, a developer may use their own commit standard. New rules: a section "Fixing a bug" (workflow), the server-boundary and one-source-of-truth findings (code review), "Code comments" (documentation), "Schema changes only in migrations" and "Queries that stay correct on real data" (Laravel; the queries section also in LSR), "Partial updates: not sent or cleared" (Laravel requests) and composables with module-level state (Inertia-Vue frontend).
+
+Migration: `composer update esoul-cz/guidelines` (the constraint is `^0.4`), `esoul-guidelines sync`, commit the changed `esoul-guidelines.lock` and `docs/project_guidelines/`.
+
 ### 2026-11-24: The commit convention in CONTEXT.md says Gitmoji is recommended
 
 Affects: every variant / layer `common` (`CONTEXT.md`, section "Commit convention"); this repository's own `CONTEXT.md`.

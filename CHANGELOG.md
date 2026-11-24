@@ -26,6 +26,14 @@ Migration: what an existing project must do (or "none").
 
 ## Unreleased
 
+### 2026-11-24: Renovate commits carry a Gitmoji prefix
+
+Affects: every variant / layer `common` (`renovate.json5`).
+
+Renovate pull requests and their squash commits start with `:arrow_up: [deps]` (`commitMessagePrefix`, with `semanticCommits` disabled so the prefix is not replaced by a semantic one), for example `:arrow_up: [deps] Update dependency x to v2`, the recommended Gitmoji format of the guidelines.
+
+Migration: copy `commitMessagePrefix: ':arrow_up: [deps]'` and `semanticCommits: 'disabled'` into the project's `renovate.json5`; a project with its own commit standard sets its own prefix instead.
+
 ### 2026-11-24: Render guidelines 0.3.5
 
 Affects: every variant / every layer that renders the guidelines (the Laravel and Lunar variants change in `architecture.md`); the builder.

@@ -26,6 +26,14 @@ Migration: what an existing project must do (or "none").
 
 ## Unreleased
 
+### 2026-11-24: `.esoul/template.json` gains a `declined` list
+
+Affects: every variant / every layer (`.esoul/template.json`, written by the builder); the builder; `README.md` ("Updating existing projects").
+
+The builder writes `"declined": []` next to `variant` and `commit`. A project lists the changelog entries it deliberately never takes there (`{"title": "<entry title without the date>", "reason": "<why>"}`); the update skill skips them instead of offering them on every run, and they no longer hold back the recorded `commit`. A record without the key means the same.
+
+Migration: none. Add an entry to `declined` only when the project decides never to apply it; the update skill offers to do so when the user declines an entry.
+
 ### 2026-11-24: Render guidelines 0.4.0
 
 Affects: every variant / every layer that renders the guidelines (`workflow.md`, `code-review.md`, `documentation.md` and, per stack, `architecture.md`, `requests-and-validation.md` and the Inertia-Vue `frontend.md`); the layers that require the package (`laravel/base`, `lsr/base`, `astro-cms/root`) now require `^0.4`; the builder.

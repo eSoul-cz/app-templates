@@ -42,7 +42,7 @@ final readonly class Builder
      * Build one variant into `<outDir>/<variant name>` (cleaned first) and return that path.
      *
      * @param string|null $commit app-templates source commit the variant is built from; when set,
-     *                            `.esoul/template.json` {variant, commit} is written into the result
+     *                            `.esoul/template.json` {variant, commit, declined: []} is written into the result
      */
     public function build(string $variantName, string $outDir, ?string $commit = null): string {
         $variant = $this->catalog->variant($variantName);
@@ -69,7 +69,7 @@ final readonly class Builder
         if ($commit !== null) {
             $this->fs->dumpFile(
                 $target . '/.esoul/template.json',
-                JsonMerger::encode(['variant' => $variant->name, 'commit' => $commit]),
+                JsonMerger::encode(['variant' => $variant->name, 'commit' => $commit, 'declined' => []]),
             );
         }
 

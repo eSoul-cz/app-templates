@@ -264,7 +264,7 @@ final class BuilderTest extends BuilderTestCase
         $out = new Builder(new Catalog($this->root))->build('demo', $this->root . '/build', '0123456789abcdef0123456789abcdef01234567');
 
         self::assertSame(
-            ['variant' => 'demo', 'commit' => '0123456789abcdef0123456789abcdef01234567'],
+            ['variant' => 'demo', 'commit' => '0123456789abcdef0123456789abcdef01234567', 'declined' => []],
             $this->json($out, '.esoul/template.json'),
         );
     }

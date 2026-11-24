@@ -32,7 +32,7 @@ final class BuildCommandTest extends BuilderTestCase
         $tester = $this->runBuild(['--commit' => 'abc1234']);
 
         self::assertSame(Command::SUCCESS, $tester->getStatusCode());
-        self::assertSame(['variant' => 'demo', 'commit' => 'abc1234'], $this->json($this->root . '/build/demo', '.esoul/template.json'));
+        self::assertSame(['variant' => 'demo', 'commit' => 'abc1234', 'declined' => []], $this->json($this->root . '/build/demo', '.esoul/template.json'));
     }
 
     public function test_commit_must_look_like_a_git_hash(): void {
@@ -64,7 +64,7 @@ final class BuildCommandTest extends BuilderTestCase
         $this->runBuild([]);
 
         self::assertSame(
-            ['variant' => 'demo', 'commit' => trim($head->getOutput())],
+            ['variant' => 'demo', 'commit' => trim($head->getOutput()), 'declined' => []],
             $this->json($this->root . '/build/demo', '.esoul/template.json'),
         );
     }

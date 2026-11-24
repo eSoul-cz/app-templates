@@ -83,9 +83,10 @@ composer script; `exclude` globs are relative to the layer's `files/`, `merge/` 
 
 After all layers, the builder **stamps the root `composer.json`** with the variant's `name` and `description` (the file is created
 with `type: project` if no layer ships one, which is the case for the variants without PHP, e.g. `astro-static`).
-It also writes `.esoul/template.json` (`{"variant": "...", "commit": "<sha>"}`): `commit` is the app-templates source commit the variant was
+It also writes `.esoul/template.json` (`{"variant": "...", "commit": "<sha>", "declined": []}`): `commit` is the app-templates source commit the variant was
 built from, `--commit=<sha>` (7 to 40 hex characters) or, by default, `git rev-parse HEAD` of this repository. When this directory is not
-the top level of a git checkout (and no `--commit` is given) nothing is recorded.
+the top level of a git checkout (and no `--commit` is given) nothing is recorded. `declined` is the project's own list, empty at creation
+(see "Updating existing projects").
 
 The stamp also **prepends two steps to `scripts.post-create-project-cmd`** (list-union with the layers' own steps, e.g. Laravel's
 `key:generate`, which keep running after them), because a project created from a template is no longer the MIT template (see
@@ -212,18 +213,34 @@ guidelines say. Entries from before the section existed are `## YYYY-MM-DD: shor
 
 ## Updating existing projects
 
-A project records where it came from in `.esoul/template.json` (`{"variant": "laravel-inertia", "commit": "<sha>"}`, written by every
-build). Updating is done by an agent skill (planned, to be written in `eSoul-cz/skills`): it reads the entries of `CHANGELOG.md` in this
+A project records where it came from in `.esoul/template.json`, written by every build:
+
+```json
+{
+    "variant": "laravel-inertia",
+    "commit": "<sha>",
+    "declined": [{"title": "Adopt the new split shape", "reason": "The project keeps its own layout; decided in ADR 0007."}]
+}
+```
+
+`variant` is the template the project follows and `commit` the last app-templates source commit it has caught up with. `declined` lists
+the changelog entries the project deliberately never takes: `title` is the entry heading without its date, `reason` says why (one
+sentence, a link to the decision when there is one). A fresh build has `"declined": []`; a record without the key means the same, and a
+record with a `version` key or no `commit` is an old one that the update skill re-adopts.
+
+Updating is done by the `esoul-project-update` skill of `eSoul-cz/skills`: it reads the entries of `CHANGELOG.md` in this
 repository (`eSoul-cz/app-templates`) added after the recorded `commit` (variant repositories do not ship the changelog), pulls the latest
-template, applies the entries that affect the project's variant and layers, follows their migration notes, and writes the new `commit` into
-`.esoul/template.json`. Project customisations stay the project's; the skill resolves conflicts with them, it does not overwrite them.
+template, applies the entries that affect the project's variant and layers (skipping the `declined` ones, and offering to add an entry
+to that list when the user declines it), follows their migration notes, and writes the new `commit` into `.esoul/template.json`. Changes
+committed to a variant after the newest changelog entry are offered as an "unlisted changes" entry. Project customisations stay the
+project's; the skill resolves conflicts with them, it does not overwrite them.
 
 ## Design notes
 
 - Composer name, namespace and PHP constraint of the builder: `esoul-cz/app-templates`, `ESoul\AppTemplates`, PHP `^8.4` (dev runs 8.5).
   Symfony components are allowed `^7.3 || ^8.0`; PHPUnit `^12.0 || ^13.0`. `symfony/process` was added for `skeleton:sync`.
 - The builder additionally stamps the root `composer.json` (`name`, `description`, `type`, `license: MIT`, the licence-handover
-  `post-create-project-cmd` steps) and writes `.esoul/template.json` (`{variant, commit}`). None of it is in the original contract; all of
+  `post-create-project-cmd` steps) and writes `.esoul/template.json` (`{variant, commit, declined}`). None of it is in the original contract; all of
   it is needed for `create-project` and the update flow. Variant repositories are public and MIT-licensed (`common` ships `LICENSE`);
   projects created from them become `proprietary` (decision D-23).
 - The composer package names stamped from `variants/*.json` use the Packagist vendor `esoul-cz` (`esoul-cz/template-<variant>`).

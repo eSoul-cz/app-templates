@@ -26,6 +26,14 @@ Migration: what an existing project must do (or "none").
 
 ## Unreleased
 
+### 2026-11-24: The `astro-cms` setup commands name `dev-main`
+
+Affects: `astro-cms` / layer `astro-cms/root` (`README.md`).
+
+The Setup section ran `composer create-project esoul-cz/template-astro-cms-frontend` and `composer create-project esoul-cz/template-laravel-cms` without a version. Every variant is published as `dev-main` only, so Composer found no stable version and refused. The commands now end in `:dev-main`.
+
+Migration: none.
+
 ### 2026-11-24: The Render guidelines migrations name the constraint command; the README says `^0.4`
 
 Affects: documentation only (this changelog, `README.md`); no variant or layer.

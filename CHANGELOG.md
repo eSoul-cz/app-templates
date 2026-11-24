@@ -26,6 +26,14 @@ Migration: what an existing project must do (or "none").
 
 ## Unreleased
 
+### 2026-11-24: "Getting started" names `git lfs pull`, GitHub and Komodo, and treats the skills as committed
+
+Affects: every variant / layers `common` (`CONTEXT.md`), `laravel/base`, `lsr/base`, `astro/static`, `astro/ssr`, `astro/cms-client`, `astro-cms/root` (`README.md`).
+
+Step 1 adds `git lfs pull` where the project keeps `assets/` or `.pen` files in LFS, step 2 says the project commits `skills-lock.json` and `.agents/skills/` (so the skills come with the clone and `npx skills experimental_install` only restores or refreshes them), and the access list of step 4 now names the GitHub repository and Komodo (read-only) next to Freelo, Jenkins and 1Password.
+
+Migration: optional. Take the three changed lines into the project's `README.md` and `CONTEXT.md`; a project that does not want them lists the entry as declined.
+
 ### 2026-11-24: A "Getting started" section in every README and in `CONTEXT.md`
 
 Affects: every variant / layers `common` (`CONTEXT.md`), `laravel/base`, `lsr/base`, `astro/static`, `astro/ssr`, `astro/cms-client`, `astro-cms/root` (`README.md`; the other Laravel variants inherit `laravel/base`).

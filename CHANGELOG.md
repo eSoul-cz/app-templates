@@ -26,6 +26,14 @@ Migration: what an existing project must do (or "none").
 
 ## Unreleased
 
+### 2026-11-24: The Renovate migration names the case of a project without `renovate.json5`
+
+Affects: documentation only (this changelog).
+
+The migration line of "Renovate commits carry a Gitmoji prefix" said to copy two keys into the project's `renovate.json5`, which a project that has none cannot do; it now says to create the file from the `common` layer.
+
+Migration: none.
+
 ### 2026-11-24: `laravelPipeline` and `lsrPipeline` run the guidelines check by themselves
 
 Affects: `laravel-inertia`, `laravel-filament`, `laravel-inertia-filament`, `laravel-lunar`, `laravel-cms`, `lsr-inertia` / layers `laravel/base`, `laravel/inertia-vue`, `lsr/base` (`Jenkinsfile`, comment only).
@@ -88,7 +96,7 @@ Affects: every variant / layer `common` (`renovate.json5`).
 
 Renovate pull requests and their squash commits start with `:arrow_up: [deps]` (`commitMessagePrefix`, with `semanticCommits` disabled so the prefix is not replaced by a semantic one), for example `:arrow_up: [deps] Update dependency x to v2`, the recommended Gitmoji format of the guidelines.
 
-Migration: copy `commitMessagePrefix: ':arrow_up: [deps]'` and `semanticCommits: 'disabled'` into the project's `renovate.json5`; a project with its own commit standard sets its own prefix instead.
+Migration: copy `commitMessagePrefix: ':arrow_up: [deps]'` and `semanticCommits: 'disabled'` into the project's `renovate.json5`; a project that has no `renovate.json5` creates it from the `common` layer (`layers/common/files/renovate.json5` of this repository, or the file of a freshly built variant); a project with its own commit standard sets its own prefix instead.
 
 ### 2026-11-24: Render guidelines 0.3.5
 

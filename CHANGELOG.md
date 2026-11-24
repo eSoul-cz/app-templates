@@ -26,6 +26,14 @@ Migration: what an existing project must do (or "none").
 
 ## Unreleased
 
+### 2026-11-24: `laravelPipeline` and `lsrPipeline` run the guidelines check by themselves
+
+Affects: `laravel-inertia`, `laravel-filament`, `laravel-inertia-filament`, `laravel-lunar`, `laravel-cms`, `lsr-inertia` / layers `laravel/base`, `laravel/inertia-vue`, `lsr/base` (`Jenkinsfile`, comment only).
+
+The shared pipelines now run `esoul-guidelines check` as the stage `Guidelines check` among the static checks, from the project's own `vendor/bin/esoul-guidelines` (the PHAR of the version in `esoul-guidelines.lock` when the package is not installed), whenever the project has `esoul-guidelines.lock`. The template `Jenkinsfile` needs no configuration for it and the Jenkinsfile comment says so. The Laravel and LSR `phpunit.xml` already write `.ci/junit/phpunit.xml`, which is what the pipelines publish, so nothing else changes.
+
+Migration: delete a hand-written `extraChecks` item named `Guidelines check` (`vendor/bin/esoul-guidelines check` through `runCommandInTest`); it keeps working next to the new stage, but runs the check twice. `guidelinesCheck: false` in the call opts out.
+
 ### 2026-11-24: Laravel variants ignore `boost.json` and `.mcp.json`
 
 Affects: `laravel-inertia`, `laravel-filament`, `laravel-inertia-filament`, `laravel-lunar`, `laravel-cms` / layer `laravel/base` (`.gitignore`).

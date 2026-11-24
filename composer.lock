@@ -8,16 +8,16 @@
     "packages": [
         {
             "name": "esoul-cz/guidelines",
-            "version": "v0.3.4",
+            "version": "v0.3.5",
             "source": {
                 "type": "git",
                 "url": "https://github.com/eSoul-cz/guidelines.git",
-                "reference": "bec363c8c5a2903638ed9fe30b8c8ef35968a369"
+                "reference": "8b56612522056459d6f4510ca515a83f507fdef5"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/eSoul-cz/guidelines/zipball/bec363c8c5a2903638ed9fe30b8c8ef35968a369",
-                "reference": "bec363c8c5a2903638ed9fe30b8c8ef35968a369",
+                "url": "https://api.github.com/repos/eSoul-cz/guidelines/zipball/8b56612522056459d6f4510ca515a83f507fdef5",
+                "reference": "8b56612522056459d6f4510ca515a83f507fdef5",
                 "shasum": ""
             },
             "require": {
@@ -51,10 +51,10 @@
             "description": "Layered, mergeable project guidelines for eSoul projects (Laravel, LSR, Astro) with drift detection.",
             "support": {
                 "issues": "https://github.com/eSoul-cz/guidelines/issues",
-                "source": "https://github.com/eSoul-cz/guidelines/tree/v0.3.4"
+                "source": "https://github.com/eSoul-cz/guidelines/tree/v0.3.5"
             },
-            "time": "2026-11-23T18:02:07+00:00",
-            "published-time": "2026-11-23T18:02:25+00:00"
+            "time": "2026-11-24T11:13:03+00:00",
+            "published-time": "2026-11-24T11:13:18+00:00"
         },
         {
             "name": "psr/container",

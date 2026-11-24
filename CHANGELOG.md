@@ -26,6 +26,14 @@ Migration: what an existing project must do (or "none").
 
 ## Unreleased
 
+### 2026-11-24: The Render guidelines migrations name the constraint command; the README says `^0.4`
+
+Affects: documentation only (this changelog, `README.md`); no variant or layer.
+
+Below 1.0 Composer's `^0.3` stops before 0.4.0, so the migration line of a "Render guidelines" entry that said `composer update esoul-cz/guidelines` left a project on the old minor. Each of those entries now names the command (`composer require --dev esoul-cz/guidelines:^0.4 -W` for 0.4.0), and the README no longer says the layers require `^0.3`; it also says that `astroPipeline` runs the Astro guidelines check itself instead of describing the replaced `Guidelines` item of `extraChecks`.
+
+Migration: none for a project; a project that is still on 0.3.x raises the constraint with the command of the 0.4.0 entry.
+
 ### 2026-11-24: `.esoul/template.json` gains a `declined` list
 
 Affects: every variant / every layer (`.esoul/template.json`, written by the builder); the builder; `README.md` ("Updating existing projects").
@@ -40,7 +48,7 @@ Affects: every variant / every layer that renders the guidelines (`workflow.md`,
 
 The builder and the variants render with `esoul-cz/guidelines` v0.4.0. Gitmoji is a recommended commit format: English, descriptive commit messages and pull request titles are required, a developer may use their own commit standard. New rules: a section "Fixing a bug" (workflow), the server-boundary and one-source-of-truth findings (code review), "Code comments" (documentation), "Schema changes only in migrations" and "Queries that stay correct on real data" (Laravel; the queries section also in LSR), "Partial updates: not sent or cleared" (Laravel requests) and composables with module-level state (Inertia-Vue frontend).
 
-Migration: `composer update esoul-cz/guidelines` (the constraint is `^0.4`), `esoul-guidelines sync`, commit the changed `esoul-guidelines.lock` and `docs/project_guidelines/`.
+Migration: raise the constraint and update in one command, `composer require --dev esoul-cz/guidelines:^0.4 -W`: below 1.0 `^0.3` stops before 0.4.0, so `composer update esoul-cz/guidelines` alone leaves the project on 0.3.5. The command runs the `post-update-cmd` (`esoul-guidelines sync`); commit `composer.json`, `composer.lock`, the changed `esoul-guidelines.lock` and `docs/project_guidelines/`. A repository without Composer syncs with the v0.4.0 PHAR or image.
 
 ### 2026-11-24: The commit convention in CONTEXT.md says Gitmoji is recommended
 
@@ -64,7 +72,7 @@ Affects: every variant / every layer that renders the guidelines (the Laravel an
 
 The builder renders with `esoul-cz/guidelines` v0.3.5: `architecture.md` of the Laravel layer has a section "Fixing a layer-dependency violation" (persistence or a framework call in the domain core moves into the CQRS layer, a DTO the domain logic works with becomes a value object in `App\Domain\ValueObjects\<Module>`, a handler's side effect goes behind a contract in `App\Application\Contract`; an exception to the layer rule is recorded in the project part of the file and in the layer test). The Lunar layer adds "Classes Lunar stores by name": such a class is not moved or renamed without a data migration and is a recorded exception where its location breaks the layer rules. The rendered `docs/project_guidelines/architecture.md` changes accordingly.
 
-Migration: run `esoul-guidelines sync` once (after `composer update esoul-cz/guidelines`) and commit the changed `esoul-guidelines.lock` and `docs/project_guidelines/`.
+Migration: update within `^0.3` (`composer update esoul-cz/guidelines`) or, when the constraint is older, raise it with `composer require --dev esoul-cz/guidelines:^0.3 -W`; the `post-update-cmd` runs `esoul-guidelines sync`. Commit the changed `esoul-guidelines.lock` and `docs/project_guidelines/`.
 
 ### 2026-11-23: Astro CI checks the guidelines with the version the project recorded
 
@@ -80,7 +88,7 @@ Affects: every variant / every layer that renders the guidelines; the builder.
 
 The builder renders with `esoul-cz/guidelines` v0.3.4: the skill `esoul-review` replaces `final-pr-review` and `pre-pr-review` (`code-review.md`, `workflow.md`); the issue-first rule has an exception for small administrative work (`workflow.md`); a new project's issue, task and pull request share one English title, while a project with Czech tracker titles keeps them and gets an English commit-style pull request title (`workflow.md`); a gitignored local folder `_reference/` MAY hold non-anonymised client material (`security-and-data.md`); a project MAY name its decision register in `CONTEXT.md` (`documentation.md`, `domain.md`). The rendered `docs/project_guidelines/` change accordingly.
 
-Migration: run `esoul-guidelines sync` once (after `composer update esoul-cz/guidelines`) and commit the changed `esoul-guidelines.lock` and `docs/project_guidelines/`.
+Migration: update within `^0.3` (`composer update esoul-cz/guidelines`) or, when the constraint is older, raise it with `composer require --dev esoul-cz/guidelines:^0.3 -W`; the `post-update-cmd` runs `esoul-guidelines sync`. Commit the changed `esoul-guidelines.lock` and `docs/project_guidelines/`.
 
 ### 2026-11-23: Astro projects run `esoul-guidelines` without PHP, and CI checks it
 
@@ -96,7 +104,7 @@ Affects: every variant / every layer that renders the guidelines; the builder.
 
 The builder renders with `esoul-cz/guidelines` v0.3.2: an anonymised sample of faulty records MAY go into an issue or task and exports of public data are covered by the public data exception; an agent MAY write to local data with approval, MUST NOT write to production data and SHOULD NOT write to staging data; the legacy severity names (Blocker, High, Medium, Low) map to Critical, Major, Minor, Nitpick; a committed generated PDF is removed with `git rm --cached`. The rendered `docs/project_guidelines/` (`code-review.md`, `documentation.md`, `security-and-data.md`, `workflow.md`) change accordingly.
 
-Migration: run `esoul-guidelines sync` once (after `composer update esoul-cz/guidelines`) and commit the changed `esoul-guidelines.lock` and `docs/project_guidelines/`.
+Migration: update within `^0.3` (`composer update esoul-cz/guidelines`) or, when the constraint is older, raise it with `composer require --dev esoul-cz/guidelines:^0.3 -W`; the `post-update-cmd` runs `esoul-guidelines sync`. Commit the changed `esoul-guidelines.lock` and `docs/project_guidelines/`.
 
 ### 2026-11-23: Every variant is published; the `Check <variant>` stage knows four kinds of checks
 
@@ -120,7 +128,7 @@ Affects: every variant / every layer that renders the guidelines; the builder.
 
 The builder renders with `esoul-cz/guidelines` v0.3.1 (PHAR support): the managed block of `AGENTS.md` now says to run `esoul-guidelines sync` (with `vendor/bin/esoul-guidelines sync` named for a Composer dependency), so a v0.3.0 render is reported outdated by a v0.3.1 `check`.
 
-Migration: run `esoul-guidelines sync` once (after `composer update esoul-cz/guidelines`) and commit the changed `AGENTS.md`, `esoul-guidelines.lock` and `docs/project_guidelines/`.
+Migration: update within `^0.3` (`composer update esoul-cz/guidelines`) or, when the constraint is older, raise it with `composer require --dev esoul-cz/guidelines:^0.3 -W`; the `post-update-cmd` runs `esoul-guidelines sync`. Commit the changed `AGENTS.md`, `esoul-guidelines.lock` and `docs/project_guidelines/`.
 
 ### 2026-11-23: One-call Jenkinsfiles (`lsrPipeline`, `astroPipeline`) and the verified-build image of `astro-cms-frontend`
 

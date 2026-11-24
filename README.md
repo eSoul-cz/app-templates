@@ -97,9 +97,10 @@ The stamp also **prepends two steps to `scripts.post-create-project-cmd`** (list
 Finally it **renders the project guidelines**: it runs `esoul-guidelines sync --no-interaction` (the esoul-cz/guidelines installer,
 a dependency of this repository: `vendor/bin/esoul-guidelines`, override with `--guidelines-bin`) in the variant root. Every variant therefore ships
 `docs/project_guidelines/`, the guidelines block in `AGENTS.md` and `esoul-guidelines.lock` ready-made; a project created from it
-updates them later with `composer update esoul-cz/guidelines` + `vendor/bin/esoul-guidelines sync`. The Astro frontends and the SSR application
-have no Composer dependency: their README ("Guidelines") documents `composer global`, the PHAR and the Docker image, and their `Jenkinsfile` runs
-`esoul-guidelines check` in the image as an `extraChecks` stage `Guidelines` of `astroPipeline` (the image's entrypoint is cleared with `--entrypoint=`). A missing installer, an unknown
+updates them later with `composer update esoul-cz/guidelines` + `vendor/bin/esoul-guidelines sync` (below 1.0 only within the constraint's minor: a new minor needs it raised,
+`composer require --dev esoul-cz/guidelines:^0.5 -W`). The Astro frontends and the SSR application
+have no Composer dependency: their README ("Guidelines") documents `composer global`, the PHAR and the Docker image, and `astroPipeline` runs
+`esoul-guidelines check` itself, with the version recorded in `esoul-guidelines.lock` (stage `Guidelines check`; no `Jenkinsfile` configuration). A missing installer, an unknown
 guideline layer or a failing `sync` fails the build.
 
 ### The `common` layer
@@ -115,8 +116,9 @@ rules). Each stack layer adds its guideline layers through its own `merge/esoul-
 Only existing guideline layers may be listed (`laravel-lunar` lists `package/filament` and `package/lunar`).
 
 Every layer that ships a framework `composer.json` (the Laravel layers, `lsr/base`, the Astro CMS root) requires `esoul-cz/guidelines`
-`^0.3` and adds `"esoul-guidelines sync"` to `scripts.post-update-cmd`, after Laravel Boost's `boost:update` where there is one, so
-`composer update` re-renders `docs/project_guidelines/` (the installer README, "Sync on `composer update`").
+`^0.4` and adds `"esoul-guidelines sync"` to `scripts.post-update-cmd`, after Laravel Boost's `boost:update` where there is one, so
+`composer update` re-renders `docs/project_guidelines/` (the installer README, "Sync on `composer update`"). Under 0.x `^0.4` stops before
+0.5.0: the builder's own constraint and the layers' are raised together with each minor.
 
 ### The `laravel/skeleton` layer
 

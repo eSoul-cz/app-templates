@@ -244,8 +244,10 @@ A project records where it came from in `.esoul/template.json`, written by every
 ```
 
 `variant` is the template the project follows and `commit` the last app-templates source commit it has caught up with. `declined` lists
-the changelog entries the project deliberately never takes: `title` is the entry heading without its date, `reason` says why (one
-sentence, a link to the decision when there is one). A fresh build has `"declined": []`; a record without the key means the same, and a
+what the project deliberately never takes: `title` is the changelog entry heading without its date, `reason` says why (one
+sentence, a link to the decision when there is one). An item may also name a group of files that a project adopting the template
+(`commit` unknown) declined: `{"title": "Renovate configuration", "reason": "...", "files": ["renovate.json5", ".github/"]}`; the update
+skill skips those files. A fresh build has `"declined": []`; a record without the key means the same, and a
 record with a `version` key or no `commit` is an old one that the update skill re-adopts.
 
 Updating is done by the `esoul-project-update` skill of `eSoul-cz/skills`: it reads the entries of `CHANGELOG.md` in this

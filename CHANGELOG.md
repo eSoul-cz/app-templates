@@ -26,6 +26,14 @@ Migration: what an existing project must do (or "none").
 
 ## Unreleased
 
+### 2026-11-24: A "Getting started" section in every README and in `CONTEXT.md`
+
+Affects: every variant / layers `common` (`CONTEXT.md`), `laravel/base`, `lsr/base`, `astro/static`, `astro/ssr`, `astro/cms-client`, `astro-cms/root` (`README.md`; the other Laravel variants inherit `laravel/base`).
+
+A developer who joins a project had no single list of what to do first. The `common` `CONTEXT.md` gets a section `## Getting started` and each stack README a short one with the same four steps: clone, `npx skills experimental_install` (optional per-user layers with `npx @esoul-cz/skills install project helpers`), the local environment of that stack, and the access to ask for (Freelo, Jenkins, 1Password).
+
+Migration: optional. Copy the section into the project's `README.md` (adjust step 3 to the project's local setup) and `CONTEXT.md`; a project that does not want it lists the entry as declined. The lifecycle skill keeps the section when it fills `CONTEXT.md`.
+
 ### 2026-11-24: Every variant ignores `_reference/`
 
 Affects: every variant / layers `astro/static`, `astro/ssr`, `astro-cms/root`, `laravel/base`, `lsr/base` (`.gitignore`; `astro-cms-frontend` inherits `astro/static`, the other Laravel variants `laravel/base`).

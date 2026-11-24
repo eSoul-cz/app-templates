@@ -21,6 +21,24 @@ infrastructure repo as submodules at `templates/<variant>/`.
 | `astro-cms` | common, astro-cms/root (thin monorepo root; the frontend and the `laravel-cms` backend are its git submodules) | yes, `root` |
 | `astro-ssr` | common, astro/ssr | yes, `astro` |
 
+## Choosing a variant
+
+| The project is | Variant |
+| --- | --- |
+| A business web application with its own screens (Vue frontend) | `laravel-inertia` |
+| An application whose admin is mostly data tables and forms (no custom frontend) | `laravel-filament` |
+| Both: custom screens for users and a Filament admin | `laravel-inertia-filament` |
+| An e-shop (Lunar owns the admin panel) | `laravel-lunar` |
+| An application on the eSoul LSR packages (RoadRunner, Inertia and Vue) | `lsr-inertia` |
+| A website without a CMS | `astro-static` |
+| A website the client edits (headless CMS, the default for such a site) | `astro-cms` (root) + `astro-cms-frontend` + `laravel-cms` |
+| A site that needs server code and a small admin of its own (an exception, needs an ADR) | `astro-ssr` |
+
+Laravel is the default for a client application; take LSR when the product is built on the eSoul LSR packages (the existing LSR
+products and internal tools). Astro static builds a plain website, Astro SSR a small application with an admin, and the CMS set (three
+repositories: the root, the frontend and the backend) a website the client maintains. When none fits, say so in the first issue; the
+lead decides.
+
 ## Usage
 
 ```bash

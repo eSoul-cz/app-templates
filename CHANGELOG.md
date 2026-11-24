@@ -26,6 +26,14 @@ Migration: what an existing project must do (or "none").
 
 ## Unreleased
 
+### 2026-11-24: Every variant ignores `_reference/`
+
+Affects: every variant / layers `astro/static`, `astro/ssr`, `astro-cms/root`, `laravel/base`, `lsr/base` (`.gitignore`; `astro-cms-frontend` inherits `astro/static`, the other Laravel variants `laravel/base`).
+
+`general/security-and-data.md` of the guidelines allows a gitignored local folder `_reference/` for non-anonymised client material, but no template `.gitignore` listed it, so such a folder could be committed by accident. Each stack layer owns its root `.gitignore` (a file of a later layer replaces the `common` one), so each lists `/_reference/`.
+
+Migration: add `/_reference/` to the project's `.gitignore`; when material was already committed, remove it from the index (`git rm -r --cached _reference`) and tell the project lead, because history still holds it.
+
 ### 2026-11-24: The Renovate migration names the case of a project without `renovate.json5`
 
 Affects: documentation only (this changelog).

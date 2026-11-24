@@ -26,6 +26,14 @@ Migration: what an existing project must do (or "none").
 
 ## Unreleased
 
+### 2026-11-24: Render guidelines 0.3.5
+
+Affects: every variant / every layer that renders the guidelines (the Laravel and Lunar variants change in `architecture.md`); the builder.
+
+The builder renders with `esoul-cz/guidelines` v0.3.5: `architecture.md` of the Laravel layer has a section "Fixing a layer-dependency violation" (persistence or a framework call in the domain core moves into the CQRS layer, a DTO the domain logic works with becomes a value object in `App\Domain\ValueObjects\<Module>`, a handler's side effect goes behind a contract in `App\Application\Contract`; an exception to the layer rule is recorded in the project part of the file and in the layer test). The Lunar layer adds "Classes Lunar stores by name": such a class is not moved or renamed without a data migration and is a recorded exception where its location breaks the layer rules. The rendered `docs/project_guidelines/architecture.md` changes accordingly.
+
+Migration: run `esoul-guidelines sync` once (after `composer update esoul-cz/guidelines`) and commit the changed `esoul-guidelines.lock` and `docs/project_guidelines/`.
+
 ### 2026-11-23: Astro CI checks the guidelines with the version the project recorded
 
 Affects: `astro-static`, `astro-cms-frontend`, `astro-ssr` / layers `astro/static`, `astro/cms-client`, `astro/ssr` (`Jenkinsfile`, `README.md`); `astro-cms` / layer `astro-cms/root` (`README.md`).

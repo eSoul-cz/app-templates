@@ -26,6 +26,14 @@ Migration: what an existing project must do (or "none").
 
 ## Unreleased
 
+### 2026-11-25: Laravel: a clear migration failure line, a local-only DemoSeeder
+
+Affects: every Laravel variant (`laravel-inertia`, `laravel-filament`, `laravel-inertia-filament`, `laravel-lunar`, `laravel-cms`) / layer `laravel/base` (`docker/production/start`, `docker/dev/start`, `database/seeders/DatabaseSeeder.php`, `database/seeders/DemoSeeder.php`, `README.md`).
+
+The production start keeps running the migrations where `RUN_MIGRATIONS=true` and keeps starting Supervisor when they fail, but now writes `MIGRATION FAILED (exit code N)` and says the schema may be behind the code, instead of `Migration failed`. It never seeds (the script says so). `DatabaseSeeder` is the local seeder: it calls `DemoSeeder`, which uses a factory and creates an account, and `DemoSeeder` throws outside `local` and `testing` (before, `DatabaseSeeder` skipped it silently outside `local`, so a production `db:seed` was a no-op). The template has no `ProductionSeeder` (it has no data every environment needs); a project that has such data adds one, idempotent and create-only, and runs it by hand in the container. The README gets a "Production start" section.
+
+Migration: in `docker/production/start` replace the migration line with the block that sets `MIGRATE_STATUS` and writes `MIGRATION FAILED`; in `DemoSeeder::run()` add `if ( ! app()->environment('local', 'testing')) { throw new RuntimeException(...); }` and make `DatabaseSeeder::run()` call `DemoSeeder` without the `isLocal()` check; guard every other Faker or factory seeder the same way. A start script, Dockerfile or Komodo hook that runs `db:seed` or `migrate --seed` loses it: seeding is done by hand (`docker exec <container> php artisan db:seed --class=ProductionSeeder --force`), and production data that sits in `DatabaseSeeder` moves to a `ProductionSeeder`.
+
 ### 2026-11-25: Render guidelines 0.5.2
 
 Affects: every variant / the layers that render the guidelines: `deployment.md` (Rollback and the exception to "never by hand in Komodo") and `workflow.md` (Hotfix) in every variant, `requests-and-validation.md`, `architecture.md` and `cqrs.md` in the Laravel variants (`laravel-inertia`, `laravel-filament`, `laravel-inertia-filament`, `laravel-lunar`, `laravel-cms`), `frontend.md` in the `laravel-inertia` variants, `deployment.md` of the Astro variants; the builder itself.

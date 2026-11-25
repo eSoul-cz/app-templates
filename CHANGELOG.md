@@ -26,6 +26,14 @@ Migration: what an existing project must do (or "none").
 
 ## Unreleased
 
+### 2026-11-25: Laravel: DatabaseSeeder is the general local seeder, DemoSeeder is gone
+
+Affects: every Laravel variant (`laravel-inertia`, `laravel-filament`, `laravel-inertia-filament`, `laravel-lunar`, `laravel-cms`) / layer `laravel/base` (`database/seeders/DatabaseSeeder.php`, removed `database/seeders/DemoSeeder.php`, `README.md`).
+
+Corrects the previous Laravel entry of this date: the guard "refuse outside `local` and `testing`" sat on `DemoSeeder`, but a demo seeder is one of the specialised seeders that may run in staging or production by hand (deliberate demo content, no account with credentials outside local development); only the general seeder is local-only. `DatabaseSeeder` is now that general seeder: it throws outside `local` and `testing` and creates the development account (`test@example.com`, factory password) itself, so `php artisan db:seed` without `--class` fails in staging and production. `DemoSeeder` is removed because its only content was that account; a project that has deliberate demo content adds its own `DemoSeeder`, run by hand with `--class=DemoSeeder`. The README says which seeders may run where. The rule is in guidelines `general` › The production start entrypoint (the next guidelines release; the rendered 0.5.4 text still says that a seeder with Faker or synthetic data is local-only).
+
+Migration: move the account creation and the environment guard from `DemoSeeder::run()` into `DatabaseSeeder::run()` (`if ( ! app()->environment('local', 'testing')) { throw new RuntimeException(...); }`) and delete `database/seeders/DemoSeeder.php`, or keep a `DemoSeeder` for real demo content without the guard; a seeder that creates an account outside local development loses that part. A project that guarded its own demo seeder with the 0.5.3 rule removes the guard from the demo seeder and keeps it on `DatabaseSeeder`.
+
 ### 2026-11-25: Render guidelines 0.5.4
 
 Affects: the Laravel variants (`laravel-inertia`, `laravel-filament`, `laravel-inertia-filament`, `laravel-lunar`, `laravel-cms`): `cqrs.md` and `requests-and-validation.md`; the builder itself. The other variants render the same files as with 0.5.3.

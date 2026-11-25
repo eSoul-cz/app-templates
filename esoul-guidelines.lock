@@ -1,6 +1,6 @@
 {
     "schema_version": 1,
-    "package_version": "v0.5.0",
+    "package_version": "v0.5.1",
     "layers": [
         "general",
         "profile/internal"
@@ -28,9 +28,9 @@
         },
         "docs/project_guidelines/deployment.md": {
             "block": "deployment",
-            "sha256": "36012252db5d95e8b8702225de3fc2a7f6a4ff520a8c4a5690fd70c075140975",
+            "sha256": "7f559146e26dba6e590c2c51308d4d5bea7e0975b84b518e0c6a71611c330b1d",
             "sources": {
-                "general/deployment.md": "e50fc968099f34e722aa8461dc1d9270a54e2e390ac2e05a54356985bad69572"
+                "general/deployment.md": "462653a665c217df1d126a36a40251a7b4393877bdf1971ebf60616f304e646a"
             }
         },
         "docs/project_guidelines/documentation.md": {
@@ -74,9 +74,9 @@
         },
         "docs/project_guidelines/workflow.md": {
             "block": "workflow",
-            "sha256": "9141c3a3ac286781d4ea4475a2eabf37d94cc5b75ff9d2e479e095ed4001188f",
+            "sha256": "6302b51f2135dd75ece71491eb83a4a79bcc25f35359d9d63f348c8cd9864e3b",
             "sources": {
-                "general/workflow.md": "d878d1aa775071a9f9d709fa10b53b699dc13fd0c1b55842d551cd8e445cf63d",
+                "general/workflow.md": "392468aaa4c8a8e0a37036ddef781e8e90e65db11e267d65c7eabd50b7942d45",
                 "profile/internal/workflow.md": "f04e75eeeaa458ea66563c941e27bc587df06d9993ae258fbec1cc9aa8a7aae2"
             }
         }

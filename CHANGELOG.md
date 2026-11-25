@@ -26,6 +26,14 @@ Migration: what an existing project must do (or "none").
 
 ## Unreleased
 
+### 2026-11-25: Render guidelines 0.5.1
+
+Affects: every variant / the layers that render the guidelines: `deployment.md` (Rollback) and `workflow.md` (Hotfix) in every variant, `requests-and-validation.md` in the Laravel variants (`laravel-inertia`, `laravel-filament`, `laravel-inertia-filament`, `laravel-lunar`, `laravel-cms`); the builder itself.
+
+The builder and the variants render with `esoul-cz/guidelines` v0.5.1. A rollback deploys `previous-<stack>`, the image the pipeline (`jenkins-libraries`: `laravelPipeline`, `lsrPipeline`, `astroPipeline` in image mode) tags after a successful `Deploy`; images of a build whose `Deploy` failed are never recorded. A form request transforms and merges only the fields the client sent and keeps a sent `null` as `null`, so the partial update rule holds.
+
+Migration: `composer update esoul-cz/guidelines` (a patch release, the constraint `^0.5` already allows it); the command runs the `post-update-cmd` (`esoul-guidelines sync`), commit the changed `docs/project_guidelines/` files and `esoul-guidelines.lock`. A Laravel project reads its form requests against the new rule: a `passedValidation()` that merges every property gets the `has()` guard.
+
 ### 2026-11-25: CodeRabbit skips the agent tooling and the eSoul records
 
 Affects: every variant / `common`

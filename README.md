@@ -275,7 +275,7 @@ project's; the skill resolves conflicts with them, it does not overwrite them.
 - Appended blank lines are collapsed, and `# comments` are deduplicated like any other line.
 - JSON written by the builder is always re-encoded with 4-space indentation (also `package.json`); Prettier/Pint-style formatting in
   generated projects is not applied. Empty JSON objects survive as `{}`.
-- Common layer texts (the PR template in English, as code-related text is, CodeRabbit filters excluding `.agents/**`, `.ai/**`, `.claude/**`, Renovate weekly
+- Common layer texts (the PR template in English, as code-related text is, CodeRabbit filters excluding the agent tooling (`.agents/**`, `.ai/**`, `.claude/**`, `.codex/**`, `.cursor/**`, `.junie/**`, `skills-lock.json`) and the eSoul records (`.esoul/**`, `esoul-guidelines.lock`), Renovate weekly
   schedule with dev-tooling grouping, `.gitattributes` diff drivers) are condensed from the reference projects; the PR template's
   Definition of Done assumes the guideline package ships the rules and the composer/pnpm script names of the Laravel base.
   `inheritance: true` in `.coderabbit.yaml` assumes the eSoul GitHub organisation has a central CodeRabbit policy.

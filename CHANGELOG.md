@@ -26,6 +26,14 @@ Migration: what an existing project must do (or "none").
 
 ## Unreleased
 
+### 2026-11-25: CodeRabbit skips the agent tooling and the eSoul records
+
+Affects: every variant / `common`
+
+`.coderabbit.yaml` also excludes `.codex/**`, `.cursor/**`, `.junie/**`, `skills-lock.json`, `.esoul/**` and `esoul-guidelines.lock` from review, next to `.agents/**`, `.ai/**` and `.claude/**`: installed skills, agent configuration and generated records are not reviewable code. `docs/project_guidelines/` stays reviewed, because its project part is written by hand.
+
+Migration: copy the `path_filters` list of `.coderabbit.yaml` into the project's file (keep any project-specific filters).
+
 ### 2026-11-24: Render guidelines 0.5.0
 
 Affects: every variant / every layer that renders the guidelines (`workflow.md`, `documentation.md`, `domain.md`, `dependencies.md`, `deployment.md` and, per stack, `tools.md` of the Laravel, LSR, Astro and Laravel-Inertia layers); the layers that require the package (`laravel/base`, `lsr/base`, `astro-cms/root`) now require `^0.5`; the builder.

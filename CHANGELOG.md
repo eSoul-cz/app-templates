@@ -26,6 +26,14 @@ Migration: what an existing project must do (or "none").
 
 ## Unreleased
 
+### 2026-11-25: Astro SSR: the start never seeds and a failed migration does not stop the server
+
+Affects: `astro-ssr` / layer `astro/ssr` (`src/server/start.ts`, `prepare.ts`, `migrate.ts`, `admin-create.ts`, new `seed.ts`, `package.json`, `Dockerfile`, `README.md`, `tests/prepare.test.ts`, `e2e/app.ts`, `e2e/app.spec.ts`).
+
+`pnpm start` (the image's command) validates the settings, applies the migrations and starts the server; it no longer runs the seeds, and a failing migration is logged as `MIGRATION FAILED` and no longer exits the container (an invalid setting still does). The seeds run only by hand: the new `pnpm seed` (and `pnpm dev`, locally) or `node src/server/seed.ts` in the deployed container. `pnpm migrate` applies migrations only. `prepare.ts` splits into `migrateDatabase`, `migrateDatabaseOrLog` (the start), `migrateDatabaseOrExit` (scripts) and `seedDatabase`. E2E: the helper seeds explicitly, and new specs check that the start does not seed and survives a failing migration.
+
+Migration: copy `src/server/prepare.ts`, `seed.ts`, `migrate.ts`, `start.ts` and the `admin-create.ts` import, add `"seed": "node --env-file-if-exists=.env src/server/seed.ts"` and `"dev": "pnpm migrate && pnpm seed && astro dev"` to `package.json`, and update the Dockerfile comments and the README. A deployed stack that relied on the start to seed (first deploy, a new seed) runs `docker compose exec -u app app node src/server/seed.ts` once per deployment that adds a seed; a monitored deploy reads the log for `MIGRATION FAILED`.
+
 ### 2026-11-25: LSR: a failed `app:install` does not stop the container
 
 Affects: `lsr-inertia` / layer `lsr/base` (`docker/prepare-runtime.sh`, `README.md`).

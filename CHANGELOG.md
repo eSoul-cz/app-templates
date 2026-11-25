@@ -26,6 +26,14 @@ Migration: what an existing project must do (or "none").
 
 ## Unreleased
 
+### 2026-11-25: Render guidelines 0.5.2
+
+Affects: every variant / the layers that render the guidelines: `deployment.md` (Rollback and the exception to "never by hand in Komodo") and `workflow.md` (Hotfix) in every variant, `requests-and-validation.md`, `architecture.md` and `cqrs.md` in the Laravel variants (`laravel-inertia`, `laravel-filament`, `laravel-inertia-filament`, `laravel-lunar`, `laravel-cms`), `frontend.md` in the `laravel-inertia` variants, `deployment.md` of the Astro variants; the builder itself.
+
+The builder and the variants render with `esoul-cz/guidelines` v0.5.2. A rollback in an incident is the named exception to "never by hand in Komodo": devops set the stack's `image_tag` to `previous-<stack>` and deploy the stack, the hotfix issue records it, and the stack returns to the manifest's `image_tag` with the next deploy of the fix through Jenkins. An enum field of a form request holds the backing value (`Rule::enum()`, `value-of<EnumClass>`, `EnumClass::from()` in the mapping method), and a form request SHOULD map itself to a DTO through a public `to<Something>()` method. The template's own request classes already follow both rules (`SubmitContactFormRequest::toCommand()` has no enum field; the publish callback moved into a form request in the entry above).
+
+Migration: `composer update esoul-cz/guidelines` (a patch release, the constraint `^0.5` already allows it); the command runs the `post-update-cmd` (`esoul-guidelines sync`), commit the changed `docs/project_guidelines/` files and `esoul-guidelines.lock`. A Laravel project reads its form requests against the rules: an enum field is annotated `value-of<EnumClass>` and converted in the mapping method, and the controller dispatches `$request->toCommand()` instead of building the command itself.
+
 ### 2026-11-25: The publish callback validates in a form request
 
 Affects: `laravel-cms` / `laravel/cms`

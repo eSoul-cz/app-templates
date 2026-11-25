@@ -26,6 +26,14 @@ Migration: what an existing project must do (or "none").
 
 ## Unreleased
 
+### 2026-11-25: Lunar: the admin panel's assets are published
+
+Affects: `laravel-lunar` / layer `laravel/lunar` (`composer.json`, `.gitignore`, `tests/Feature/LunarAdminTest.php`, `README.md`).
+
+The variant does not include `laravel/filament`, whose `composer.json` runs `filament:upgrade`, and had no such script of its own. Nothing published the stylesheets, scripts and fonts of Filament and of the Lunar panel, so each of them was a 404 in the release image and `/admin` loaded without styles and scripts. `post-autoload-dump` now runs `@php artisan filament:upgrade`, the published directories (`public/css/filament`, `public/css/lunarphp`, `public/fonts/filament`, `public/js/app`, `public/js/filament`) are ignored by git, and a test checks that every asset the admin login links is a file under `public/`.
+
+Migration: add `"@php artisan filament:upgrade"` to `scripts.post-autoload-dump` in `composer.json`, add the five directories to `.gitignore`, and take `test_the_assets_of_the_admin_login_are_published_files` from the template's `tests/Feature/LunarAdminTest.php`. Then `composer dump-autoload`.
+
 ### 2026-11-25: Render guidelines 0.5.5
 
 Affects: every variant: `deployment.md` (The production start entrypoint: which seeders may run in staging and production); the Laravel variants (`laravel-inertia`, `laravel-filament`, `laravel-inertia-filament`, `laravel-lunar`, `laravel-cms`): `deployment.md` (Migrations and seeders); `lsr-inertia`: `deployment.md` (Stack runtime: `app:install` drops undeclared indexes); the builder itself.

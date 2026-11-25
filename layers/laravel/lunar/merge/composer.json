@@ -1,5 +1,10 @@
 {
     "require": {
         "lunarphp/lunar": "^1.5"
+    },
+    "scripts": {
+        "post-autoload-dump": [
+            "@php artisan filament:upgrade"
+        ]
     }
 }

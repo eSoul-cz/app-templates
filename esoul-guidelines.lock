@@ -1,6 +1,6 @@
 {
     "schema_version": 1,
-    "package_version": "v0.5.4",
+    "package_version": "v0.5.5",
     "layers": [
         "general",
         "profile/internal"
@@ -28,9 +28,9 @@
         },
         "docs/project_guidelines/deployment.md": {
             "block": "deployment",
-            "sha256": "14cbb2b8ee6ed08f6daa8cc169bd307335c419dcf86418900c61c9cb1bfa1ea4",
+            "sha256": "f733f2bb2d5e57227487fd044e0dc68ee62eac5ee438ab382402b7478847bd73",
             "sources": {
-                "general/deployment.md": "e31264a8b5f5e4e0e0fd014d155879e1b6403cd90ff3881c17847d6289a52ad2"
+                "general/deployment.md": "6a0cc72512f2e7e0796582d15b7d1c91c43cf39ce52a93e8107c857ae49e5635"
             }
         },
         "docs/project_guidelines/documentation.md": {

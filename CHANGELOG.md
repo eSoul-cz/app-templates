@@ -26,6 +26,14 @@ Migration: what an existing project must do (or "none").
 
 ## Unreleased
 
+### 2026-11-25: The publish callback validates in a form request
+
+Affects: `laravel-cms` / `laravel/cms`
+
+`POST /cms-api/v1/publishes/{publish}/status` validated inside `PublishCallbackController` with `$request->validate()` and built `FinishPublishCommand` there. It now follows the guidelines' requests rule: the new `PublishCallbackRequest` (`App\Infrastructure\Http\Requests`) holds the rules and maps itself to the command with `toCommand(Publish $publish)`, and the controller only dispatches what it returns. The behaviour is the same (`UNSTABLE` is success with a note); a new test covers a body without a result.
+
+Migration: a project that kept the template's callback moves the `validate()` call and the command construction from `PublishCallbackController` into a `PublishCallbackRequest` as in the template; a project that changed the callback keeps its version.
+
 ### 2026-11-25: Render guidelines 0.5.1
 
 Affects: every variant / the layers that render the guidelines: `deployment.md` (Rollback) and `workflow.md` (Hotfix) in every variant, `requests-and-validation.md` in the Laravel variants (`laravel-inertia`, `laravel-filament`, `laravel-inertia-filament`, `laravel-lunar`, `laravel-cms`); the builder itself.

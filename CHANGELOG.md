@@ -26,6 +26,14 @@ Migration: what an existing project must do (or "none").
 
 ## Unreleased
 
+### 2026-11-25: Laravel: the README says to commit `pnpm-lock.yaml`
+
+Affects: every Laravel variant (`laravel-inertia`, `laravel-filament`, `laravel-inertia-filament`, `laravel-lunar`, `laravel-cms`) / layer `laravel/base` (`README.md`, Setup).
+
+A template has no lock file, and nothing told a new project to commit the one its first start writes. Without it the release image cannot be built (`pnpm install --frozen-lockfile` fails with `ERR_PNPM_FROZEN_LOCKFILE_WITH_OUTDATED_LOCKFILE`), and pull-request builds do not show it, because their tests run `pnpm install` before the test image is built. Found on `doglead_eshop`, whose first three builds of `main` built no image. The README's Setup now says so.
+
+Migration: a project without a committed `pnpm-lock.yaml` runs `pnpm install` with the pinned pnpm and commits the file. Nothing else.
+
 ### 2026-11-25: Lunar: the admin panel's assets are published
 
 Affects: `laravel-lunar` / layer `laravel/lunar` (`composer.json`, `.gitignore`, `tests/Feature/LunarAdminTest.php`, `README.md`).

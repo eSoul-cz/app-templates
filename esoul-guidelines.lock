@@ -1,6 +1,6 @@
 {
     "schema_version": 1,
-    "package_version": "v0.5.2",
+    "package_version": "v0.5.3",
     "layers": [
         "general",
         "profile/internal"
@@ -28,9 +28,9 @@
         },
         "docs/project_guidelines/deployment.md": {
             "block": "deployment",
-            "sha256": "dd1bae366146055055fd021a89754e2acdc2d026b458b5a5119092c535406ffd",
+            "sha256": "14cbb2b8ee6ed08f6daa8cc169bd307335c419dcf86418900c61c9cb1bfa1ea4",
             "sources": {
-                "general/deployment.md": "b1176f9e6c3d4f7fb4c464c87d8c84aa4a6f690b25ffc21093803ae2e5bd55e5"
+                "general/deployment.md": "e31264a8b5f5e4e0e0fd014d155879e1b6403cd90ff3881c17847d6289a52ad2"
             }
         },
         "docs/project_guidelines/documentation.md": {
@@ -49,7 +49,7 @@
         },
         "docs/project_guidelines/index.md": {
             "block": "index",
-            "sha256": "728e30c69dc95dc6592ed54e1648f01675f70b0cc763b36abd5225df638ff236"
+            "sha256": "6b4739f055017a9bd257c21958b9aa5ee2c4d0793aae6462da9ba0b0fe642b0c"
         },
         "docs/project_guidelines/public-website.md": {
             "block": "public-website",
@@ -76,7 +76,7 @@
             "block": "workflow",
             "sha256": "f1cdfab51d6f971ffc9770985a5482ce8ac4ef9cc7f8ed0cdb7d33e17727411d",
             "sources": {
-                "general/workflow.md": "517c3f7e9828f2c22db797f003675ea1c3d9201cd20f2a48d1a2aa8044575554",
+                "general/workflow.md": "5cc2d251d9b23f8535c80079ee005286b480e3cf66ac6724b4b29e0005af32f9",
                 "profile/internal/workflow.md": "f04e75eeeaa458ea66563c941e27bc587df06d9993ae258fbec1cc9aa8a7aae2"
             }
         }

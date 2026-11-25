@@ -26,6 +26,14 @@ Migration: what an existing project must do (or "none").
 
 ## Unreleased
 
+### 2026-11-25: Render guidelines 0.5.3
+
+Affects: every variant / the layers that render the guidelines: `deployment.md` (new sections "Monitoring a deployment" and "The production start entrypoint") and `workflow.md` (From issue to merge) in every variant, `requests-and-validation.md`, `cqrs.md` and `deployment.md` (Migrations and seeders) in the Laravel variants (`laravel-inertia`, `laravel-filament`, `laravel-inertia-filament`, `laravel-lunar`, `laravel-cms`), `deployment.md` (Stack runtime) in `lsr-inertia`, `architecture.md`, `content.md` and `deployment.md` in the Astro SSR variant; the builder itself.
+
+The builder and the variants render with `esoul-cz/guidelines` v0.5.3. The production start entrypoint is quick (heavy data tasks run in the background), applies forward-only migrations whose failure is logged and does not block the deployment, and never runs a seeder; only a production seeder runs in staging or production, by hand, and Faker seeders are local-only. Every production deployment is monitored by the person who started it. A command's constructor holds only its promoted properties, a named static constructor builds it from another object, and a form request maps itself with `to<Something>()`. The three entries below (Astro SSR, LSR, Laravel) are the code side of these rules.
+
+Migration: `composer update esoul-cz/guidelines` (a patch release, the constraint `^0.5` already allows it); the command runs the `post-update-cmd` (`esoul-guidelines sync`), commit the changed `docs/project_guidelines/` files and `esoul-guidelines.lock`. Then read the project's start script and seeders against the rules: no seeder in the start script, a Dockerfile or a Komodo hook, a failing migration logged and not exiting the container, heavy data tasks in the background, Faker seeders guarded for `local` and `testing`, and no command constructor that takes another object (use a named static constructor). The start-script changes are in the three entries below.
+
 ### 2026-11-25: Astro SSR: the start never seeds and a failed migration does not stop the server
 
 Affects: `astro-ssr` / layer `astro/ssr` (`src/server/start.ts`, `prepare.ts`, `migrate.ts`, `admin-create.ts`, new `seed.ts`, `package.json`, `Dockerfile`, `README.md`, `tests/prepare.test.ts`, `e2e/app.ts`, `e2e/app.spec.ts`).

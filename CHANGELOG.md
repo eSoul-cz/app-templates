@@ -26,6 +26,14 @@ Migration: what an existing project must do (or "none").
 
 ## Unreleased
 
+### 2026-11-25: LSR: a failed `app:install` does not stop the container
+
+Affects: `lsr-inertia` / layer `lsr/base` (`docker/prepare-runtime.sh`, `README.md`).
+
+`prepare-runtime.sh` runs `app:install` (forward-only, never `--fresh`, seeds nothing) and, when it fails, writes `app:install failed` to standard error and goes on, so RoadRunner starts and the person monitoring the deployment reads the log; before, `set -e` exited the container. The start script runs no seeder and no heavy data task. The README gets a "Production start" section. The same script serves `startDev.sh`, so a failing `app:install` no longer stops the development container either.
+
+Migration: replace the last line of `docker/prepare-runtime.sh`, `php bin/console app:install`, with the `if ! php bin/console app:install; then echo '...' >&2; fi` block; a project with its own seeders or heavy steps in `/prepare-runtime` or `startProd.sh` removes the seeders (run them by hand in the container) and moves the heavy tasks to a background process after `rr serve` starts.
+
 ### 2026-11-25: Laravel: a clear migration failure line, a local-only DemoSeeder
 
 Affects: every Laravel variant (`laravel-inertia`, `laravel-filament`, `laravel-inertia-filament`, `laravel-lunar`, `laravel-cms`) / layer `laravel/base` (`docker/production/start`, `docker/dev/start`, `database/seeders/DatabaseSeeder.php`, `database/seeders/DemoSeeder.php`, `README.md`).

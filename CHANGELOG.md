@@ -26,6 +26,14 @@ Migration: what an existing project must do (or "none").
 
 ## Unreleased
 
+### 2026-11-26: The layer test lets the domain core use application DTOs
+
+Affects: every Laravel variant / layer `laravel/base` (`tests/Support/Architecture/LayerRules.php`, `tests/Unit/Architecture/LayerRuleDetectionTest.php`).
+
+The framework-free domain core may import `App\Application\Dto` (plain data); contracts, events and anything else of `App\Application` stay forbidden there, as before. Follows the guidelines' `framework/laravel` architecture rule (Unreleased, owner decision 2026-11-26). The detection test has samples for a contract, an event, a namespace that only starts like `Dto`, and an allowed DTO.
+
+Migration: take `LayerRules.php` (the `DTO` constant and the allowed list of `frameworkFreeDomain`) and the samples. A project with a list of layer-dependency exceptions drops its "application DTOs in the domain core" entries.
+
 ### 2026-11-26: Render guidelines 0.6.1
 
 Affects: every variant / every layer that renders the guidelines; the layers that require the package (`laravel/base`, `lsr/base`, `astro-cms/root`) now require `^0.6`; the builder.

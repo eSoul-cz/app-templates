@@ -39,6 +39,10 @@ products and internal tools). Astro static builds a plain website, Astro SSR a s
 repositories: the root, the frontend and the backend) a website the client maintains. When none fits, say so in the first issue; the
 lead decides.
 
+The frontend is Vue in every variant that has one (Inertia pages, Astro islands); there is no React variant. A new project does not choose
+React: eSoul keeps one frontend stack. A project that already uses React keeps it, and the guidelines have a layer for it
+(`package/laravel-inertia-react`).
+
 ## Usage
 
 ```bash

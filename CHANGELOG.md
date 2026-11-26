@@ -34,6 +34,14 @@ The admin gets a Redirects page (`/admin/redirects`) with the old addresses of t
 
 Migration: an existing `astro-ssr` project takes `src/server/redirect-input.ts`, `src/server/Redirects.ts` and `src/server/migrations/0002_redirects.ts`, and registers the migration in `src/server/migrations/index.ts` (take the next free id above its own migrations if `2` is used, and rename the file and `id`); adds the `flushRedirectHits(getDatabase())` call before `closeDatabase()` in `src/server/start.ts`; merges the redirect lookup of `guard` (and `findRedirect`, `answerWithRedirect`) into its `src/middleware.ts`; adds the `redirects` actions to `src/actions/index.ts`, the page `src/pages/admin/redirects.astro` and its link in `src/layouts/AdminLayout.astro`; sets `trailingSlash` in `src/server/redirect-input.ts` to the value of its `astro.config.mjs`; and takes the tests (`tests/redirect-input.test.ts`, `tests/redirects.test.ts`, `e2e/redirects.spec.ts`). Redirects the project already keeps elsewhere (a hard-coded list in the middleware, NGINX) become rows through its own migration. A static site (`astro-static`, `astro-cms-frontend`) is not affected: it keeps its redirects in NGINX.
 
+### 2026-11-26: The README says a new project's frontend is Vue
+
+Affects: no variant / `README.md` (Choosing a variant).
+
+React is not eSoul's primary framework (owner decision): the chooser says every variant's frontend is Vue (Inertia pages, Astro islands), there is no React variant, and a new project does not choose React. A project already on React keeps it; guidelines 0.6.0 have its layer.
+
+Migration: none.
+
 ### 2026-11-25: Laravel: the README says to commit `pnpm-lock.yaml`
 
 Affects: every Laravel variant (`laravel-inertia`, `laravel-filament`, `laravel-inertia-filament`, `laravel-lunar`, `laravel-cms`) / layer `laravel/base` (`README.md`, Setup).

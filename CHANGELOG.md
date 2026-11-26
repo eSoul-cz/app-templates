@@ -26,6 +26,14 @@ Migration: what an existing project must do (or "none").
 
 ## Unreleased
 
+### 2026-11-26: Astro SSR: admin-managed redirects from the old site
+
+Affects: `astro-ssr` / layer `astro/ssr` (`src/server/redirect-input.ts`, `src/server/Redirects.ts`, `src/server/migrations/0002_redirects.ts`, `src/server/start.ts`, `src/middleware.ts`, `src/actions/index.ts`, `src/pages/admin/redirects.astro`, `src/layouts/AdminLayout.astro`, `tests/`, `e2e/redirects.spec.ts`, `README.md`).
+
+The admin gets a Redirects page (`/admin/redirects`) with the old addresses of the previous site: `301` to a new address of the site or `410`, exact or a `*` prefix rule. A row is applied only where the response would be a 404, so it never hides a live page; a 301 keeps the query string, a 410 renders the 404 page. Paths are normalised in one place for the form and the lookup (the trailing slash follows `trailingSlash`), and external targets, loops, chains and an address other rows lead to are refused. Rules are cached in memory, hits are counted in memory and written every 10 s and on SIGTERM. `recordSlugChange(db, oldPath, newPath)` is for a project to call when a slug changes. The table starts empty: a project adds its old-site list as its own migration. This is the Astro form of the redirect rule in guidelines PR 22.
+
+Migration: an existing `astro-ssr` project takes `src/server/redirect-input.ts`, `src/server/Redirects.ts` and `src/server/migrations/0002_redirects.ts`, and registers the migration in `src/server/migrations/index.ts` (take the next free id above its own migrations if `2` is used, and rename the file and `id`); adds the `flushRedirectHits(getDatabase())` call before `closeDatabase()` in `src/server/start.ts`; merges the redirect lookup of `guard` (and `findRedirect`, `answerWithRedirect`) into its `src/middleware.ts`; adds the `redirects` actions to `src/actions/index.ts`, the page `src/pages/admin/redirects.astro` and its link in `src/layouts/AdminLayout.astro`; sets `trailingSlash` in `src/server/redirect-input.ts` to the value of its `astro.config.mjs`; and takes the tests (`tests/redirect-input.test.ts`, `tests/redirects.test.ts`, `e2e/redirects.spec.ts`). Redirects the project already keeps elsewhere (a hard-coded list in the middleware, NGINX) become rows through its own migration. A static site (`astro-static`, `astro-cms-frontend`) is not affected: it keeps its redirects in NGINX.
+
 ### 2026-11-25: Laravel: the README says to commit `pnpm-lock.yaml`
 
 Affects: every Laravel variant (`laravel-inertia`, `laravel-filament`, `laravel-inertia-filament`, `laravel-lunar`, `laravel-cms`) / layer `laravel/base` (`README.md`, Setup).

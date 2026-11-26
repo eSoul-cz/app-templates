@@ -26,6 +26,14 @@ Migration: what an existing project must do (or "none").
 
 ## Unreleased
 
+### 2026-11-26: The README says a new project's frontend is Vue
+
+Affects: no variant / `README.md` (Choosing a variant).
+
+React is not eSoul's primary framework (owner decision): the chooser says every variant's frontend is Vue (Inertia pages, Astro islands), there is no React variant, and a new project does not choose React. A project already on React keeps it; guidelines 0.6.0 have its layer.
+
+Migration: none.
+
 ### 2026-11-25: Laravel: the README says to commit `pnpm-lock.yaml`
 
 Affects: every Laravel variant (`laravel-inertia`, `laravel-filament`, `laravel-inertia-filament`, `laravel-lunar`, `laravel-cms`) / layer `laravel/base` (`README.md`, Setup).

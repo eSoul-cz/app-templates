@@ -26,6 +26,14 @@ Migration: what an existing project must do (or "none").
 
 ## Unreleased
 
+### 2026-11-26: Render guidelines 0.6.2
+
+Affects: every variant / every layer that renders the guidelines (`general`, `framework/laravel`, `framework/lsr`, `framework/astro`); the builder.
+
+The builder and the variants render with `esoul-cz/guidelines` v0.6.2. 0.6.2 says that the pipelines leave out what a build's changed files cannot affect (`changeFilter` of `laravelPipeline`, `lsrPipeline` and `astroPipeline`), and that the framework-free core of a Laravel application may use `App\Application\Dto` (interfaces that core types implement live in `App\Domain`; fix B of "Fixing a layer-dependency violation" is the DTO with a `fromModel()` factory). The rendered text of `general`, `framework/laravel`, `framework/lsr` and `framework/astro` changes accordingly; the layer test of the Laravel variants follows in the entry below.
+
+Migration: `composer update esoul-cz/guidelines` (the `post-update-cmd` runs `esoul-guidelines sync`); commit `composer.lock`, the changed `esoul-guidelines.lock` and `docs/project_guidelines/`. A Laravel project also takes the layer-test change of the entry below. A repository without Composer syncs with the v0.6.2 PHAR or image.
+
 ### 2026-11-26: The layer test lets the domain core use application DTOs
 
 Affects: every Laravel variant / layer `laravel/base` (`tests/Support/Architecture/LayerRules.php`, `tests/Unit/Architecture/LayerRuleDetectionTest.php`).

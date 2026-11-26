@@ -1,6 +1,7 @@
 import { transaction, type Database } from './Database.ts';
 import {
     checkRedirect,
+    isCanonicalRule,
     matcher,
     normalizePath,
     planSave,
@@ -79,12 +80,22 @@ const invalidate = (db: Database) => {
 /** Runs in the caller's transaction when there is one (a project calls `recordSlugChange` from its own save). */
 const atomically = <T>(db: Database, work: () => T): T => (db.isTransaction ? work() : transaction(db, work));
 
-/** The rule for a request path (any form: encoded, with or without the trailing slash), or `undefined`. */
+/** The rows the lookup uses: those a save could have written. A row from a project's migration with a typo is skipped and logged. */
+const usableRules = (db: Database): StoredRule[] =>
+    selectAll(db)
+        .map(stored)
+        .filter((rule) => {
+            const usable = isCanonicalRule(rule);
+            if (!usable) console.warn(`Redirect ${rule.id} (${rule.from} -> ${rule.to ?? 'gone'}) is not in the canonical form and is ignored`);
+            return usable;
+        });
+
+/** The rule for a request path as the browser sent it (percent-encoded, with or without the trailing slash), or `undefined`. */
 export function resolveRedirect(db: Database, raw: string): ResolvedRedirect | undefined {
     const path = normalizePath(raw);
     if (path === undefined) return undefined;
     const state = stateOf(db);
-    state.lookup ??= matcher(selectAll(db).map(stored));
+    state.lookup ??= matcher(usableRules(db));
     const rule = state.lookup(path);
     return rule && { from: rule.from, to: rule.to, status: rule.status };
 }

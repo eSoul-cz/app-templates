@@ -16,6 +16,8 @@ const test = base.extend<object, { app: App }>({
             insert.run('/old-page', '/', 301);
             insert.run('/old-section/*', '/', 301);
             insert.run('/removed', null, 410);
+            // Stored decoded: the browser asks for `/50%25-off`.
+            insert.run('/50%-off', '/', 301);
             // A row for an address the site really serves: it must never hide the page.
             insert.run('/llms.txt', '/', 301);
             db.close();
@@ -45,6 +47,12 @@ test.describe('old addresses', () => {
         expect(prefix.status()).toBe(301);
         expect(prefix.headers().location).toBe('/');
         expect(prefix.headers()['x-content-type-options']).toBe('nosniff');
+    });
+
+    test('a literal percent sign in the address is decoded once', async ({ app, request }) => {
+        const response = await request.get(`${app.baseURL}/50%25-off`, { maxRedirects: 0 });
+        expect(response.status()).toBe(301);
+        expect(response.headers().location).toBe('/');
     });
 
     test('a 410 shows the 404 page as html with the status 410', async ({ app, request }) => {

@@ -27,7 +27,7 @@ export interface StoredRule extends RedirectRule {
 export const redirectLimits = { path: 300 } as const;
 
 export type FromIssue = 'required' | 'invalid' | 'tooLong' | 'reserved' | 'taken' | 'pointedAt';
-export type ToIssue = 'required' | 'invalid' | 'tooLong' | 'same' | 'chain' | 'loop';
+export type ToIssue = 'required' | 'invalid' | 'query' | 'tooLong' | 'same' | 'chain' | 'loop';
 export interface RedirectIssues {
     from?: FromIssue;
     to?: ToIssue;
@@ -36,7 +36,7 @@ export interface RedirectIssues {
 export type TrailingSlash = 'always' | 'never' | 'ignore';
 
 /**
- * The `trailingSlash` of `astro.config.mjs` (`tests/redirects.test.ts` fails when they differ). With `always` the canonical
+ * The `trailingSlash` of `astro.config.mjs` (`tests/redirect-input.test.ts` fails when they differ). With `always` the canonical
  * path ends in a slash, with `never` and `ignore` it does not; the root is `/` either way.
  */
 export const trailingSlash: TrailingSlash = 'ignore';
@@ -94,6 +94,16 @@ export const isReservedPath = (raw: string) => {
     return path !== undefined && isReserved(path);
 };
 
+/** A `?` or `#`, as typed or after percent-decoding (`%3F`). */
+const hasQueryOrHash = (raw: string) => {
+    if (/[?#]/.test(raw)) return true;
+    try {
+        return /[?#]/.test(decodeURIComponent(raw));
+    } catch {
+        return false;
+    }
+};
+
 export type CheckedRedirect = { readonly value: RedirectRule; readonly issues?: never } | { readonly value?: never; readonly issues: RedirectIssues };
 
 /** The rules an input can be checked for on its own; the other rows (taken, chain, loop, pointed at) are `planSave`'s job. */
@@ -113,6 +123,8 @@ export const checkRedirect = (input: RedirectInput, mode: TrailingSlash = traili
         else if (toRaw.length > redirectLimits.path) issues.to = 'tooLong';
         // The target is typed as a path of this site: starting with `/`, never another site.
         else if (!toRaw.startsWith('/') || isExternal(toRaw)) issues.to = 'invalid';
+        // The visitor's own query string is appended on redirect: a `?` or `#` in the target would end up twice in the address.
+        else if (hasQueryOrHash(toRaw)) issues.to = 'query';
         else {
             const normalized = normalizePath(toRaw, { mode });
             if (normalized === undefined) issues.to = 'invalid';
@@ -166,4 +178,21 @@ export const planSave = (value: RedirectRule, others: ReadonlyArray<StoredRule>,
     const pointed = pointingAt(others, value.from, previousFrom);
     if (pointed.length > 0) return { issues: { from: 'pointedAt' }, pointedAt: pointed };
     return {};
+};
+
+const encodePath = (path: string) => path.split('/').map(encodeURIComponent).join('/');
+
+/**
+ * Whether a stored row is what a save would have written: canonical paths, a local target without query or hash, no loop
+ * onto itself. Rows written by a project's own migration are not checked by a save, so the lookup skips those that fail
+ * (an open redirect from a typo, a path that never matches). Stored paths are decoded, so they are encoded again to run
+ * through the same normalisation.
+ */
+export const isCanonicalRule = (rule: RedirectRule, mode: TrailingSlash = trailingSlash): boolean => {
+    const from = normalizePath(encodePath(rule.from), { wildcard: true, mode });
+    if (from !== rule.from || isReserved(from)) return false;
+    if (rule.status === 410) return rule.to === null;
+    if (rule.status !== 301 || rule.to === null || hasQueryOrHash(rule.to)) return false;
+    const to = normalizePath(encodePath(rule.to), { mode });
+    return to === rule.to && to !== from && !(isPrefixRule(from) && under(from.slice(0, -1), to));
 };

@@ -38,6 +38,7 @@ const fromMessages: Record<FromIssue, string> = {
 const toMessages: Record<ToIssue, string> = {
     required: 'Enter the new address.',
     invalid: 'Use an address of this site, starting with / (never another site).',
+    query: 'The new address must not contain ? or #: the visitor’s query string is added automatically.',
     tooLong: `At most ${redirectLimits.path} characters.`,
     same: 'The new address equals the old one.',
     chain: 'The new address is itself redirected. Point to the final address.',

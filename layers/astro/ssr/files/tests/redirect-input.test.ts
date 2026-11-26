@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
     checkRedirect,
+    isCanonicalRule,
     matcher,
     normalizePath,
     planSave,
@@ -64,7 +65,7 @@ describe('normalizePath', () => {
 
 describe('checkRedirect', () => {
     it('accepts a 301 and canonicalises both paths', () => {
-        expect(checkRedirect(move('Old/', '/new/?q=1'), 'never').value).toEqual({ from: '/Old', to: '/new', status: 301 });
+        expect(checkRedirect(move('Old/', '/new/'), 'never').value).toEqual({ from: '/Old', to: '/new', status: 301 });
         expect(checkRedirect(move('old', '/new'), 'always').value).toEqual({ from: '/old/', to: '/new/', status: 301 });
     });
 
@@ -141,5 +142,36 @@ describe('planSave', () => {
 
     it('accepts a row that touches nothing', () => {
         expect(planSave(value('/new', '/target'), others)).toEqual({});
+    });
+});
+
+describe('a target with a query or hash', () => {
+    it.each(['/new?a=1', '/new#top', '/new%3Fa=1', '/new%23top'])('is refused: %j', (to) => {
+        expect(checkRedirect(move('/old', to)).issues).toEqual({ to: 'query' });
+    });
+});
+
+describe('isCanonicalRule', () => {
+    const row = (from: string, to: string | null): RedirectRule => ({ from, to, status: to === null ? 410 : 301 });
+
+    it('accepts what a save writes, a literal % included', () => {
+        expect(isCanonicalRule(row('/old', '/new'), 'never')).toBe(true);
+        expect(isCanonicalRule(row('/old/*', null), 'never')).toBe(true);
+        expect(isCanonicalRule(row('/50%-off', '/sale'), 'never')).toBe(true);
+        expect(isCanonicalRule(row('/old/', '/new/'), 'always')).toBe(true);
+    });
+
+    it.each([
+        ['an open redirect', row('/old', '//evil.example')],
+        ['an external target', row('/old', 'https://evil.example')],
+        ['a target without the slash', row('/old', 'new')],
+        ['a target with a query', row('/old', '/new?a=1')],
+        ['a from without the leading slash', row('old', '/new')],
+        ['a from with a trailing slash', row('/old/', '/new')],
+        ['a reserved from', row('/admin/x', '/new')],
+        ['a loop onto itself', row('/old', '/old')],
+        ['a prefix rule over its own target', row('/old/*', '/old/new')],
+    ])('refuses %s', (_name, rule) => {
+        expect(isCanonicalRule(rule, 'never')).toBe(false);
     });
 });

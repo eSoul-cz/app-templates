@@ -173,21 +173,28 @@ makes a prefix rule (`/old/*`); the exact address wins, then the longest prefix.
   The target must be a path of this site: another site, `//host`, backslashes and control characters are refused, and so are a redirect to
   itself, a chain (the target is itself redirected), a loop, and an address that other rows point at (the form lists those rows).
 - **No rows in the template.** A project adds the redirects of its old site as its own migration, registered in `migrations/index.ts` (never
-  edit it after the first deploy, add a new one). Use canonical paths, `INSERT OR IGNORE` keeps a row the admin already has:
+  edit it after the first deploy, add a new one). `checkRedirect` gives the canonical form and refuses what a save would refuse, so the
+  migration throws on a typo; `INSERT OR IGNORE` keeps a row the admin already has. A row that is not canonical (written by raw SQL) is
+  skipped by the lookup and logged, so it can never become an open redirect:
 
     ```ts
     const initial: ReadonlyArray<readonly [from: string, to: string | null]> = [
         ['/about-us', '/about'],
         ['/wp-content/*', null], // gone for good
     ];
-    // in up(db): const insert = db.prepare('INSERT OR IGNORE INTO redirects (from_path, to_path, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?)');
-    //            for (const [from, to] of initial) insert.run(from, to, to === null ? 410 : 301, Date.now(), Date.now());
+    // in up(db), with `import { checkRedirect } from '../redirect-input.ts'`:
+    const insert = db.prepare('INSERT OR IGNORE INTO redirects (from_path, to_path, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?)');
+    for (const [from, to] of initial) {
+        const checked = checkRedirect({ from, to: to ?? '', status: to === null ? 410 : 301 });
+        if (checked.issues) throw new Error(`Redirect ${from}: ${JSON.stringify(checked.issues)}`);
+        insert.run(checked.value.from, checked.value.to, checked.value.status, Date.now(), Date.now());
+    }
     ```
 
 - **When a slug changes**, call `recordSlugChange(db, oldPath, newPath)` (`src/server/Redirects.ts`) where the project saves it: the old address
   redirects to the new one, the rows that led to the old one follow, and a row from the new address is removed. It joins the caller's transaction.
 - **Memory.** The rules are cached per process and dropped by every write made through `Redirects.ts` (a row written by raw SQL after the first
-  lookup is not seen until the process restarts). Hits are counted in memory, written every 10 s in one transaction and on SIGTERM
+  lookup is not seen until the process restarts). The lookup uses the path as the browser sent it, decoded once. Hits are counted in memory, written every 10 s in one transaction and on SIGTERM
   (`start.ts`); a killed process loses the last seconds, and a counting failure never reaches a response.
 
 ## Pages, actions, middleware
@@ -274,7 +281,7 @@ astro.config.mjs        adapter, CSP, allowed domains, body limits
 src/server/             plain Node TypeScript, no astro:* imports: Settings, Database, Migrator, Seeds, Auth, Sessions,
                         LoginThrottle, Password, Redirects, redirect-input, runtime (+ start.ts, migrate.ts, seed.ts, admin-create.ts scripts)
 src/server/migrations/  numbered migrations and their index      src/server/seeds/  run-once seeds and their index
-src/middleware.ts       headers, body limit, session lookup, admin guard
+src/middleware.ts       headers, body limit, session lookup, admin guard, redirects of old addresses
 src/actions/            login, logout, redirects                             src/lib/  routes, session cookie helpers (use astro:*)
 src/pages/              pages, endpoints (healthz, robots.txt, sitemap.xml, llms.txt)
 tests/                  Vitest                                    e2e/      Playwright (starts the built server itself)

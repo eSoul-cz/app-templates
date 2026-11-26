@@ -90,7 +90,8 @@ async function guard(context: APIContext, next: MiddlewareNext): Promise<Respons
         // A redirect row applies only where the site has no page: the response must be a 404 first.
         const response = await next();
         if (!isSafe || response.status !== 404) return response;
-        const rule = findRedirect(pathname);
+        // The raw path: Astro has decoded `pathname` already, and the lookup decodes once itself (a literal `%` would fail twice).
+        const rule = findRedirect(new URL(context.request.url).pathname);
         return rule ? answerWithRedirect(context, rule) : response;
     }
     if (trimSlash(pathname) === loginPath) return admin && isSafe ? context.redirect(adminPath) : next();

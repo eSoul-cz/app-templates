@@ -109,6 +109,29 @@ describe('resolveRedirect', () => {
     });
 });
 
+describe('rows from a migration', () => {
+    const insert = (db: ReturnType<typeof database>, from: string, to: string | null) =>
+        db
+            .prepare('INSERT INTO redirects (from_path, to_path, status, created_at, updated_at) VALUES (?, ?, ?, 0, 0)')
+            .run(from, to, to === null ? 410 : 301);
+
+    it('are used only when a save could have written them', () => {
+        const db = database();
+        const warn = vi.spyOn(console, 'warn').mockImplementation(quiet);
+        insert(db, '/typo', '//evil.example');
+        insert(db, '/Old-Page/', '/new');
+        insert(db, '/good', '/target');
+        insert(db, '/50%-off', '/sale');
+        expect(resolveRedirect(db, '/typo')).toBeUndefined();
+        expect(resolveRedirect(db, '/old-page')).toBeUndefined();
+        expect(resolveRedirect(db, '/good')?.to).toBe('/target');
+        // The browser sends a literal % encoded; it is decoded once.
+        expect(resolveRedirect(db, '/50%25-off')?.to).toBe('/sale');
+        expect(warn).toHaveBeenCalledTimes(2);
+        warn.mockRestore();
+    });
+});
+
 describe('hits', () => {
     beforeEach(() => vi.useFakeTimers());
     afterEach(() => vi.useRealTimers());

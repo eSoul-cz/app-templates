@@ -1,6 +1,6 @@
 {
     "require-dev": {
-        "esoul-cz/guidelines": "^0.5"
+        "esoul-cz/guidelines": "^0.6"
     },
     "scripts": {
         "post-update-cmd": [

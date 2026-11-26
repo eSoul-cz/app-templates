@@ -120,7 +120,7 @@ Finally it **renders the project guidelines**: it runs `esoul-guidelines sync --
 a dependency of this repository: `vendor/bin/esoul-guidelines`, override with `--guidelines-bin`) in the variant root. Every variant therefore ships
 `docs/project_guidelines/`, the guidelines block in `AGENTS.md` and `esoul-guidelines.lock` ready-made; a project created from it
 updates them later with `composer update esoul-cz/guidelines` + `vendor/bin/esoul-guidelines sync` (below 1.0 only within the constraint's minor: a new minor needs it raised,
-`composer require --dev esoul-cz/guidelines:^0.5 -W`). The Astro frontends and the SSR application
+`composer require --dev esoul-cz/guidelines:^0.6 -W`). The Astro frontends and the SSR application
 have no Composer dependency: their README ("Guidelines") documents `composer global`, the PHAR and the Docker image, and `astroPipeline` runs
 `esoul-guidelines check` itself, with the version recorded in `esoul-guidelines.lock` (stage `Guidelines check`; no `Jenkinsfile` configuration). A missing installer, an unknown
 guideline layer or a failing `sync` fails the build.
@@ -138,9 +138,9 @@ rules). Each stack layer adds its guideline layers through its own `merge/esoul-
 Only existing guideline layers may be listed (`laravel-lunar` lists `package/filament` and `package/lunar`).
 
 Every layer that ships a framework `composer.json` (the Laravel layers, `lsr/base`, the Astro CMS root) requires `esoul-cz/guidelines`
-`^0.5` and adds `"esoul-guidelines sync"` to `scripts.post-update-cmd`, after Laravel Boost's `boost:update` where there is one, so
-`composer update` re-renders `docs/project_guidelines/` (the installer README, "Sync on `composer update`"). Under 0.x `^0.5` stops before
-0.6.0: the builder's own constraint and the layers' are raised together with each minor.
+`^0.6` and adds `"esoul-guidelines sync"` to `scripts.post-update-cmd`, after Laravel Boost's `boost:update` where there is one, so
+`composer update` re-renders `docs/project_guidelines/` (the installer README, "Sync on `composer update`"). Under 0.x `^0.6` stops before
+0.7.0: the builder's own constraint and the layers' are raised together with each minor.
 
 ### The `laravel/skeleton` layer
 
@@ -293,7 +293,7 @@ project's; the skill resolves conflicts with them, it does not overwrite them.
 - `skeleton:sync` formats the synced skeleton with Pint using `layers/laravel/base/files/pint.json` (Pint is installed into a temp dir),
   so untouched upstream files pass the base layer's `composer cs`; it skips the step when that file does not exist.
 - Laravel layers (`laravel/base`, `inertia-vue`, `filament`, `lunar`):
-  - `esoul-cz/guidelines` (`require-dev ^0.5`) comes from Packagist. It is not a Composer plugin: `post-update-cmd` runs `esoul-guidelines sync`.
+  - `esoul-cz/guidelines` (`require-dev ^0.6`) comes from Packagist. It is not a Composer plugin: `post-update-cmd` runs `esoul-guidelines sync`.
   - `bootstrap/providers.php` is an explicit list owned by the LAST layer of a variant that touches it (base: `AppServiceProvider`;
     filament and `laravel/cms` overwrite it). No provider auto-discovery.
   - Layout follows the `framework/laravel` guideline: Eloquent models (including `User`) in `App\Infrastructure\Models`, controllers in

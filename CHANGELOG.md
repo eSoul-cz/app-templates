@@ -26,6 +26,14 @@ Migration: what an existing project must do (or "none").
 
 ## Unreleased
 
+### 2026-11-26: Render guidelines 0.6.1
+
+Affects: every variant / every layer that renders the guidelines; the layers that require the package (`laravel/base`, `lsr/base`, `astro-cms/root`) now require `^0.6`; the builder.
+
+The builder and the variants render with `esoul-cz/guidelines` v0.6.1. 0.6.0 adds the layer `package/laravel-inertia-react` (a Laravel + Inertia project on React; no template uses it, the Vue output is unchanged) and a targeted replace marker for the installer; 0.6.1 lets an application that renders on the server and has its own admin (`B-admin`) keep the redirects from an old site in the application instead of the host NGINX map, which the `astro-ssr` variant already implements (the entry below, `/admin/redirects`). The rendered text of `general` and `framework/astro` changes accordingly.
+
+Migration: raise the constraint and update in one command, `composer require --dev esoul-cz/guidelines:^0.6 -W`: below 1.0 `^0.5` stops before 0.6.0, so `composer update esoul-cz/guidelines` alone leaves the project on 0.5.x. The command runs the `post-update-cmd` (`esoul-guidelines sync`); commit `composer.json`, `composer.lock`, the changed `esoul-guidelines.lock` and `docs/project_guidelines/`. A repository without Composer syncs with the v0.6.1 PHAR or image.
+
 ### 2026-11-26: Astro SSR: admin-managed redirects from the old site
 
 Affects: `astro-ssr` / layer `astro/ssr` (`src/server/redirect-input.ts`, `src/server/Redirects.ts`, `src/server/migrations/0002_redirects.ts`, `src/server/start.ts`, `src/middleware.ts`, `src/actions/index.ts`, `src/pages/admin/redirects.astro`, `src/layouts/AdminLayout.astro`, `tests/`, `e2e/redirects.spec.ts`, `README.md`).

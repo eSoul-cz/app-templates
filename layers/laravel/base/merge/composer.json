@@ -6,7 +6,7 @@
     },
     "require-dev": {
         "brianium/paratest": "^7.24",
-        "esoul-cz/guidelines": "^0.5",
+        "esoul-cz/guidelines": "^0.6",
         "infection/infection": "^0.35",
         "larastan/larastan": "^3.0",
         "laravel/boost": "^2.5",

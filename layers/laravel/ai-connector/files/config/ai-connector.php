@@ -25,9 +25,12 @@ return [
     | The assistants of the big providers only. A project that connects another client adds it here (comma
     | separated in AI_CONNECTOR_REDIRECT_DOMAINS); never `*`, because anybody can register a client.
     */
-    'redirect_domains' => array_values(array_filter(array_map(trim(...), explode(',', (string) env(
-        'AI_CONNECTOR_REDIRECT_DOMAINS',
-        'https://claude.ai,https://claude.com,https://chatgpt.com,https://chat.openai.com,https://platform.openai.com',
-    ))))),
+    'redirect_domains' => array_values(array_filter(array_map(trim(...), explode(',', (string) (env('AI_CONNECTOR_REDIRECT_DOMAINS') ?: implode(',', [
+        'https://claude.ai',
+        'https://claude.com',
+        'https://chatgpt.com',
+        'https://chat.openai.com',
+        'https://platform.openai.com',
+    ])))))),
 
 ];

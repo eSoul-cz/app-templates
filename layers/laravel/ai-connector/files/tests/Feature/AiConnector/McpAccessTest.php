@@ -51,11 +51,12 @@ final class McpAccessTest extends AiConnectorTestCase
         $this->assertNull($response->json('result.structuredContent'));
     }
 
-    public function test_the_tool_list_names_whoami_only(): void
+    public function test_the_tool_list_names_whoami_and_the_tools_other_layers_registered(): void
     {
         $token = $this->connectAssistant(User::factory()->create(['is_admin' => true]));
+        $registered = array_map(static fn (string $tool): string => new $tool()->name(), config()->array('ai-connector.tools'));
 
-        $this->assertSame(['whoami'], array_column($this->mcp($token, 'tools/list')->assertOk()->json('result.tools'), 'name'));
+        $this->assertEqualsCanonicalizing(['whoami', ...$registered], array_column($this->mcp($token, 'tools/list')->assertOk()->json('result.tools'), 'name'));
     }
 
     public function test_a_user_who_may_no_longer_use_the_admin_loses_the_connection(): void

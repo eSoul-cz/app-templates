@@ -137,7 +137,7 @@ final class PageRevisionTest extends TestCase
         Storage::fake(PublicMediaStore::MEDIA_DISK);
         SampleContent::create();
         $about = Page::query()->where('slug', 'about')->firstOrFail();
-        CommandBus::dispatch(new SavePageCommand($about->id, ['title' => 'About us'], RevisionSource::Admin, null));
+        CommandBus::dispatch(new SavePageCommand($about->id, ['title' => 'About us (edited)'], RevisionSource::Admin, null));
 
         $about->delete();
 

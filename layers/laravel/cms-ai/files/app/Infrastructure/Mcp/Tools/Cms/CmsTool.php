@@ -6,6 +6,7 @@ namespace App\Infrastructure\Mcp\Tools\Cms;
 
 use App\Application\Contract\Cms\PublicMediaStore;
 use App\Application\Dto\Cms\PageDetail;
+use App\Application\Dto\Cms\SavedPage;
 use App\Application\Dto\Cms\PageSummary;
 use App\Domain\Cms\Blocks\BlockCatalogue;
 use App\Domain\Cms\Blocks\BlockFieldType;
@@ -134,6 +135,7 @@ abstract class CmsTool extends ConnectorTool
             'published' => $page->isPublished,
             'updated_at' => $this->date($page->updatedAt),
             'has_unpublished_changes' => $hasUnpublishedChanges,
+            'has_draft_waiting_for_approval' => $page->hasDraft,
         ];
     }
 
@@ -152,7 +154,28 @@ abstract class CmsTool extends ConnectorTool
             'blocks' => $page->blocks,
             'updated_at' => $this->date($page->updatedAt),
             'has_unpublished_changes' => $hasUnpublishedChanges,
+            'draft' => $page->draft === null ? null : [
+                'note' => 'Not live: a draft waiting for approval in the admin. The fields above are what the live page has; continue editing from this draft (update_page changes it).',
+                'revision_id' => $page->draft->revisionId,
+                'title' => $page->draft->title,
+                'slug' => $page->draft->slug,
+                'description' => $page->draft->description,
+                'noindex' => $page->draft->noindex,
+                'og_image' => $page->draft->ogImage,
+                'blocks' => $page->draft->blocks,
+                'proposed_at' => $this->date($page->draft->proposedAt),
+            ],
         ];
+    }
+
+    /** What a save tells the assistant, which must be true: a draft is not live and the live site changes only when a person acts. */
+    protected function savedNote(SavedPage $saved, string $verb, string $unchanged): string
+    {
+        return match (true) {
+            $saved->revisionId === null => $unchanged,
+            $saved->pending => "{$verb} as a draft waiting for approval in the admin; the live page is unchanged. A person applies the draft in the History of the page and publishes the site.",
+            default => "{$verb} as a new version of a page that is not published, so it is not on the live site.",
+        };
     }
 
     protected function date(?CarbonInterface $date): ?string

@@ -19,7 +19,7 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
 #[Name('list_pages')]
 #[Title('List pages')]
-#[Description('Lists the pages of the website: id, title, slug, whether the page is published, when it was last changed and whether it has changes that are not on the live site yet.')]
+#[Description('Lists the pages of the website: id, title, slug, whether the page is published, when it was last changed and whether it has changes that are not on the live site yet and whether it has a draft of an AI assistant waiting for approval in the admin.')]
 #[IsReadOnly]
 final class ListPagesTool extends CmsTool
 {

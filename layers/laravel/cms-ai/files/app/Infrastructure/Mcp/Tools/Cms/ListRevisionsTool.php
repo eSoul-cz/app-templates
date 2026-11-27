@@ -20,7 +20,7 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
 #[Name('list_revisions')]
 #[Title('List page versions')]
-#[Description('Lists the saved versions of a page, newest first: id, who wrote it (person or AI assistant), when, title and number of blocks. Use an id with restore_revision.')]
+#[Description('Lists the saved versions of a page, newest first: id, who wrote it (person or AI assistant), when, title and number of blocks and its status (applied, or pending when it is a draft waiting for approval in the admin). Use an id with restore_revision.')]
 #[IsReadOnly]
 final class ListRevisionsTool extends CmsTool
 {
@@ -50,6 +50,7 @@ final class ListRevisionsTool extends CmsTool
 
         return Response::structured(['revisions' => array_map(fn (RevisionSummary $revision): array => [
             'id' => $revision->id,
+            'status' => $revision->status->value,
             'source' => $revision->source->value,
             'author' => $revision->author,
             'created_at' => $this->date($revision->createdAt),

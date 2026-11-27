@@ -21,5 +21,6 @@ final readonly class PageDetail
         public ?string $ogImage,
         public array $blocks,
         public ?CarbonInterface $updatedAt,
+        public ?PageDraft $draft = null,
     ) {}
 }

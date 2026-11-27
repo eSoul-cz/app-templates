@@ -25,7 +25,7 @@ use Laravel\Mcp\Server\Tools\Annotations\IsDestructive;
 
 #[Name('restore_revision')]
 #[Title('Restore a page version')]
-#[Description('Writes an earlier version of a page back as a new version (the history is kept). Refused when it would change the published state, the noindex setting or the slug of a published page, or for a deleted page. Saved with the source AI assistant.')]
+#[Description('Writes an earlier version of a page back as a new version (the history is kept). Refused when it would change the published state, the noindex setting or the slug of a published page, or for a deleted page. Saved with the source AI assistant; for a published page it becomes a draft waiting for approval in the admin and the live page stays as it is.')]
 #[IsDestructive(false)]
 final class RestoreRevisionTool extends CmsTool
 {
@@ -90,7 +90,8 @@ final class RestoreRevisionTool extends CmsTool
             'page_id' => $saved->pageId,
             'revision_id' => $saved->revisionId,
             'changed' => $saved->revisionId !== null,
-            'note' => $saved->revisionId === null ? 'The page already had this content, no version was saved.' : 'Restored as a new version. The live site changes only after a person publishes.',
+            'pending' => $saved->pending,
+            'note' => $this->savedNote($saved, 'Restored', 'The page already had this content, no version was saved.'),
         ]);
     }
 }

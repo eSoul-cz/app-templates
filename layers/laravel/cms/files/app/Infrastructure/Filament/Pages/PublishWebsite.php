@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Infrastructure\Filament\Pages;
 
 use App\Application\Dto\Cms\PageChange;
+use App\Application\Dto\Cms\PendingDraft;
 use App\Application\Dto\Cms\PublishOverview;
 use App\Domain\Cms\PublishBlocked;
 use App\Domain\Cms\PublishStatus;
@@ -13,6 +14,7 @@ use App\Domain\CQRS\Command\Cms\MarkPublishFailedCommand;
 use App\Domain\CQRS\Command\Cms\RefreshPublishCommand;
 use App\Domain\CQRS\Command\Cms\StartPublishCommand;
 use App\Domain\CQRS\Query\Cms\GetChangesSincePublishQuery;
+use App\Domain\CQRS\Query\Cms\GetPendingDraftsQuery;
 use App\Domain\CQRS\Query\Cms\GetPublishOverviewQuery;
 use App\Infrastructure\Models\Publish;
 use App\Infrastructure\Models\User;
@@ -81,6 +83,7 @@ final class PublishWebsite extends Page implements HasTable
                     ...array_map(static fn (string $problem): Text => Text::make("• {$problem}")->color('danger'), $overview->problems),
                 ]),
             $this->changesSection(),
+            $this->draftsSection(),
             EmbeddedTable::make(),
         ]);
     }
@@ -215,6 +218,20 @@ final class PublishWebsite extends Page implements HasTable
                 ),
                 Text::make('… and ' . (count($changes) - self::CHANGES_SHOWN) . ' more pages.')->visible(count($changes) > self::CHANGES_SHOWN),
             ]);
+    }
+
+    private function draftsSection(): Section
+    {
+        /** @var list<PendingDraft> $drafts */
+        $drafts = QueryBus::execute(new GetPendingDraftsQuery());
+
+        return Section::make('AI drafts waiting for approval')
+            ->description('Changes of published pages proposed by an AI assistant. They are not on the site and will not be published until you apply them in the History of the page.')
+            ->visible($drafts !== [])
+            ->schema(array_map(
+                static fn (PendingDraft $draft): Text => Text::make("{$draft->title} (/{$draft->slug})" . ($draft->author === null ? '' : " - {$draft->author}") . ($draft->proposedAt === null ? '' : ', ' . $draft->proposedAt->format('Y-m-d H:i')))->color('warning'),
+                $drafts,
+            ));
     }
 
     private function statusLine(PublishOverview $overview): string

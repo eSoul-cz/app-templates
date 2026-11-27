@@ -6,6 +6,7 @@ namespace App\Domain\CQRS\Query\Cms;
 
 use App\Application\Dto\Cms\PageChange;
 use App\Domain\Cms\RevisionSource;
+use App\Domain\Cms\RevisionStatus;
 use App\Domain\CQRS\Cms\CurrentPublish;
 use App\Infrastructure\Models\Page;
 use App\Infrastructure\Models\PageRevision;
@@ -49,6 +50,8 @@ final readonly class GetChangesSincePublishQueryHandler implements QueryHandlerI
         foreach (
             PageRevision::query()
                 ->whereIn('page_id', $pages->modelKeys())
+                // A pending draft is not a change of the site until a person applies it.
+                ->where('status', RevisionStatus::Applied)
                 ->when($since !== null, static fn (Builder $revisions): Builder => $revisions->where('created_at', '>', $since))
                 ->with('user')
                 ->orderByDesc('id')

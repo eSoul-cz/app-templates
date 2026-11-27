@@ -16,5 +16,6 @@ final readonly class PageSummary
         public bool $isPublished,
         public bool $isHome,
         public ?CarbonInterface $updatedAt,
+        public bool $hasDraft = false,
     ) {}
 }

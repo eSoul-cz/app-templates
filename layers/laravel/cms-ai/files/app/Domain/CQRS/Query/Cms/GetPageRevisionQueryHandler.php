@@ -28,6 +28,7 @@ final readonly class GetPageRevisionQueryHandler implements QueryHandlerInterfac
             $revision->is_published,
             count($revision->blocks ?? []),
             $revision->noindex,
+            $revision->status,
         );
     }
 

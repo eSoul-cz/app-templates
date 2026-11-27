@@ -125,7 +125,7 @@ final class PageRestoreTest extends TestCase
             'slug' => 'new-slug',
             'description' => 'New description',
             'blocks' => self::NEW_BLOCKS,
-        ], RevisionSource::Ai, null));
+        ], RevisionSource::Admin, null));
 
         return Page::query()->findOrFail($saved->pageId);
     }

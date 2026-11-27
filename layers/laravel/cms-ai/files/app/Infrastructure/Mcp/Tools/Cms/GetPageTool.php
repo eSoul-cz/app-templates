@@ -19,7 +19,7 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
 #[Name('get_page')]
 #[Title('Get a page')]
-#[Description('Returns one page with all its fields and its content blocks (use list_block_types to see what a block may hold).')]
+#[Description('Returns one page with all its fields and its content blocks (use list_block_types to see what a block may hold). For a published page the fields are what is live; when a draft waits for approval it is returned as `draft` and is the version to continue editing.')]
 #[IsReadOnly]
 final class GetPageTool extends CmsTool
 {

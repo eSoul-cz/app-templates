@@ -46,7 +46,7 @@ final class ChangesSincePublishTest extends TestCase
         $this->travelTo('2026-11-27 10:00:00');
         CommandBus::dispatch(new SavePageCommand($edited, ['title' => 'Edited by a person'], RevisionSource::Admin, $user));
         $this->travelTo('2026-11-27 10:05:00');
-        CommandBus::dispatch(new SavePageCommand($edited, ['title' => 'Edited by the assistant'], RevisionSource::Ai, null));
+        CommandBus::dispatch(new SavePageCommand($edited, ['title' => 'Edited by the system'], RevisionSource::System, null));
         $created = $this->save('fresh', 'Fresh', RevisionSource::Ai);
         $this->travelTo('2026-11-27 10:10:00');
         Page::query()->findOrFail($removed)->delete();
@@ -63,7 +63,7 @@ final class ChangesSincePublishTest extends TestCase
         self::assertSame([RevisionSource::Ai], $changes[$created]->sources);
 
         self::assertFalse($changes[$edited]->created);
-        self::assertSame([RevisionSource::Ai, RevisionSource::Admin], $changes[$edited]->sources);
+        self::assertSame([RevisionSource::System, RevisionSource::Admin], $changes[$edited]->sources);
         self::assertSame(2, $changes[$edited]->revisions);
         self::assertNull($changes[$edited]->lastAuthor, 'the newest revision is the assistant, which has no user here');
     }

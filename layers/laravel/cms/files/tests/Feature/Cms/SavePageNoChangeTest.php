@@ -41,7 +41,7 @@ final class SavePageNoChangeTest extends TestCase
     {
         $saved = CommandBus::dispatch(new SavePageCommand(null, self::ATTRIBUTES, RevisionSource::Admin, null));
 
-        $changed = CommandBus::dispatch(new SavePageCommand($saved->pageId, ['title' => 'About us'], RevisionSource::Ai, null));
+        $changed = CommandBus::dispatch(new SavePageCommand($saved->pageId, ['title' => 'About us'], RevisionSource::Admin, null));
 
         $this->assertNotNull($changed->revisionId);
         $this->assertSame(2, PageRevision::query()->where('page_id', $saved->pageId)->count());

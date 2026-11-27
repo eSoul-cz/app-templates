@@ -27,7 +27,7 @@ use Laravel\Mcp\Server\Tools\Annotations\IsIdempotent;
 
 #[Name('update_page')]
 #[Title('Update a page')]
-#[Description('Changes the title, description, social image, slug (only of a page that is not published) or blocks of a page; send only what changes (blocks replace all blocks). It cannot publish, unpublish or move the home page. Saved as a version with the source AI assistant; nothing is saved when nothing changes.')]
+#[Description('Changes the title, description, social image, slug (only of a page that is not published) or blocks of a page; send only what changes (blocks replace all blocks). It cannot publish, unpublish or move the home page. Saved as a version with the source AI assistant; nothing is saved when nothing changes. A change to a published page is stored as a draft waiting for approval in the admin and the live page stays as it is.')]
 #[IsDestructive(false)]
 #[IsIdempotent]
 final class UpdatePageTool extends CmsTool
@@ -96,7 +96,8 @@ final class UpdatePageTool extends CmsTool
             'page_id' => $saved->pageId,
             'revision_id' => $saved->revisionId,
             'changed' => $saved->revisionId !== null,
-            'note' => $saved->revisionId === null ? 'Nothing changed, no version was saved.' : 'Saved as a new version. The live site changes only after a person publishes.',
+            'pending' => $saved->pending,
+            'note' => $this->savedNote($saved, 'Saved', 'Nothing changed, no version was saved.'),
         ]);
     }
 }

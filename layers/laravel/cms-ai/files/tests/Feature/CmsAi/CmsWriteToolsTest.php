@@ -127,8 +127,9 @@ final class CmsWriteToolsTest extends CmsAiTestCase
         $this->structured($this->callTool($this->token, 'update_page', ['page_id' => $draft->id, 'slug' => 'draft-2']));
         $this->assertSame('draft-2', $draft->refresh()->slug);
 
-        $this->structured($this->callTool($this->token, 'update_page', ['page_id' => $live->id, 'slug' => 'live', 'title' => 'Live now']));
-        $this->assertSame('Live now', $live->refresh()->title);
+        $data = $this->structured($this->callTool($this->token, 'update_page', ['page_id' => $live->id, 'slug' => 'live', 'title' => 'Live now']));
+        $this->assertTrue($data['pending']);
+        $this->assertSame('About', $live->refresh()->title);
     }
 
     public function test_update_page_with_invalid_blocks_changes_nothing(): void

@@ -39,9 +39,7 @@ final readonly class RestorePageRevisionCommandHandler implements CommandHandler
         $revision = PageRevision::query()->findOrFail($command->revisionId);
         $snapshot = $revision->only(PageRevisions::SNAPSHOT);
 
-        if (Page::withTrashed()->where('slug', $snapshot['slug'])->whereKeyNot($revision->page_id)->exists()) {
-            throw new PageRevisionNotRestorable("The slug \"{$snapshot['slug']}\" belongs to another page now.");
-        }
+        $this->revisions->assertSlugAvailable($revision);
 
         return $this->db->transaction(function () use ($command, $revision, $snapshot): SavedPage {
             $page = Page::withTrashed()->lockForUpdate()->findOrFail($revision->page_id);

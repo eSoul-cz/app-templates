@@ -13,6 +13,9 @@ return [
     /* The path of the MCP server (the connector URL is APP_URL + this path). */
     'path' => 'mcp',
 
+    /* Tools that other layers add to the MCP server (class names, each extends ConnectorTool); filled by their service providers. */
+    'tools' => [],
+
     /* Tool calls per minute and per access token. */
     'rate_limit_per_minute' => (int) env('AI_CONNECTOR_RATE_LIMIT', 60),
 

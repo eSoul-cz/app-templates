@@ -22,4 +22,13 @@ final class ConnectorServer extends Server
     protected array $tools = [
         WhoamiTool::class,
     ];
+
+    /** Tools of other layers register themselves in the config key `ai-connector.tools` (a list of class names). */
+    protected function boot(): void
+    {
+        /** @var list<class-string<Server\Tool>> $extra */
+        $extra = config()->array('ai-connector.tools', []);
+
+        $this->tools = array_values(array_unique([...$this->tools, ...$extra]));
+    }
 }

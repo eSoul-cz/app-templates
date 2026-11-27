@@ -26,7 +26,7 @@ Only whoever may open the admin panel (`User::canAccessPanel()`) can approve a c
 
 ### Writing a tool (the convention)
 
-A domain tool belongs to the layer or the module that owns the domain and extends `App\Infrastructure\Mcp\Tools\ConnectorTool`; add it to `$tools` of `ConnectorServer`.
+A domain tool belongs to the layer or the module that owns the domain and extends `App\Infrastructure\Mcp\Tools\ConnectorTool`; add it to `$tools` of `ConnectorServer`, or, from another layer, append its class to the config key `ai-connector.tools` in that layer's service provider (`ConnectorServer::boot()` merges it).
 
 1. **Declare the scope** in `requiredScope()` (`ConnectorScope::ContentRead` for a tool that only reads, `ContentWrite` for one that changes data). `ConnectorTool::handle()` is final: it takes the user from the access token, refuses a token without the scope, runs `execute()` and writes the audit row (also for a refused or failed call). A tool never writes the audit log itself and never touches a model.
 2. **Act as the user.** `execute(Request $request, User $user)` calls an Application **command or query** through the bus and passes the user (queries return only what that user may see; commands carry the acting user). Input is validated the way the admin form validates it (`$request->validate([...])`, the same rules or the same form-request rules).

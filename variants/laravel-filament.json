@@ -6,6 +6,7 @@
         {"layer": "common"},
         {"layer": "laravel/skeleton"},
         {"layer": "laravel/base"},
-        {"layer": "laravel/filament"}
+        {"layer": "laravel/filament"},
+        {"layer": "laravel/ai-connector"}
     ]
 }

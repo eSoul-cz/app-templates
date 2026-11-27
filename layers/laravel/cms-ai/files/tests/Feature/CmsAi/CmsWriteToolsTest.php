@@ -175,4 +175,29 @@ final class CmsWriteToolsTest extends CmsAiTestCase
         $page->delete();
         $this->assertToolError($this->callTool($this->token, 'restore_revision', ['revision_id' => $draftVersion->id]), 'deleted');
     }
+
+    public function test_restore_revision_refuses_a_version_with_another_noindex_setting(): void
+    {
+        $page = $this->makePage();
+        $first = $page->revisions()->firstOrFail();
+        $page->forceFill(['noindex' => true])->save();
+
+        $this->assertToolError($this->callTool($this->token, 'restore_revision', ['revision_id' => $first->id]), 'noindex');
+        $this->assertTrue($page->refresh()->noindex);
+        $this->assertSame(1, $page->revisions()->count());
+    }
+
+    public function test_an_image_path_must_be_an_uploaded_file_not_a_directory(): void
+    {
+        $page = $this->makePage();
+
+        foreach (['images/', 'images', 'images/../x.png', 'images/abc.png'] as $path) {
+            $this->assertToolError($this->callTool($this->token, 'update_page', ['page_id' => $page->id, 'og_image' => $path]), 'og_image');
+            $this->assertToolError($this->callTool($this->token, 'update_page', [
+                'page_id' => $page->id,
+                'blocks' => [['type' => 'image', 'data' => ['image' => $path, 'alt' => 'A']]],
+            ]), 'not an uploaded image');
+            $this->assertToolError($this->callTool($this->token, 'create_page', ['title' => 'N', 'slug' => 'n', 'og_image' => $path]), 'og_image');
+        }
+    }
 }

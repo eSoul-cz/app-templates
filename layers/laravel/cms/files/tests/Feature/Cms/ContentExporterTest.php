@@ -100,4 +100,19 @@ final class ContentExporterTest extends TestCase
             self::assertStringContainsString($expected, $problems);
         }
     }
+
+    public function test_a_directory_as_an_image_is_a_problem_not_a_crash(): void
+    {
+        Storage::fake(PublicMediaStore::MEDIA_DISK);
+        Storage::disk(PublicMediaStore::MEDIA_DISK)->put('images/real.txt', 'x');
+
+        SiteSetting::query()->create(['site_name' => 'Example']);
+        Page::query()->create(['slug' => 'home', 'title' => 'Home', 'is_home' => true, 'og_image' => 'images', 'blocks' => [
+            ['type' => 'image', 'data' => ['image' => 'images', 'alt' => 'A']],
+        ]]);
+
+        $problems = implode("\n", QueryBus::execute(new ExportContentQuery())->problems);
+
+        self::assertStringContainsString('the file images does not exist', $problems);
+    }
 }

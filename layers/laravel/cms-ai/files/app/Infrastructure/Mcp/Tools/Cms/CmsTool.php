@@ -105,7 +105,9 @@ abstract class CmsTool extends ConnectorTool
 
     protected function isUploadedImage(string $path): bool
     {
-        return str_starts_with($path, 'images/') && ! str_contains($path, '..') && Storage::disk(PublicMediaStore::MEDIA_DISK)->exists($path);
+        // The exact shape upload_image returns (`images/` + PublicMedia::name(): 20 hex characters of the hash and
+        // the extension); `fileExists()` is false for a directory, which the export could not hash.
+        return preg_match('#^images/[0-9a-f]{20}\.(png|jpg|webp|avif)$#', $path) === 1 && Storage::disk(PublicMediaStore::MEDIA_DISK)->fileExists($path);
     }
 
     /** @return array<int, true> ids of the pages that changed since the last publish and are not deleted */

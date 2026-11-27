@@ -20,5 +20,6 @@ final readonly class RevisionSummary
         public string $slug,
         public bool $isPublished,
         public int $blockCount,
+        public bool $noindex,
     ) {}
 }

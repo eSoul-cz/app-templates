@@ -12,7 +12,7 @@ use Esoul\Cqrs\Contracts\CommandInterface;
 
 /**
  * Creates (`pageId` null) or updates a page and records a revision of it. The one way page content changes:
- * the admin passes `source` Admin, an AI connector Ai. Only the keys present in `attributes` are written (a key
+ * the admin passes `source` Admin, an AI connector Ai. A save that changes nothing records no revision (`SavedPage::$revisionId` is null). Only the keys present in `attributes` are written (a key
  * with null clears the value, a missing key leaves it alone); blocks that do not match the block catalogue
  * throw {@see InvalidPageBlocks} and nothing is stored.
  *

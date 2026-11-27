@@ -23,6 +23,7 @@ final readonly class RestorePageRevisionCommandHandler implements CommandHandler
     public function __construct(
         private ConnectionInterface $db,
         private CommandBusInterface $commandBus,
+        private PageRevisions $revisions,
     ) {}
 
     /**
@@ -45,11 +46,20 @@ final readonly class RestorePageRevisionCommandHandler implements CommandHandler
         return $this->db->transaction(function () use ($command, $revision, $snapshot): SavedPage {
             $page = Page::withTrashed()->lockForUpdate()->findOrFail($revision->page_id);
 
-            if ($page->trashed()) {
+            $wasTrashed = $page->trashed();
+
+            if ($wasTrashed) {
                 $page->restore();
             }
 
-            return $this->commandBus->dispatch(new SavePageCommand($page->id, $snapshot, $command->source, $command->author));
+            $saved = $this->commandBus->dispatch(new SavePageCommand($page->id, $snapshot, $command->source, $command->author));
+
+            // Bringing a deleted page back is a change even when the content is the same as before.
+            if ($saved->revisionId === null && $wasTrashed) {
+                return new SavedPage($page->id, $this->revisions->record($page->refresh(), $command->source, $command->author)->id);
+            }
+
+            return $saved;
         });
     }
 }

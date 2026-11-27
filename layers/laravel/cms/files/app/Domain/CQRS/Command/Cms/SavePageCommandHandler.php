@@ -46,7 +46,14 @@ final readonly class SavePageCommandHandler implements CommandHandlerInterface
 
         return $this->db->transaction(function () use ($command, $attributes): SavedPage {
             $page = $command->pageId === null ? new Page() : Page::query()->lockForUpdate()->findOrFail($command->pageId);
-            $page->fill($attributes)->save();
+            $page->fill($attributes);
+
+            // A save that changes nothing leaves no revision (an assistant that resends the same text would flood the history).
+            if ($page->exists && ! $page->isDirty()) {
+                return new SavedPage($page->id, null);
+            }
+
+            $page->save();
             // A new model lacks the column defaults (`noindex`, `is_published`) that the snapshot reads.
             $page->refresh();
 

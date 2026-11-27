@@ -11,11 +11,11 @@ infrastructure repo as submodules at `templates/<variant>/`.
 | Variant | Layers | Published, checks (`kind`) |
 | --- | --- | --- |
 | `laravel-inertia` | common, laravel/skeleton, laravel/base, laravel/inertia-vue | yes, `laravel` |
-| `laravel-filament` | common, laravel/skeleton, laravel/base, laravel/filament | yes, `laravel` |
-| `laravel-inertia-filament` | common, laravel/skeleton, laravel/base, laravel/inertia-vue, laravel/filament | yes, `laravel` |
+| `laravel-filament` | common, laravel/skeleton, laravel/base, laravel/filament, laravel/ai-connector | yes, `laravel` |
+| `laravel-inertia-filament` | common, laravel/skeleton, laravel/base, laravel/inertia-vue, laravel/filament, laravel/ai-connector | yes, `laravel` |
 | `laravel-lunar` | common, laravel/skeleton, laravel/base, laravel/inertia-vue, laravel/lunar | yes, `laravel` |
 | `lsr-inertia` | common, lsr/base | yes, `lsr` |
-| `laravel-cms` | common, laravel/skeleton, laravel/base, laravel/filament, laravel/cms | yes, `laravel` |
+| `laravel-cms` | common, laravel/skeleton, laravel/base, laravel/filament, laravel/ai-connector, laravel/cms | yes, `laravel` |
 | `astro-static` | common, astro/static | yes, `astro` |
 | `astro-cms-frontend` | common, astro/static, astro/cms-client | yes, `astro` (fixture source) |
 | `astro-cms` | common, astro-cms/root (thin monorepo root; the frontend and the `laravel-cms` backend are its git submodules) | yes, `root` |
@@ -292,7 +292,7 @@ project's; the skill resolves conflicts with them, it does not overwrite them.
   `post-create-project-cmd` steps): it is what makes `composer create-project esoul-cz/template-<variant>` work.
 - `skeleton:sync` formats the synced skeleton with Pint using `layers/laravel/base/files/pint.json` (Pint is installed into a temp dir),
   so untouched upstream files pass the base layer's `composer cs`; it skips the step when that file does not exist.
-- Laravel layers (`laravel/base`, `inertia-vue`, `filament`, `lunar`):
+- Laravel layers (`laravel/base`, `inertia-vue`, `filament`, `lunar`, `ai-connector`):
   - `esoul-cz/guidelines` (`require-dev ^0.6`) comes from Packagist. It is not a Composer plugin: `post-update-cmd` runs `esoul-guidelines sync`.
   - `bootstrap/providers.php` is an explicit list owned by the LAST layer of a variant that touches it (base: `AppServiceProvider`;
     filament and `laravel/cms` overwrite it). No provider auto-discovery.
@@ -336,6 +336,18 @@ project's; the skill resolves conflicts with them, it does not overwrite them.
     the Dockerfiles install pnpm with `npm install --global pnpm@${PNPM_VERSION}`.
   - Frontend packages follow the reference versions (Vite 8, Vitest 5, ESLint 10, TypeScript 6, Tailwind 4.3); `components.json` uses the
     `new-york` shadcn-vue style and the `@/design-system/ui` alias, but no shadcn component is added yet.
+- `laravel/ai-connector` (ADR-0004; the layer README part is "AI connector" in the built project): a client connects their own Claude or ChatGPT as a
+  custom connector (remote MCP server at `/mcp`, OAuth 2.1 with discovery, dynamic client registration and PKCE).
+  - In `laravel-filament`, `laravel-inertia-filament` and `laravel-cms`, after `laravel/filament` (it needs the admin login and the panel). Not in `laravel-inertia`
+    (no login) and not in `laravel-lunar` (its own panel and staff guard: a follow-up). `laravel/mcp ^1.3` and `laravel/passport ^13.12` install on the Laravel 13 / PHP 8.5 stack.
+  - Passport's own routes are switched off (`Passport::ignoreRoutes()`) and replaced by `routes/ai-connector.php`, so one middleware (`EnsureAiConnectorEnabled`)
+    makes every route, discovery included, answer 404 while `AI_CONNECTOR_ENABLED` is off, and the switch can be tested at run time. The discovery documents are the
+    layer's own (`DiscoveryController`) because `Mcp::oauthRoutes()` advertises only laravel/mcp's `mcp:use` scope; dynamic client registration reuses laravel/mcp's controller.
+  - The layer overwrites `app/Infrastructure/Models/User.php` (the filament layer's file plus `HasApiTokens`: re-sync it when the filament layer changes `User`) and
+    `bootstrap/providers.php`. `laravel/cms` owns that list as the last layer and registers `AiConnectorServiceProvider` when the class exists (`class_exists`), so
+    a `laravel-cms` build without the layer would still boot. The Passport migrations are copies in the layer (Passport 13 publishes them, it does not load them).
+  - The guard `api` is added by the provider when `config/auth.php` (verbatim base) has none. The audit log goes through the Application contract `ToolCallAuditLog`
+    (adapter in `App\Infrastructure\AiConnector`); the revoke page uses a CQRS query and command, and the layer test of `laravel/base` passes without an exception.
 - `lsr/base`: assumptions, verification and open questions are in [`layers/lsr/base/README.md`](layers/lsr/base/README.md).
 - Astro layers (`astro/static`, `astro/cms-client`, `astro/ssr`, `astro-cms/root`) and `laravel/cms`: a site with a CMS is three repositories, each created
   from its own template: `laravel-cms` (backend), `astro-cms-frontend` and the thin root `astro-cms` (documentation, the contract, the
@@ -356,7 +368,7 @@ project's; the skill resolves conflicts with them, it does not overwrite them.
     from `../backend/tests/Fixtures`; `pnpm fixture:check` always compares the schema version and, when `../backend` exists, the copy with the
     backend originals). A builder test (`ContractCopyTest`) guards the copy against the `laravel/cms` golden export.
   - Source Sans 3 (SIL OFL, copied from a reference project's `src/assets/fonts`) is the placeholder local font.
-  - Provider list: `laravel/cms` overwrites `bootstrap/providers.php` with `[AppServiceProvider, AdminPanelProvider, CmsServiceProvider]` (the last layer owns the list).
+  - Provider list: `laravel/cms` overwrites `bootstrap/providers.php` with `[AppServiceProvider, AdminPanelProvider, CmsServiceProvider]` plus `AiConnectorServiceProvider` when `laravel/ai-connector` is in the variant (the last layer owns the list).
     The `cms-media` / `cms-public` disks are added by `CmsServiceProvider` (config/filesystems.php stays the skeleton's).
   - The CMS follows the layer rules: `App\Application` holds only contracts (`Contract\Cms\PublicMediaStore`, `BuildTrigger`, implemented by
     `Infrastructure\Cms\PublicMedia` / `JenkinsClient` and bound in `CmsServiceProvider`), DTOs and `ContentChanges` (a cache stamp). The export

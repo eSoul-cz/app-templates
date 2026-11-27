@@ -364,6 +364,10 @@ project's; the skill resolves conflicts with them, it does not overwrite them.
     `MarkPublishFailed`, `FinishPublish` under `App\Domain\CQRS`, called through the `QueryBus`/`CommandBus` facades by the controllers and the
     Filament page. Controllers, middleware and the prune command moved to `Infrastructure\Http\{Controllers,Middleware}` and
     `Infrastructure\Console\Commands`.
+  - Page content is one block catalogue (`Domain\Cms\Blocks\BlockCatalogue`) that the Filament Builder is generated from and `BlockValidator` checks, and page
+    revisions (`page_revisions`, `source` `admin|ai|system`): `SavePageCommand` and `RestorePageRevisionCommand` are the only writers of page content, the Publish page
+    lists the pages changed since the last successful publish (`GetChangesSincePublishQuery`). Pages are soft deleted (revisions survive, deleted pages are not
+    exported); the export contract v1 is unchanged. The base for the AI connector of ADR-0004, which writes through the same commands with `source=ai`.
   - Admin uploads sit on a public-visibility `cms-media` disk (served at `/cms-media/` by nginx, images only, CSP sandbox) so Filament can preview them.
   - `pnpm-workspace.yaml` has `minimumReleaseAge: 1440` and `allowBuilds` (pnpm 12 ignores `onlyBuiltDependencies`).
   - ESLint (`eslint.config.js`, flat config: ESLint recommended + typescript-eslint + eslint-plugin-astro, `no-explicit-any` as error) ships in `astro/static`

@@ -26,6 +26,14 @@ Migration: what an existing project must do (or "none").
 
 ## Unreleased
 
+### 2026-11-27: laravel-cms: block catalogue, page revisions and the changes since the last publish
+
+Affects: `laravel-cms` / layer `laravel/cms` (`app/Domain/Cms/Blocks/`, `app/Domain/Cms/{RevisionSource,InvalidPageBlocks,PageRevisionNotRestorable}.php`, `app/Domain/CQRS/{Command,Query}/Cms/`, `app/Domain/CQRS/Cms/PageRevisions.php`, `app/Application/Dto/Cms/{PageChange,SavedPage}.php`, `app/Infrastructure/Models/{Page,PageRevision}.php`, `app/Infrastructure/Filament/Resources/Pages/`, `app/Infrastructure/Filament/Pages/PublishWebsite.php`, `app/Domain/Providers/CmsServiceProvider.php`, two migrations, tests, `layer.json`, README).
+
+A safety net under the page content, independent of who edits it. The block types are described once (`BlockCatalogue`: `heading`, `text`, `image` with exactly the rules of the form before); the Filament Builder is generated from it and `BlockValidator` refuses an unknown block type or field, so the two cannot drift (a test runs the same shapes through both). Pages change only through `SavePageCommand`, which validates the blocks and writes a revision (`page_revisions`: title, slug, description, noindex, og_image, blocks, is_published, author, `source` `admin|ai|system`); the page forms record `admin`. The page has a History tab with a one-step restore (`RestorePageRevisionCommand`, itself a new revision), pages are soft deleted (history survives, deleted pages are not exported) and the Publish page lists the pages changed since the last successful publish with what changed them. The content export contract v1 and its golden fixtures are unchanged. Groundwork for the AI connector proposed in ADR-0004.
+
+Migration: take the files above and run the two migrations: `pages.deleted_at` and `page_revisions`, which starts the history of every existing page with a `system` revision dated at its last update (so no page counts as changed since the last publish). A project that has its own block type adds it to `BlockCatalogue::standard()` (type, fields, icon) instead of to the Builder in `PageResource`, and a project code path that writes a `Page` directly dispatches `SavePageCommand` instead. A project that changed `PageResource`, `PublishWebsite`, `CreatePage` or `EditPage` merges the changes by hand.
+
 ### 2026-11-26: Render guidelines 0.6.2
 
 Affects: every variant / every layer that renders the guidelines (`general`, `framework/laravel`, `framework/lsr`, `framework/astro`); the builder.

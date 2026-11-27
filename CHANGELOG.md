@@ -26,6 +26,14 @@ Migration: what an existing project must do (or "none").
 
 ## Unreleased
 
+### 2026-11-27: CMS content tools for the AI connector (layer laravel/cms-ai)
+
+Affects: `laravel-cms` / new layer `laravel/cms-ai` (after `laravel/cms`); `laravel/ai-connector` (`ConnectorServer`, config `ai-connector.tools`); `laravel/cms` (`SavePageCommandHandler`, `RestorePageRevisionCommandHandler`, `SavedPage`). The Filament variants without a CMS are unchanged.
+
+A client's assistant can work on pages: `list_pages`, `get_page`, `list_block_types`, `list_revisions`, `create_page`, `update_page`, `upload_image` and `restore_revision`, all through the Application commands and queries with the revision source `ai`. A created page is always an unpublished draft; the assistant cannot publish, delete, change the home page or the slug of a published page, settings, users or form submissions, and the live site changes only after a person presses "Publikovat web". The tools ask the gates `view-cms-pages` and `edit-cms-pages` (default: the admin gate). The layer overwrites `bootstrap/providers.php` and the client guide `docs/client/ai-connector.md` (Czech, with what the assistant can and cannot do). `laravel/ai-connector` gets the config key `ai-connector.tools` (other layers register their tools there). Also a fix in `laravel/cms`: a save that changes nothing no longer records a revision for any source (`SavedPage::$revisionId` is nullable, null when nothing changed; bringing a deleted page back still records one).
+
+Migration: for a `laravel-cms` project that has the AI connector: take `layers/laravel/cms-ai/files` (the provider, tools, queries, the image command, DTOs, tests, the guide), add `CmsAiServiceProvider` to `bootstrap/providers.php`, take `ConnectorServer::boot()` and the `tools` key of `config/ai-connector.php` from `laravel/ai-connector`, and take the three changed `laravel/cms` handler and DTO files (a project code that reads `SavedPage::$revisionId` must expect null). Fill the placeholders of `docs/client/ai-connector.md` (project name, domain). A project with roles redefines the gates `view-cms-pages` and `edit-cms-pages` in a provider. A project without the connector does nothing.
+
 ### 2026-11-27: AI connector layer (Claude and ChatGPT as a custom connector)
 
 Affects: `laravel-filament`, `laravel-inertia-filament`, `laravel-cms` / new layer `laravel/ai-connector` (after `laravel/filament`); `laravel/cms` (`bootstrap/providers.php`). Not `laravel-inertia` (no login) and not `laravel-lunar` (own panel and staff guard; a follow-up).

@@ -14,10 +14,7 @@ use BackedEnum;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
-use Filament\Forms\Components\Builder;
-use Filament\Forms\Components\Builder\Block;
 use Filament\Forms\Components\FileUpload;
-use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -83,38 +80,7 @@ final class PageResource extends Resource
                     ->columnSpanFull(),
             ]),
             Section::make('Content')->schema([
-                Builder::make('blocks')
-                    ->hiddenLabel()
-                    ->collapsible()
-                    ->blockNumbers(false)
-                    ->addActionLabel('Add block')
-                    ->blocks([
-                        Block::make('heading')
-                            ->icon(Heroicon::OutlinedH1)
-                            ->schema([
-                                Select::make('level')->options(['2' => 'Heading 2', '3' => 'Heading 3'])->default('2')->required(),
-                                TextInput::make('text')->required()->maxLength(255),
-                            ]),
-                        Block::make('text')
-                            ->icon(Heroicon::OutlinedBars3BottomLeft)
-                            ->schema([
-                                Textarea::make('body')->required()->rows(6)->helperText('Plain text. A blank line starts a new paragraph.'),
-                            ]),
-                        Block::make('image')
-                            ->icon(Heroicon::OutlinedPhoto)
-                            ->schema([
-                                FileUpload::make('image')
-                                    ->required()
-                                    ->disk(PublicMediaStore::MEDIA_DISK)
-                                    ->directory('images')
-                                    ->visibility('public')
-                                    ->image()
-                                    ->acceptedFileTypes(['image/png', 'image/jpeg', 'image/webp', 'image/avif'])
-                                    ->maxSize(10240),
-                                TextInput::make('alt')->required()->maxLength(255)->helperText('Describe the image for screen readers.'),
-                                TextInput::make('caption')->maxLength(255),
-                            ]),
-                    ]),
+                PageBlocks::builder(),
             ]),
         ]);
     }

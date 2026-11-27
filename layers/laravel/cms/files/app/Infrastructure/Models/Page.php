@@ -7,14 +7,21 @@ namespace App\Infrastructure\Models;
 use App\Application\Cms\ContentChanges;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
 /**
  * A page of the static site. The home page is rendered at `/`, the others at `/<slug>/`.
  *
  * `blocks` is the state of the Filament Builder field: a list of `{type, data}` items with the types
- * `heading` (level, text), `text` (body) and `image` (image path on the cms-media disk, alt, caption).
+ * `heading` (level, text), `text` (body) and `image` (image path on the cms-media disk, alt, caption); the block
+ * catalogue (`App\Domain\Cms\Blocks\BlockCatalogue`) is the source of truth for them.
+ *
+ * A page is soft deleted, so its revisions stay; a deleted page is not exported. Content is written through
+ * `SavePageCommand`, which records a revision.
  *
  * @property int $id
  * @property string $slug
@@ -28,10 +35,20 @@ use Illuminate\Support\Carbon;
  * @property array<array-key, mixed>|null $blocks
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
+ * @property Carbon|null $deleted_at
+ * @property-read Collection<int, PageRevision> $revisions
  */
 #[Fillable(['slug', 'title', 'description', 'is_home', 'is_published', 'sort', 'noindex', 'og_image', 'blocks'])]
 class Page extends Model
 {
+    use SoftDeletes;
+
+    /** @return HasMany<PageRevision, $this> */
+    public function revisions(): HasMany
+    {
+        return $this->hasMany(PageRevision::class)->latest('id');
+    }
+
     /**
      * @param  Builder<self>  $query
      * @return Builder<self>
@@ -52,6 +69,7 @@ class Page extends Model
             ContentChanges::touch();
         });
         static::deleted(static fn () => ContentChanges::touch());
+        static::restored(static fn () => ContentChanges::touch());
     }
 
     /** @return array<string, string> */

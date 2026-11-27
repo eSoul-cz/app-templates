@@ -11,6 +11,7 @@ use App\Application\Contract\Cms\FormMailer;
 use App\Application\Contract\Cms\FormRateLimiter;
 use App\Application\Contract\Cms\FormRecipients;
 use App\Application\Contract\Cms\PublicMediaStore;
+use App\Domain\Cms\Blocks\BlockCatalogue;
 use App\Infrastructure\Cms\AdminPathMode;
 use App\Infrastructure\Cms\CacheFormRateLimiter;
 use App\Infrastructure\Cms\ConfiguredFormRecipients;
@@ -33,6 +34,8 @@ final class CmsServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        // The one catalogue of block types: the page form and the validator are built from it.
+        $this->app->singleton(BlockCatalogue::class, BlockCatalogue::standard(...));
         $this->app->singleton(PublicMediaStore::class, PublicMedia::class);
         $this->app->singleton(BuildTrigger::class, JenkinsClient::class);
         $this->app->singleton(FormRateLimiter::class, CacheFormRateLimiter::class);

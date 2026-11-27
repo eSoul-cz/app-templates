@@ -9,19 +9,18 @@ use App\Domain\Cms\ContentExport;
 use App\Infrastructure\Filament\Resources\Pages\Pages\CreatePage;
 use App\Infrastructure\Filament\Resources\Pages\Pages\EditPage;
 use App\Infrastructure\Filament\Resources\Pages\Pages\ListPages;
+use App\Infrastructure\Filament\Resources\Pages\RelationManagers\RevisionsRelationManager;
 use App\Infrastructure\Models\Page;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
-use Filament\Forms\Components\Builder;
-use Filament\Forms\Components\Builder\Block;
 use Filament\Forms\Components\FileUpload;
-use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\Pages\PageRegistration;
+use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Set;
@@ -29,7 +28,11 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Str;
 
 final class PageResource extends Resource
@@ -83,38 +86,7 @@ final class PageResource extends Resource
                     ->columnSpanFull(),
             ]),
             Section::make('Content')->schema([
-                Builder::make('blocks')
-                    ->hiddenLabel()
-                    ->collapsible()
-                    ->blockNumbers(false)
-                    ->addActionLabel('Add block')
-                    ->blocks([
-                        Block::make('heading')
-                            ->icon(Heroicon::OutlinedH1)
-                            ->schema([
-                                Select::make('level')->options(['2' => 'Heading 2', '3' => 'Heading 3'])->default('2')->required(),
-                                TextInput::make('text')->required()->maxLength(255),
-                            ]),
-                        Block::make('text')
-                            ->icon(Heroicon::OutlinedBars3BottomLeft)
-                            ->schema([
-                                Textarea::make('body')->required()->rows(6)->helperText('Plain text. A blank line starts a new paragraph.'),
-                            ]),
-                        Block::make('image')
-                            ->icon(Heroicon::OutlinedPhoto)
-                            ->schema([
-                                FileUpload::make('image')
-                                    ->required()
-                                    ->disk(PublicMediaStore::MEDIA_DISK)
-                                    ->directory('images')
-                                    ->visibility('public')
-                                    ->image()
-                                    ->acceptedFileTypes(['image/png', 'image/jpeg', 'image/webp', 'image/avif'])
-                                    ->maxSize(10240),
-                                TextInput::make('alt')->required()->maxLength(255)->helperText('Describe the image for screen readers.'),
-                                TextInput::make('caption')->maxLength(255),
-                            ]),
-                    ]),
+                PageBlocks::builder(),
             ]),
         ]);
     }
@@ -131,8 +103,22 @@ final class PageResource extends Resource
                 TextColumn::make('updated_at')->dateTime()->sortable(),
             ])
             ->defaultSort('sort')
+            ->filters([TrashedFilter::make()])
             ->recordActions([EditAction::make()])
             ->toolbarActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
+    }
+
+    /** @return Builder<Model> */
+    public static function getEloquentQuery(): Builder
+    {
+        // Deleted pages stay reachable (TrashedFilter): their history can bring one back.
+        return parent::getEloquentQuery()->withoutGlobalScopes([SoftDeletingScope::class]);
+    }
+
+    /** @return array<class-string<RelationManager>> */
+    public static function getRelations(): array
+    {
+        return [RevisionsRelationManager::class];
     }
 
     /** @return array<string, PageRegistration> */

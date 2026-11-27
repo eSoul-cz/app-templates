@@ -55,7 +55,7 @@ final readonly class GetPublishOverviewQueryHandler implements QueryHandlerInter
             return $cached;
         }
 
-        $latest = collect([Page::query()->max('updated_at'), SiteSetting::query()->max('updated_at')])
+        $latest = collect([Page::withTrashed()->max('updated_at'), SiteSetting::query()->max('updated_at')])
             ->filter(static fn (mixed $value): bool => is_string($value))
             ->map(static fn (string $value): CarbonImmutable => CarbonImmutable::parse($value))
             ->max();

@@ -25,8 +25,8 @@ final readonly class ListPagesQueryHandler implements QueryHandlerInterface
 
         $withDraft = [];
 
-        foreach (PageRevision::query()->where('status', RevisionStatus::Pending)->pluck('page_id') as $pageId) {
-            $withDraft[(int) $pageId] = true;
+        foreach (PageRevision::query()->where('status', RevisionStatus::Pending)->get(['page_id']) as $draft) {
+            $withDraft[$draft->page_id] = true;
         }
 
         return array_values(Page::query()

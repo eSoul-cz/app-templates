@@ -23,7 +23,11 @@ final readonly class ListPagesQueryHandler implements QueryHandlerInterface
             throw new LogicException('Unsupported query: ' . $query::class);
         }
 
-        $withDraft = array_flip(PageRevision::query()->where('status', RevisionStatus::Pending)->pluck('page_id')->all());
+        $withDraft = [];
+
+        foreach (PageRevision::query()->where('status', RevisionStatus::Pending)->pluck('page_id') as $pageId) {
+            $withDraft[(int) $pageId] = true;
+        }
 
         return array_values(Page::query()
             ->orderBy('sort')

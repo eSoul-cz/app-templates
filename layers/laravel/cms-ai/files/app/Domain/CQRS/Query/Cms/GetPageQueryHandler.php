@@ -34,7 +34,7 @@ final readonly class GetPageQueryHandler implements QueryHandlerInterface
 
         $pending = PageRevision::query()->where('page_id', $page->id)->where('status', RevisionStatus::Pending)->first();
         /** @var list<array<string, mixed>> $draftBlocks */
-        $draftBlocks = array_values($pending?->blocks ?? []);
+        $draftBlocks = $pending === null ? [] : array_values($pending->blocks ?? []);
         $draft = $pending === null ? null : new PageDraft($pending->id, $pending->title, $pending->slug, $pending->description, $pending->noindex, $pending->og_image, $draftBlocks, $pending->created_at);
 
         return new PageDetail($page->id, $page->title, $page->slug, $page->description, $page->is_published, $page->is_home, $page->noindex, $page->og_image, $blocks, $page->updated_at, $draft);

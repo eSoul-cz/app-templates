@@ -16,6 +16,24 @@ final class CmsToolsAccessTest extends CmsAiTestCase
 
     private const array WRITE = ['create_page', 'update_page', 'upload_image', 'restore_revision'];
 
+    /** @return iterable<string, array{string, array<string, mixed>}> */
+    public static function readTools(): iterable
+    {
+        yield 'list_pages' => ['list_pages', []];
+        yield 'get_page' => ['get_page', ['page_id' => 1]];
+        yield 'list_block_types' => ['list_block_types', []];
+        yield 'list_revisions' => ['list_revisions', ['page_id' => 1]];
+    }
+
+    /** @return iterable<string, array{string, array<string, mixed>}> */
+    public static function writeTools(): iterable
+    {
+        yield 'create_page' => ['create_page', ['title' => 'New', 'slug' => 'new']];
+        yield 'update_page' => ['update_page', ['page_id' => 1, 'title' => 'Changed']];
+        yield 'upload_image' => ['upload_image', ['filename' => 'a.png', 'content_base64' => 'AAAA']];
+        yield 'restore_revision' => ['restore_revision', ['revision_id' => 1]];
+    }
+
     public function test_the_connector_lists_the_cms_tools_and_no_tool_for_delete_or_publish(): void
     {
         $tools = $this->mcp($this->token, 'tools/list')->assertOk()->json('result.tools');
@@ -39,24 +57,6 @@ final class CmsToolsAccessTest extends CmsAiTestCase
 
         $this->assertTrue($tools['update_page']['annotations']['idempotentHint']);
         $this->assertTrue($tools['upload_image']['annotations']['idempotentHint']);
-    }
-
-    /** @return iterable<string, array{string, array<string, mixed>}> */
-    public static function readTools(): iterable
-    {
-        yield 'list_pages' => ['list_pages', []];
-        yield 'get_page' => ['get_page', ['page_id' => 1]];
-        yield 'list_block_types' => ['list_block_types', []];
-        yield 'list_revisions' => ['list_revisions', ['page_id' => 1]];
-    }
-
-    /** @return iterable<string, array{string, array<string, mixed>}> */
-    public static function writeTools(): iterable
-    {
-        yield 'create_page' => ['create_page', ['title' => 'New', 'slug' => 'new']];
-        yield 'update_page' => ['update_page', ['page_id' => 1, 'title' => 'Changed']];
-        yield 'upload_image' => ['upload_image', ['filename' => 'a.png', 'content_base64' => 'AAAA']];
-        yield 'restore_revision' => ['restore_revision', ['revision_id' => 1]];
     }
 
     /** @param  array<string, mixed>  $arguments */

@@ -5,7 +5,11 @@ declare(strict_types=1);
 namespace App\Infrastructure\Mcp\Tools\Cms;
 
 use App\Domain\AiConnector\ConnectorScope;
+use App\Domain\Cms\InvalidPageImage;
+use App\Domain\CQRS\Command\Cms\StorePageImageCommand;
+use App\Domain\CQRS\Command\Cms\StorePageImageCommandHandler;
 use App\Infrastructure\Models\User;
+use Esoul\LaravelCqrs\Facades\CommandBus;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
@@ -15,10 +19,6 @@ use Laravel\Mcp\Server\Attributes\Name;
 use Laravel\Mcp\Server\Attributes\Title;
 use Laravel\Mcp\Server\Tools\Annotations\IsDestructive;
 use Laravel\Mcp\Server\Tools\Annotations\IsIdempotent;
-use App\Domain\Cms\InvalidPageImage;
-use App\Domain\CQRS\Command\Cms\StorePageImageCommand;
-use App\Domain\CQRS\Command\Cms\StorePageImageCommandHandler;
-use Esoul\LaravelCqrs\Facades\CommandBus;
 
 #[Name('upload_image')]
 #[Title('Upload an image')]
@@ -27,17 +27,17 @@ use Esoul\LaravelCqrs\Facades\CommandBus;
 #[IsIdempotent]
 final class UploadImageTool extends CmsTool
 {
-    protected function requiredScope(): ConnectorScope
-    {
-        return ConnectorScope::ContentWrite;
-    }
-
     public function schema(JsonSchema $schema): array
     {
         return [
             'filename' => $schema->string()->description('File name with its extension, for example hero.jpg.')->required(),
             'content_base64' => $schema->string()->description('The image bytes, base64 encoded.')->required(),
         ];
+    }
+
+    protected function requiredScope(): ConnectorScope
+    {
+        return ConnectorScope::ContentWrite;
     }
 
     protected function execute(Request $request, User $user): Response|ResponseFactory
@@ -52,16 +52,16 @@ final class UploadImageTool extends CmsTool
             'filename' => ['required', 'string', 'max:255'],
             // Base64 is 4/3 of the bytes: refuse a huge string before it is decoded.
             'content_base64' => ['required', 'string', 'max:' . (int) ceil(StorePageImageCommandHandler::MAX_BYTES * 4 / 3 + 4)],
-        ]);
+        ], ['content_base64.max' => 'The image must be at most ' . (StorePageImageCommandHandler::MAX_BYTES / 1024 / 1024) . ' MB.']);
 
-        $contents = base64_decode($arguments['content_base64'], true);
+        $contents = base64_decode($this->string($arguments, 'content_base64'), true);
 
         if ($contents === false) {
             return $this->refused(['content_base64 is not valid base64.'], 'The image was not stored');
         }
 
         try {
-            $image = CommandBus::dispatch(new StorePageImageCommand($contents, $arguments['filename']));
+            $image = CommandBus::dispatch(new StorePageImageCommand($contents, $this->string($arguments, 'filename')));
         } catch (InvalidPageImage $invalid) {
             return $this->refused($invalid->problems, 'The image was not stored');
         }

@@ -32,6 +32,22 @@ abstract class CmsTool extends ConnectorTool
         $this->authorizeFor($user, CmsAiServiceProvider::EDIT_PAGES);
     }
 
+    /** @param  array<string, mixed>  $arguments */
+    protected function int(array $arguments, string $key, int $default = 0): int
+    {
+        $value = $arguments[$key] ?? $default;
+
+        return is_numeric($value) ? (int) $value : $default;
+    }
+
+    /** @param  array<string, mixed>  $arguments */
+    protected function string(array $arguments, string $key): string
+    {
+        $value = $arguments[$key] ?? '';
+
+        return is_string($value) ? $value : '';
+    }
+
     /** @param  list<string>  $allowed */
     protected function unknownArguments(Request $request, array $allowed): ?Response
     {
@@ -65,10 +81,18 @@ abstract class CmsTool extends ConnectorTool
         $problems = [];
 
         foreach (array_values($blocks) as $index => $block) {
-            $type = is_array($block) && is_string($block['type'] ?? null) ? $catalogue->find($block['type']) : null;
+            if ( ! is_array($block) || ! is_string($block['type'] ?? null) || ! is_array($block['data'] ?? null)) {
+                continue;
+            }
 
-            foreach ($type->fields ?? [] as $field) {
-                $path = is_array($block['data'] ?? null) ? ($block['data'][$field->name] ?? null) : null;
+            $type = $catalogue->find($block['type']);
+
+            if ($type === null) {
+                continue;
+            }
+
+            foreach ($type->fields as $field) {
+                $path = $block['data'][$field->name] ?? null;
 
                 if ($field->type === BlockFieldType::Image && is_string($path) && $path !== '' && ! $this->isUploadedImage($path)) {
                     $problems[] = 'Block ' . ($index + 1) . " ({$type->name}): the image \"{$path}\" is not an uploaded image. Upload it with upload_image and use the path it returns.";

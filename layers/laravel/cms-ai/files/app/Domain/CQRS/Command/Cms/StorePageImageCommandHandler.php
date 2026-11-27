@@ -10,6 +10,7 @@ use App\Domain\Cms\InvalidPageImage;
 use Esoul\Cqrs\Attributes\HandlesCommand;
 use Esoul\Cqrs\Contracts\CommandHandlerInterface;
 use Esoul\Cqrs\Contracts\CommandInterface;
+use finfo;
 use Illuminate\Contracts\Filesystem\Factory as Filesystems;
 use LogicException;
 
@@ -54,7 +55,7 @@ final readonly class StorePageImageCommandHandler implements CommandHandlerInter
         }
 
         // The type comes from the bytes, never from the file name or what the caller claims.
-        $mime = (string) new \finfo(FILEINFO_MIME_TYPE)->buffer($command->contents);
+        $mime = (string) new finfo(FILEINFO_MIME_TYPE)->buffer($command->contents);
         $size = in_array($mime, self::MIMES, true) ? @getimagesizefromstring($command->contents) : false;
 
         if ($size === false) {

@@ -26,14 +26,13 @@ final readonly class ListPageRevisionsQueryHandler implements QueryHandlerInterf
             return null;
         }
 
-        return PageRevision::query()
+        return array_values(PageRevision::query()
             ->where('page_id', $query->pageId)
             ->with('user')
             ->orderByDesc('id')
             ->limit($query->limit)
             ->get()
             ->map(static fn (PageRevision $revision): RevisionSummary => GetPageRevisionQueryHandler::summary($revision))
-            ->values()
-            ->all();
+            ->all());
     }
 }

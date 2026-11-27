@@ -5,8 +5,17 @@ declare(strict_types=1);
 namespace App\Infrastructure\Mcp\Tools\Cms;
 
 use App\Domain\AiConnector\ConnectorScope;
+use App\Domain\Cms\ContentExport;
+use App\Domain\Cms\InvalidPageBlocks;
+use App\Domain\Cms\RevisionSource;
+use App\Domain\CQRS\Command\Cms\SavePageCommand;
+use App\Domain\CQRS\Query\Cms\GetPageQuery;
+use App\Infrastructure\Models\Page;
 use App\Infrastructure\Models\User;
+use Esoul\LaravelCqrs\Facades\CommandBus;
+use Esoul\LaravelCqrs\Facades\QueryBus;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
+use Illuminate\Validation\Rule;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
@@ -15,15 +24,6 @@ use Laravel\Mcp\Server\Attributes\Name;
 use Laravel\Mcp\Server\Attributes\Title;
 use Laravel\Mcp\Server\Tools\Annotations\IsDestructive;
 use Laravel\Mcp\Server\Tools\Annotations\IsIdempotent;
-use App\Domain\Cms\ContentExport;
-use App\Domain\Cms\InvalidPageBlocks;
-use App\Domain\Cms\RevisionSource;
-use App\Domain\CQRS\Command\Cms\SavePageCommand;
-use App\Domain\CQRS\Query\Cms\GetPageQuery;
-use App\Infrastructure\Models\Page;
-use Esoul\LaravelCqrs\Facades\CommandBus;
-use Esoul\LaravelCqrs\Facades\QueryBus;
-use Illuminate\Validation\Rule;
 
 #[Name('update_page')]
 #[Title('Update a page')]
@@ -32,11 +32,6 @@ use Illuminate\Validation\Rule;
 #[IsIdempotent]
 final class UpdatePageTool extends CmsTool
 {
-    protected function requiredScope(): ConnectorScope
-    {
-        return ConnectorScope::ContentWrite;
-    }
-
     public function schema(JsonSchema $schema): array
     {
         return [
@@ -49,6 +44,11 @@ final class UpdatePageTool extends CmsTool
         ];
     }
 
+    protected function requiredScope(): ConnectorScope
+    {
+        return ConnectorScope::ContentWrite;
+    }
+
     protected function execute(Request $request, User $user): Response|ResponseFactory
     {
         $this->authorizeEdit($user);
@@ -58,7 +58,7 @@ final class UpdatePageTool extends CmsTool
         }
 
         $sent = $request->all();
-        $page = QueryBus::execute(new GetPageQuery((int) $request->validate(['page_id' => ['required', 'integer']])['page_id']));
+        $page = QueryBus::execute(new GetPageQuery($this->int($request->validate(['page_id' => ['required', 'integer']]), 'page_id')));
 
         if ($page === null) {
             return Response::error('There is no page with this id.');
@@ -74,7 +74,7 @@ final class UpdatePageTool extends CmsTool
 
         $problems = $this->imageProblems($arguments['blocks'] ?? null);
 
-        if (isset($arguments['og_image']) && ! $this->isUploadedImage($arguments['og_image'])) {
+        if (is_string($arguments['og_image'] ?? null) && ! $this->isUploadedImage($arguments['og_image'])) {
             $problems[] = 'og_image is not an uploaded image. Upload it with upload_image.';
         }
 

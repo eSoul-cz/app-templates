@@ -5,7 +5,15 @@ declare(strict_types=1);
 namespace App\Infrastructure\Mcp\Tools\Cms;
 
 use App\Domain\AiConnector\ConnectorScope;
+use App\Domain\Cms\InvalidPageBlocks;
+use App\Domain\Cms\PageRevisionNotRestorable;
+use App\Domain\Cms\RevisionSource;
+use App\Domain\CQRS\Command\Cms\RestorePageRevisionCommand;
+use App\Domain\CQRS\Query\Cms\GetPageQuery;
+use App\Domain\CQRS\Query\Cms\GetPageRevisionQuery;
 use App\Infrastructure\Models\User;
+use Esoul\LaravelCqrs\Facades\CommandBus;
+use Esoul\LaravelCqrs\Facades\QueryBus;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
@@ -14,14 +22,6 @@ use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Attributes\Name;
 use Laravel\Mcp\Server\Attributes\Title;
 use Laravel\Mcp\Server\Tools\Annotations\IsDestructive;
-use App\Domain\Cms\InvalidPageBlocks;
-use App\Domain\Cms\PageRevisionNotRestorable;
-use App\Domain\Cms\RevisionSource;
-use App\Domain\CQRS\Command\Cms\RestorePageRevisionCommand;
-use App\Domain\CQRS\Query\Cms\GetPageQuery;
-use App\Domain\CQRS\Query\Cms\GetPageRevisionQuery;
-use Esoul\LaravelCqrs\Facades\CommandBus;
-use Esoul\LaravelCqrs\Facades\QueryBus;
 
 #[Name('restore_revision')]
 #[Title('Restore a page version')]
@@ -29,14 +29,14 @@ use Esoul\LaravelCqrs\Facades\QueryBus;
 #[IsDestructive(false)]
 final class RestoreRevisionTool extends CmsTool
 {
-    protected function requiredScope(): ConnectorScope
-    {
-        return ConnectorScope::ContentWrite;
-    }
-
     public function schema(JsonSchema $schema): array
     {
         return ['revision_id' => $schema->integer()->description('Id of the version, from list_revisions.')->required()];
+    }
+
+    protected function requiredScope(): ConnectorScope
+    {
+        return ConnectorScope::ContentWrite;
     }
 
     protected function execute(Request $request, User $user): Response|ResponseFactory
@@ -48,7 +48,7 @@ final class RestoreRevisionTool extends CmsTool
         }
 
         $arguments = $request->validate(['revision_id' => ['required', 'integer']]);
-        $revision = QueryBus::execute(new GetPageRevisionQuery((int) $arguments['revision_id']));
+        $revision = QueryBus::execute(new GetPageRevisionQuery($this->int($arguments, 'revision_id')));
 
         if ($revision === null) {
             return Response::error('There is no version with this id.');

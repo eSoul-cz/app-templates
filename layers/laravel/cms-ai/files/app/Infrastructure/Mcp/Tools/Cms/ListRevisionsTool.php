@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace App\Infrastructure\Mcp\Tools\Cms;
 
+use App\Application\Dto\Cms\RevisionSummary;
 use App\Domain\AiConnector\ConnectorScope;
+use App\Domain\CQRS\Query\Cms\ListPageRevisionsQuery;
 use App\Infrastructure\Models\User;
+use Esoul\LaravelCqrs\Facades\QueryBus;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
@@ -14,9 +17,6 @@ use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Attributes\Name;
 use Laravel\Mcp\Server\Attributes\Title;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
-use App\Application\Dto\Cms\RevisionSummary;
-use App\Domain\CQRS\Query\Cms\ListPageRevisionsQuery;
-use Esoul\LaravelCqrs\Facades\QueryBus;
 
 #[Name('list_revisions')]
 #[Title('List page versions')]
@@ -24,11 +24,6 @@ use Esoul\LaravelCqrs\Facades\QueryBus;
 #[IsReadOnly]
 final class ListRevisionsTool extends CmsTool
 {
-    protected function requiredScope(): ConnectorScope
-    {
-        return ConnectorScope::ContentRead;
-    }
-
     public function schema(JsonSchema $schema): array
     {
         return [
@@ -37,12 +32,17 @@ final class ListRevisionsTool extends CmsTool
         ];
     }
 
+    protected function requiredScope(): ConnectorScope
+    {
+        return ConnectorScope::ContentRead;
+    }
+
     protected function execute(Request $request, User $user): Response|ResponseFactory
     {
         $this->authorizeView($user);
 
         $arguments = $request->validate(['page_id' => ['required', 'integer'], 'limit' => ['sometimes', 'integer', 'min:1', 'max:50']]);
-        $revisions = QueryBus::execute(new ListPageRevisionsQuery((int) $arguments['page_id'], (int) ($arguments['limit'] ?? 20)));
+        $revisions = QueryBus::execute(new ListPageRevisionsQuery($this->int($arguments, 'page_id'), $this->int($arguments, 'limit', 20)));
 
         if ($revisions === null) {
             return Response::error('There is no page with this id.');

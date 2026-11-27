@@ -21,12 +21,11 @@ final readonly class ListPagesQueryHandler implements QueryHandlerInterface
             throw new LogicException('Unsupported query: ' . $query::class);
         }
 
-        return Page::query()
+        return array_values(Page::query()
             ->orderBy('sort')
             ->orderBy('id')
             ->get()
             ->map(static fn (Page $page): PageSummary => new PageSummary($page->id, $page->title, $page->slug, $page->is_published, $page->is_home, $page->updated_at))
-            ->values()
-            ->all();
+            ->all());
     }
 }

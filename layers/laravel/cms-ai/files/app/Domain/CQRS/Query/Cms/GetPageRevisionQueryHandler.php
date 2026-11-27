@@ -14,17 +14,6 @@ use LogicException;
 #[HandlesQuery(GetPageRevisionQuery::class)]
 final readonly class GetPageRevisionQueryHandler implements QueryHandlerInterface
 {
-    public function handle(QueryInterface $query): ?RevisionSummary
-    {
-        if ( ! $query instanceof GetPageRevisionQuery) {
-            throw new LogicException('Unsupported query: ' . $query::class);
-        }
-
-        $revision = PageRevision::query()->with('user')->find($query->revisionId);
-
-        return $revision === null ? null : self::summary($revision);
-    }
-
     /** Shared with the revision list, so a revision has one summary. */
     public static function summary(PageRevision $revision): RevisionSummary
     {
@@ -39,5 +28,16 @@ final readonly class GetPageRevisionQueryHandler implements QueryHandlerInterfac
             $revision->is_published,
             count($revision->blocks ?? []),
         );
+    }
+
+    public function handle(QueryInterface $query): ?RevisionSummary
+    {
+        if ( ! $query instanceof GetPageRevisionQuery) {
+            throw new LogicException('Unsupported query: ' . $query::class);
+        }
+
+        $revision = PageRevision::query()->with('user')->find($query->revisionId);
+
+        return $revision === null ? null : self::summary($revision);
     }
 }

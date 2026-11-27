@@ -5,8 +5,15 @@ declare(strict_types=1);
 namespace App\Infrastructure\Mcp\Tools\Cms;
 
 use App\Domain\AiConnector\ConnectorScope;
+use App\Domain\Cms\ContentExport;
+use App\Domain\Cms\InvalidPageBlocks;
+use App\Domain\Cms\RevisionSource;
+use App\Domain\CQRS\Command\Cms\SavePageCommand;
+use App\Infrastructure\Models\Page;
 use App\Infrastructure\Models\User;
+use Esoul\LaravelCqrs\Facades\CommandBus;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
+use Illuminate\Validation\Rule;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
@@ -14,13 +21,6 @@ use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Attributes\Name;
 use Laravel\Mcp\Server\Attributes\Title;
 use Laravel\Mcp\Server\Tools\Annotations\IsDestructive;
-use App\Domain\Cms\ContentExport;
-use App\Domain\Cms\InvalidPageBlocks;
-use App\Domain\Cms\RevisionSource;
-use App\Domain\CQRS\Command\Cms\SavePageCommand;
-use App\Infrastructure\Models\Page;
-use Esoul\LaravelCqrs\Facades\CommandBus;
-use Illuminate\Validation\Rule;
 
 #[Name('create_page')]
 #[Title('Create a page')]
@@ -28,11 +28,6 @@ use Illuminate\Validation\Rule;
 #[IsDestructive(false)]
 final class CreatePageTool extends CmsTool
 {
-    protected function requiredScope(): ConnectorScope
-    {
-        return ConnectorScope::ContentWrite;
-    }
-
     public function schema(JsonSchema $schema): array
     {
         return [
@@ -42,6 +37,11 @@ final class CreatePageTool extends CmsTool
             'og_image' => $schema->string()->description('Social image: a path returned by upload_image.'),
             'blocks' => $schema->array()->items($schema->object(['type' => $schema->string()->required(), 'data' => $schema->object()->required()]))->description('Content blocks, in order: [{type, data}]. See list_block_types.'),
         ];
+    }
+
+    protected function requiredScope(): ConnectorScope
+    {
+        return ConnectorScope::ContentWrite;
     }
 
     protected function execute(Request $request, User $user): Response|ResponseFactory
@@ -62,7 +62,7 @@ final class CreatePageTool extends CmsTool
 
         $problems = $this->imageProblems($arguments['blocks'] ?? null);
 
-        if (isset($arguments['og_image']) && ! $this->isUploadedImage($arguments['og_image'])) {
+        if (is_string($arguments['og_image'] ?? null) && ! $this->isUploadedImage($arguments['og_image'])) {
             $problems[] = 'og_image is not an uploaded image. Upload it with upload_image.';
         }
 

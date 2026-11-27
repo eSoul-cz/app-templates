@@ -7,6 +7,7 @@
         {"layer": "laravel/skeleton"},
         {"layer": "laravel/base"},
         {"layer": "laravel/inertia-vue"},
-        {"layer": "laravel/filament"}
+        {"layer": "laravel/filament"},
+        {"layer": "laravel/ai-connector"}
     ]
 }

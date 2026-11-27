@@ -195,7 +195,8 @@ final class ExportContentQueryHandler implements QueryHandlerInterface
 
         $disk = Storage::disk(PublicMediaStore::MEDIA_DISK);
 
-        if ( ! $disk->exists($path)) {
+        // fileExists(): a directory is not a file the export could hash.
+        if ( ! $disk->fileExists($path)) {
             $this->problems[] = "{$label}: the file {$path} does not exist.";
 
             return null;

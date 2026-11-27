@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Domain\Providers\AiConnectorServiceProvider;
 use App\Domain\Providers\AppServiceProvider;
 use App\Domain\Providers\CmsServiceProvider;
 use App\Domain\Providers\Filament\AdminPanelProvider;
@@ -16,4 +17,7 @@ return [
     AppServiceProvider::class,
     AdminPanelProvider::class,
     CmsServiceProvider::class,
+    // The provider of laravel/ai-connector, which comes before this layer and whose list this file replaces.
+    // A variant without that layer has no such class and skips it.
+    ...(class_exists(AiConnectorServiceProvider::class) ? [AiConnectorServiceProvider::class] : []),
 ];

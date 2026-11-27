@@ -7,6 +7,8 @@
         {"layer": "laravel/skeleton"},
         {"layer": "laravel/base"},
         {"layer": "laravel/filament"},
-        {"layer": "laravel/cms"}
+        {"layer": "laravel/ai-connector"},
+        {"layer": "laravel/cms"},
+        {"layer": "laravel/cms-ai"}
     ]
 }

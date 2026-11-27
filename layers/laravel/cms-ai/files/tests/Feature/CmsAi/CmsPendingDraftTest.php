@@ -24,20 +24,6 @@ final class CmsPendingDraftTest extends CmsAiTestCase
 {
     private const array NEW_BLOCKS = [['type' => 'text', 'data' => ['body' => 'AI text']]];
 
-    /** @return list<array<string, mixed>> */
-    private function exportedBlocks(): array
-    {
-        /** @var list<array<string, mixed>> $pages */
-        $pages = QueryBus::execute(new ExportContentQuery())->payload['pages'];
-
-        return $pages[0]['blocks'];
-    }
-
-    private function publishedPage(): Page
-    {
-        return $this->makePage(['is_published' => true, 'is_home' => true]);
-    }
-
     public function test_update_page_of_a_published_page_is_stored_as_a_pending_draft_and_the_export_is_unchanged(): void
     {
         $page = $this->publishedPage();
@@ -178,5 +164,19 @@ final class CmsPendingDraftTest extends CmsAiTestCase
 
         $this->assertSame('About', $page->refresh()->title);
         $this->assertTrue($restored['pending'] || ! $restored['changed']);
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function exportedBlocks(): array
+    {
+        /** @var list<array<string, mixed>> $pages */
+        $pages = QueryBus::execute(new ExportContentQuery())->payload['pages'];
+
+        return $pages[0]['blocks'];
+    }
+
+    private function publishedPage(): Page
+    {
+        return $this->makePage(['is_published' => true, 'is_home' => true]);
     }
 }

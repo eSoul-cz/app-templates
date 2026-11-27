@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace App\Infrastructure\Filament\Pages;
 
+use App\Application\Dto\Cms\PageChange;
 use App\Application\Dto\Cms\PublishOverview;
 use App\Domain\Cms\PublishBlocked;
 use App\Domain\Cms\PublishStatus;
+use App\Domain\Cms\RevisionSource;
 use App\Domain\CQRS\Command\Cms\MarkPublishFailedCommand;
 use App\Domain\CQRS\Command\Cms\RefreshPublishCommand;
 use App\Domain\CQRS\Command\Cms\StartPublishCommand;
+use App\Domain\CQRS\Query\Cms\GetChangesSincePublishQuery;
 use App\Domain\CQRS\Query\Cms\GetPublishOverviewQuery;
 use App\Infrastructure\Models\Publish;
 use App\Infrastructure\Models\User;
@@ -37,6 +40,8 @@ use Throwable;
 final class PublishWebsite extends Page implements HasTable
 {
     use InteractsWithTable;
+
+    private const int CHANGES_SHOWN = 25;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRocketLaunch;
 
@@ -75,6 +80,7 @@ final class PublishWebsite extends Page implements HasTable
                     Text::make('The content cannot be published yet:')->color('danger')->visible($overview->problems !== []),
                     ...array_map(static fn (string $problem): Text => Text::make("• {$problem}")->color('danger'), $overview->problems),
                 ]),
+            $this->changesSection(),
             EmbeddedTable::make(),
         ]);
     }
@@ -172,9 +178,43 @@ final class PublishWebsite extends Page implements HasTable
         ];
     }
 
+    private static function changeLine(PageChange $change): string
+    {
+        $what = match (true) {
+            $change->deleted => 'deleted',
+            $change->created => 'created',
+            default => 'edited',
+        };
+        $by = $change->sources === []
+            ? 'no revision recorded'
+            : implode(', ', array_map(static fn (RevisionSource $source): string => $source->label(), $change->sources))
+                . ($change->lastAuthor === null ? '' : " ({$change->lastAuthor})")
+                . ', ' . $change->revisions . ($change->revisions === 1 ? ' revision' : ' revisions');
+
+        return "{$change->title} (/{$change->slug}): {$what} - {$by}" . ($change->changedAt === null ? '' : ', ' . $change->changedAt->format('Y-m-d H:i'));
+    }
+
     private static function overview(bool $withProblems = false): PublishOverview
     {
         return QueryBus::execute(new GetPublishOverviewQuery($withProblems));
+    }
+
+    private function changesSection(): Section
+    {
+        /** @var list<PageChange> $changes */
+        $changes = QueryBus::execute(new GetChangesSincePublishQuery());
+
+        return Section::make('Changes since the last publish')
+            ->description('Pages that changed after the last successful publish started, and who or what changed them. Look at changes made by an AI assistant before publishing.')
+            ->visible($changes !== [])
+            ->schema([
+                ...array_map(
+                    static fn (PageChange $change): Text => Text::make(self::changeLine($change))
+                        ->color(in_array(RevisionSource::Ai, $change->sources, true) ? 'warning' : 'gray'),
+                    array_slice($changes, 0, self::CHANGES_SHOWN),
+                ),
+                Text::make('… and ' . (count($changes) - self::CHANGES_SHOWN) . ' more pages.')->visible(count($changes) > self::CHANGES_SHOWN),
+            ]);
     }
 
     private function statusLine(PublishOverview $overview): string

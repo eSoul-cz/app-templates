@@ -38,4 +38,7 @@ astroPipeline(
     // The deploy branches push `latest`; every Git tag at the commit is a tag of the image too.
     tags: ['latest'],
     deployBranches: ['main', 'master'],
+
+    // Addons add options of the pipeline here (a slot of the template; keep this line).
+    // @esoul-slot pipeline-options
 )

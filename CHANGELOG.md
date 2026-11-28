@@ -58,7 +58,8 @@ Affects: every variant / layers `laravel/base`, `laravel/filament`, `laravel/cms
 The files that addons extend carry slot lines now (ADR-0005, Decision 4; the list is in the README, "Slots and markers", and it is a public contract: removing or renaming a slot
 is a breaking change). A slot is a comment line `@esoul-slot <name>`; an addon inserts its block before it. Nothing changes at run time. `laravel/base` now ships
 `routes/web.php` itself (the skeleton's file plus the slot line: the skeleton copy is not touched, and the next `skeleton:sync` strips it because `laravel/base` ships it).
-`laravel/base`'s `pint.json` has two more rules, so that the multi-line `implements` list of the `User` model is not reformatted.
+`laravel/base`'s `pint.json` has two more rules, so that the multi-line `implements` list of the `User` model, which addons insert interfaces into, is neither collapsed
+nor sorted by Pint (the builder formats the PHP an addon inserted, see the entry "Builder applies addons").
 
 Migration: a project needs these lines before it can take an addon (`bin/templates addon:apply` refuses a project without the slot it inserts into and names this entry).
 Add each line once, exactly as written, where the file exists:
@@ -88,7 +89,10 @@ Affects: the builder itself.
 The builder learns addons (ADR-0005, part 1 of app-templates#5): optional capabilities with a manifest `addons/<name>.json` (or `addon.json` in an external
 repository) that add files, fill-only JSON merges, appended lines and `insert/<slot>/<path>` blocks to a project, in the layers the addon declares for the
 project's variant. `bin/templates addon:apply <name|path|url> <project>` applies an addon to an existing project and records it in `.esoul/template.json`
-(`addons`); `bin/templates build <variant> --addon=<name>` builds the variant and applies the addon with the same code. See the README, "Addons".
+(`addons`); `bin/templates build <variant> --addon=<name>` builds the variant and applies the addon with the same code. See the README, "Addons". After the operations
+are written, both format the PHP files that received an `insert/` in that run (`vendor/bin/pint` of the project, or a Pint installed into a temporary directory with the
+`pint.json` of the project or build; nothing runs without a `pint.json` and a `vendor/bin/pint`, or for a file that is not PHP; `--no-install` does not skip it), so an addon may
+insert idiomatic PHP such as `\X\Y::class,` or `use \X\Trait;` and Pint moves the names into imports outside the markers. A second apply inserts and formats nothing.
 There is no addon and no `@esoul-slot` line in any layer yet, and a build without `--addon` is byte-identical to before.
 
 Migration: none for existing projects; nothing changes until a project takes an addon. The record gains `addons` only then.

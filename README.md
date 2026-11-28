@@ -254,7 +254,7 @@ An insert writes, immediately before the slot line, the addon's block:
 
 ```php
     // @esoul-addon pulse
-    'App\Domain\Providers\PulseServiceProvider',
+    \App\Domain\Providers\PulseServiceProvider::class,
     // @esoul-addon-end pulse
     // @esoul-slot providers
 ```
@@ -262,9 +262,8 @@ An insert writes, immediately before the slot line, the addon's block:
 The marker lines take the slot line's text around the slot: its indentation and comment opener before `@esoul-slot`, and what follows the slot name
 (` -->`). Every line of the insert file gets the slot line's indentation (blank lines stay blank). The block is skipped, even when the project edited it, when
 scanning upward from the slot line to the previous slot line (or the file start) finds a line with `@esoul-addon <name>`; the report says "skipped, block
-exists". Inserted PHP uses fully qualified names, so no slot is needed for imports. The result has to pass the project's code style check (the CI runs `composer cs`
-on every variant + addon): Pint's `fully_qualified_strict_types` turns an inserted `\Vendor\Class::class` into an import, so an addon inserting a class into a
-PHP file writes the name as a string (`'App\Domain\Providers\PulseServiceProvider',` in the `providers` slot).
+exists". Inserted PHP uses fully qualified names (`\X\Y::class,`, `use \X\Trait;`), so no slot is needed for imports: the builder formats the PHP files an
+insert went into (see "Formatting inserted PHP"), and Pint moves the names into imports outside the markers.
 
 ### Applying
 
@@ -281,7 +280,8 @@ before the first write, so these errors never leave a half-applied addon. It onl
 HEAD and `CHANGELOG.md` changed since it (or the commit is unknown here): the template update may be needed first. The command does not read `Affects:`;
 deciding which entries concern the project is the update skill's job.
 
-Then it writes the record, and unless `--no-install` is given:
+Then it writes the record and formats the PHP files that received an insert (see below; `--no-install` does not skip that, it is part of the file result), and
+unless `--no-install` is given runs:
 
 | Condition | Command, run in the project |
 | --- | --- |
@@ -289,12 +289,28 @@ Then it writes the record, and unless `--no-install` is given:
 | `package.json` changed and `pnpm-lock.yaml` exists | `pnpm install` |
 | `esoul-guidelines.json` exists | `esoul-guidelines sync --no-interaction` (the project's `vendor/bin/esoul-guidelines`, else this repository's) |
 
-It prints a report grouped as created, merged, appended, inserted, kept (differs) and skipped, then the manifest's `steps`. An addon never runs scripts
-of its own. Applying the same addon again changes nothing: the second run leaves the project byte-identical.
+It prints a report grouped as created, merged, appended, inserted, formatted, kept (differs) and skipped, then the manifest's `steps`. An addon never runs scripts
+of its own. Applying the same addon again changes nothing: the second run leaves the project byte-identical (it finds the markers, inserts nothing and formats nothing).
 
 `build --addon` builds the variant exactly as without it, then applies the addon with the same code but without the install step and with the strict `files/`
-rule, then renders the guidelines (so they include the guideline layers the addon merged) and writes `.esoul/template.json`. A build without `--addon` is
-unchanged. A build with addons needs a source commit, because the record carries it.
+rule, formats the inserted PHP, then renders the guidelines (so they include the guideline layers the addon merged) and writes `.esoul/template.json`. A build
+without `--addon` is unchanged. A build with addons needs a source commit, because the record carries it.
+
+#### Formatting inserted PHP
+
+After the operations are written, the builder collects the `.php` files that received an `insert/` in this run (never a skipped block, never a file that only got
+`files/`, `merge/` or `append/`) and formats exactly those files, once for all addons of a build:
+
+- `addon:apply`: the project's own `vendor/bin/pint` when it exists. Otherwise, when the project has a `pint.json`, a Pint installed into a temporary directory
+  (`composer require laravel/pint`, the code `skeleton:sync` uses too) formats with that `pint.json`.
+- `build --addon`: the build has no `vendor/`, so always the temporary Pint with the build's `pint.json`.
+- A project with neither `pint.json` nor `vendor/bin/pint`, and any insert into a file that is not PHP, run nothing.
+
+Pint runs twice, each pass with a cache file of its own (a cached "clean" result would make the second pass skip the file), because one pass can leave a file
+that `pint --test` still rejects. The report lists the files under "Formatted". A formatter that fails is an error that names the files and says the addon
+was applied and recorded (the files and the record are written already, as with an install step). So an addon may insert idiomatic PHP: `use \Laravel\Passport\HasApiTokens;`
+into `user-traits`, `\X\Y::class,` into `providers`. Pint may place the names in imports and merge or move lines (it can bring a neighbouring project line inside the markers, for example
+the `use HasFactory, Notifiable;` statement between two inserted trait statements); the markers stay, so a second apply still finds the block.
 
 ### The record
 
@@ -320,8 +336,7 @@ of the same name. The file is written with 4 spaces and a trailing newline, like
 
 1. Create `layers/addons/<name>/<part>/` for each part, with a `layer.json` description. Put new files under `files/`, JSON additions (`composer.json`,
    `package.json`, `esoul-guidelines.json`, config) under `merge/`, line files under `append/`, and code or text for a file another layer owns under
-   `insert/<slot>/<path>`. Use no `delete.txt`, no `null`, and no file the variant already ships. Use fully qualified names in inserted code, in a form the
-   variant's code style check keeps as it is (a class name as a string in a PHP file).
+   `insert/<slot>/<path>`. Use no `delete.txt`, no `null`, and no file the variant already ships. Use fully qualified names in inserted PHP; Pint turns them into imports.
 2. If a slot you need does not exist in the file, add the slot line to the owning layers (every copy of the file) and write a changelog entry for it;
    an addon cannot change a value or a line another layer owns.
 3. Add `addons/<name>.json` with the supported variants and the manual `steps` (migrations, secrets and environment keys).
@@ -451,7 +466,7 @@ project's; the skill resolves conflicts with them, it does not overwrite them.
   Supervisor program (`php artisan pulse:check`, picked up by the healthcheck as any other program), `docs/pulse.md` and a feature test (SQLite, the tests run with
   `PULSE_ENABLED=false` from `phpunit.xml`). `filament` adds the `Pulse` navigation item as a page (`/admin/pulse-dashboard` forwards to `route('pulse')`; the slug differs from
   Pulse's own path so that `PULSE_PATH=admin/pulse` does not collide) and its test. `nginx` (`astro-cms` only) adds the `/pulse` location to the backend server. The provider
-  line is a string because Pint rewrites an inserted `::class` reference (see "Slots and markers"). In the CMS path layout (`CMS_ADMIN_PATH_MODE=true`, the cookie only
+  line is a fully qualified `::class` reference that Pint turns into an import (see "Formatting inserted PHP"). In the CMS path layout (`CMS_ADMIN_PATH_MODE=true`, the cookie only
   reaches `/admin`) the backend sets `PULSE_PATH=admin/pulse`.
 - A layer directory is valid even when empty or without `layer.json`; only a missing directory is an "unknown layer". No schema
   validation of `layer.json`.

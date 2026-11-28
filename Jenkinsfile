@@ -44,8 +44,9 @@ if (env.CHANGE_ID == null && env.BRANCH_NAME == 'main') {
 }
 
 /**
- * Checks every publishable variant, then syncs each into `main` of its repository (`bin/templates publish`).
- * Nothing is published unless every variant passed its checks. Publishing uses the Jenkins GitHub App credential `github-app-esoul`
+ * Checks every publishable variant and then every in-repository addon on each published variant it declares (`Check <variant> + <addon>`),
+ * then syncs each variant into `main` of its repository (`bin/templates publish`). Nothing is published unless every check passed.
+ * Publishing uses the Jenkins GitHub App credential `github-app-esoul`
  * (the one Composer uses): as username with password its password is an installation token, which must be allowed to push to
  * the template-* repositories (the App is installed there with Contents: write, and the credential's repository access is not
  * limited to this job's repository).
@@ -89,15 +90,32 @@ def publishVariants(Map publishable) {
                     Map variant = publishable[name]
                     stage("Check ${name}") {
                         runCommandInTest(image: phpImage, command: "php bin/templates build ${name} --out=${checks} --commit=${sourceCommit}".toString())
+                        runVariantChecks(variant, name, checks, images)
+                    }
+                }
 
-                        for (Map check : variantChecks(variant)) {
-                            runCommandInTest(
-                                image: images[check.image],
-                                workspace: "${env.WORKSPACE}/${checks}/${name}".toString(),
-                                command: check.command,
-                                env: check.env ?: [:],
-                            )
+                // Each addon of this repository alone (combinations are not checked) on every variant it declares that is published
+                // (ADR-0005, Decision 8): the variant is built with the addon (`build --addon`) and gets the checks of its `kind`. A failure
+                // here blocks `Publish variants` exactly like a failing variant does. `bin/templates addons --json` lists the addons and
+                // their variants, so a new addon needs no change to this file.
+                List<Map> addonChecks = []
+                stage('Addons: list') {
+                    String listing = runCommandInTest(image: phpImage, command: 'php bin/templates addons --json', returnStdout: true)
+                    for (def addon : readJSON(text: listing)) {
+                        for (def declared : addon.variants) {
+                            if (publishable.containsKey(declared.toString())) {
+                                addonChecks << [addon: addon.name.toString(), variant: declared.toString()]
+                            }
                         }
+                    }
+                }
+                for (Map addonCheck : addonChecks) {
+                    String name = addonCheck.variant
+                    String addon = addonCheck.addon
+                    Map variant = publishable[name]
+                    stage("Check ${name} + ${addon}") {
+                        runCommandInTest(image: phpImage, command: "php bin/templates build ${name} --addon=${addon} --out=${checks} --commit=${sourceCommit}".toString())
+                        runVariantChecks(variant, name, checks, images)
                     }
                 }
 
@@ -123,6 +141,20 @@ def publishVariants(Map publishable) {
             sh 'sudo /usr/local/sbin/jenkins-fix-workspace "$WORKSPACE" || true'
             cleanWs()
         }
+    }
+}
+
+/**
+ * Runs the checks of `variantChecks` in the built directory `<checks>/<name>`, each in the container image of its step.
+ */
+def runVariantChecks(Map variant, String name, String checks, Map images) {
+    for (Map check : variantChecks(variant)) {
+        runCommandInTest(
+            image: images[check.image],
+            workspace: "${env.WORKSPACE}/${checks}/${name}".toString(),
+            command: check.command,
+            env: check.env ?: [:],
+        )
     }
 }
 

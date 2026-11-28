@@ -1,0 +1,3 @@
+{
+    "description": "Pulse in the NGINX site of the CMS monorepo root (`astro-cms` only): a `/pulse` location passed to php-fpm like the other PHP locations of the backend server, in the `php-locations` slot of docker/nginx.example, and a note in the `addons` slot of the README."
+}

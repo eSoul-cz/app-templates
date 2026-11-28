@@ -1,0 +1,19 @@
+{
+    "name": "pulse",
+    "description": "Laravel Pulse: the monitoring dashboard at /pulse (administrators and PULSE_VIEWERS), its migration, the pulse:check worker in the production image, a Filament navigation item, and the /pulse location in the NGINX site of the CMS monorepo root.",
+    "variants": {
+        "laravel-inertia": ["addons/pulse/core"],
+        "laravel-filament": ["addons/pulse/core", "addons/pulse/filament"],
+        "laravel-inertia-filament": ["addons/pulse/core", "addons/pulse/filament"],
+        "laravel-cms": ["addons/pulse/core", "addons/pulse/filament"],
+        "astro-cms": ["addons/pulse/nginx"]
+    },
+    "steps": [
+        "Backend (every Laravel variant): php artisan migrate (the production container runs it at start where RUN_MIGRATIONS=true)",
+        "Backend: set PULSE_VIEWERS in .env and in the stack's environment (emails that may open /pulse besides the administrators), and name it in the pull request's deploy notes; PULSE_ENABLED=false switches the recorders off",
+        "Backend: rebuild the release image, it runs the new Supervisor program `laravel-pulse` (php artisan pulse:check) and the new Composer package",
+        "Backend, `laravel-cms` served under /admin of the site's domain (CMS_ADMIN_PATH_MODE=true): set PULSE_PATH=admin/pulse, the session cookie only reaches /admin",
+        "Site (astro-cms): reload NGINX with the new /pulse location (copy it from docker/nginx.example to the server)",
+        "Read docs/pulse.md of the backend"
+    ]
+}

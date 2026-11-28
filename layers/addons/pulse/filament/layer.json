@@ -1,0 +1,3 @@
+{
+    "description": "Pulse in the Filament admin (the Filament variants of the addon): a navigation item `Pulse` that links to the dashboard (route `pulse`), shown only to users the `viewPulse` gate allows, as a page that Filament discovers from app/Infrastructure/Filament/Pages, and its feature test."
+}

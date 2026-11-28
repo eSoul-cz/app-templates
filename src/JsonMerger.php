@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ESoul\AppTemplates;
 
 use JsonException;
+use LogicException;
 use stdClass;
 
 /**
@@ -53,12 +54,33 @@ final class JsonMerger
         }
     }
 
-    public static function encode(mixed $value): string {
-        return json_encode($value, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR) . "\n";
+    /** @param string $indent one indentation unit (the builder always writes 4 spaces; addons keep the unit of the file they change) */
+    public static function encode(mixed $value, string $indent = '    '): string {
+        $json = json_encode($value, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+
+        if ($indent !== '    ') {
+            // Raw newlines cannot occur inside JSON strings, so every `^` below is a real line start.
+            $json = preg_replace_callback(
+                '/^(?: {4})+/m',
+                static fn (array $match): string => str_repeat($indent, intdiv(strlen($match[0]), 4)),
+                $json,
+            ) ?? throw new LogicException('Re-indenting JSON failed.');
+        }
+
+        return $json . "\n";
+    }
+
+    /** The indentation unit of a JSON text (one tab or N spaces, from its first indented line); 4 spaces when it has none. */
+    public static function detectIndent(string $json): string {
+        if (preg_match('/^(\t| +)\S/m', $json, $match) !== 1) {
+            return '    ';
+        }
+
+        return $match[1][0] === "\t" ? "\t" : $match[1];
     }
 
     /** @param array<mixed> $list */
-    private static function isScalarList(array $list): bool {
+    public static function isScalarList(array $list): bool {
         foreach ($list as $item) {
             if ( ! is_scalar($item) && $item !== null) {
                 return false;

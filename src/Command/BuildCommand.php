@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ESoul\AppTemplates\Command;
 
+use ESoul\AppTemplates\Addon;
+use ESoul\AppTemplates\AddonLoader;
 use ESoul\AppTemplates\Builder;
 use ESoul\AppTemplates\Catalog;
 use ESoul\AppTemplates\GuidelinesRenderer;
@@ -34,6 +36,12 @@ final class BuildCommand extends Command
                 null,
                 InputOption::VALUE_REQUIRED,
                 'app-templates source commit recorded in .esoul/template.json of every built variant (default: HEAD of this repository; no record when it is not a git checkout)',
+            )
+            ->addOption(
+                'addon',
+                null,
+                InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY,
+                'Addon applied on top of the variant: a name from addons/, a directory or a git URL (repeatable)',
             )
             ->addOption(
                 'guidelines-bin',
@@ -76,15 +84,32 @@ final class BuildCommand extends Command
         }
         $builder = new Builder($catalog, new GuidelinesRenderer($guidelinesBin));
 
+        $loader = new AddonLoader($catalog);
+
         try {
+            // Load every addon, and check it supports every variant, before anything is built.
+            $addons = [];
+            foreach ((array) $input->getOption('addon') as $reference) {
+                if (is_string($reference)) {
+                    $addons[] = $loader->load($reference);
+                }
+            }
             foreach ($names as $name) {
-                $path = $builder->build($name, $out, $commit);
-                $io->writeln(sprintf('Built <info>%s</info> → %s', $name, $path));
+                foreach ($addons as $addon) {
+                    $addon->layersFor($name);
+                }
+            }
+
+            foreach ($names as $name) {
+                $path = $builder->build($name, $out, $commit, $addons);
+                $io->writeln(sprintf('Built <info>%s</info> → %s%s', $name, $path, $addons === [] ? '' : ' with ' . implode(', ', array_map(static fn (Addon $addon): string => $addon->name, $addons))));
             }
         } catch (TemplateException $e) {
             $io->error($e->getMessage());
 
             return self::FAILURE;
+        } finally {
+            $loader->release();
         }
 
         return self::SUCCESS;

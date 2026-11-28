@@ -13,7 +13,8 @@ use Symfony\Component\Finder\Finder;
  *
  * Per layer (inside the entry's `into` directory): `delete.txt`, then `files/`, then `merge/`, then `append/`.
  * `merge/esoul-guidelines.json` always merges into the variant root, so a monorepo has one guideline config.
- * Afterwards the root `composer.json` is stamped with the variant's package name.
+ * Afterwards the root `composer.json` is stamped with the variant's package name, then the requested addons are applied (see
+ * {@see AddonApplier}, strict: they may only add), the guidelines are rendered and the record is written.
  */
 final readonly class Builder
 {
@@ -33,9 +34,12 @@ final readonly class Builder
 
     private Filesystem $fs;
 
+    private AddonApplier $addons;
+
     /** @param GuidelinesRenderer|null $guidelines renders the project guidelines after layering; null skips it (builder tests only) */
     public function __construct(private Catalog $catalog, private ?GuidelinesRenderer $guidelines = null) {
         $this->fs = new Filesystem();
+        $this->addons = new AddonApplier($catalog);
     }
 
     /**
@@ -43,9 +47,17 @@ final readonly class Builder
      *
      * @param string|null $commit app-templates source commit the variant is built from; when set,
      *                            `.esoul/template.json` {variant, commit, declined: []} is written into the result
+     * @param list<Addon> $addons addons applied on top of the variant (each must declare it); they are recorded in `.esoul/template.json`,
+     *                            so a source commit is required
      */
-    public function build(string $variantName, string $outDir, ?string $commit = null): string {
+    public function build(string $variantName, string $outDir, ?string $commit = null, array $addons = []): string {
         $variant = $this->catalog->variant($variantName);
+        if ($addons !== [] && $commit === null) {
+            throw new TemplateException('A build with addons records them in .esoul/template.json, which needs a source commit: pass --commit or build from a git checkout.');
+        }
+        foreach ($addons as $addon) {
+            $addon->layersFor($variant->name);
+        }
 
         // Resolve every layer first so an unknown layer fails before anything is deleted.
         $paths = [];
@@ -64,13 +76,20 @@ final readonly class Builder
         }
 
         $this->stampComposer($variant, $target, $this->nestedComposerDirs($variant, $target));
+
+        $record = $commit === null ? null : ProjectRecord::create($variant->name, $commit);
+        foreach ($addons as $addon) {
+            $workspace = new AddonWorkspace($target);
+            $this->addons->apply($addon, $variant->name, $workspace, true);
+            $workspace->flush();
+            $record = $record?->withAddon($addon);
+        }
+
+        // After the addons, so the guidelines include the layers they merged into esoul-guidelines.json.
         $this->guidelines?->render($target);
 
-        if ($commit !== null) {
-            $this->fs->dumpFile(
-                $target . '/.esoul/template.json',
-                JsonMerger::encode(['variant' => $variant->name, 'commit' => $commit, 'declined' => []]),
-            );
+        if ($record !== null) {
+            $this->fs->dumpFile($target . '/' . ProjectRecord::PATH, $record->encode());
         }
 
         return $target;
@@ -80,11 +99,11 @@ final readonly class Builder
     private function applyLayer(string $layerPath, string $target, array $exclude, string $root): void {
         $this->applyDeletes($layerPath, $target);
 
-        foreach ($this->relativeFiles($layerPath . '/files', $exclude) as $relative => $source) {
+        foreach (LayerFiles::list($layerPath . '/files', $exclude) as $relative => $source) {
             $this->fs->copy($source, $target . '/' . $relative, true);
         }
 
-        foreach ($this->relativeFiles($layerPath . '/merge', $exclude) as $relative => $source) {
+        foreach (LayerFiles::list($layerPath . '/merge', $exclude) as $relative => $source) {
             if ( ! str_ends_with($relative, '.json')) {
                 throw new TemplateException(sprintf('Only .json files can be merged, found %s.', $source));
             }
@@ -92,7 +111,7 @@ final readonly class Builder
             $this->mergeJson($source, $destination . '/' . $relative);
         }
 
-        foreach ($this->relativeFiles($layerPath . '/append', $exclude) as $relative => $source) {
+        foreach (LayerFiles::list($layerPath . '/append', $exclude) as $relative => $source) {
             $this->appendLines($source, $target . '/' . $relative);
         }
     }
@@ -104,7 +123,7 @@ final readonly class Builder
         }
 
         $patterns = [];
-        foreach (self::splitLines((string) file_get_contents($file)) as $line) {
+        foreach (LineAppend::splitLines((string) file_get_contents($file)) as $line) {
             $line = trim($line);
             if ($line !== '' && ! str_starts_with($line, '#')) {
                 $patterns[] = $line;
@@ -127,29 +146,6 @@ final readonly class Builder
         $this->fs->remove($doomed);
     }
 
-    /**
-     * @param list<string> $exclude
-     *
-     * @return array<string, string> relative path => absolute source path, sorted by relative path
-     */
-    private function relativeFiles(string $dir, array $exclude): array {
-        if ( ! is_dir($dir)) {
-            return [];
-        }
-
-        $files = [];
-        $finder = new Finder()->files()->in($dir)->ignoreDotFiles(false)->ignoreVCS(false);
-        foreach ($finder as $file) {
-            $relative = str_replace('\\', '/', $file->getRelativePathname());
-            if ( ! Glob::matchesAny($exclude, $relative)) {
-                $files[$relative] = $file->getPathname();
-            }
-        }
-        ksort($files, SORT_STRING);
-
-        return $files;
-    }
-
     private function mergeJson(string $source, string $destination): void {
         $overlay = JsonMerger::decode((string) file_get_contents($source), $source);
 
@@ -163,32 +159,8 @@ final readonly class Builder
 
     private function appendLines(string $source, string $destination): void {
         $existing = is_file($destination) ? (string) file_get_contents($destination) : '';
-        $lines = $existing === '' ? [] : self::splitLines(rtrim($existing, "\r\n"));
-        $present = array_fill_keys(array_map(rtrim(...), $lines), true);
 
-        foreach (self::splitLines(rtrim((string) file_get_contents($source), "\r\n")) as $line) {
-            $line = rtrim($line);
-
-            if ($line === '') {
-                // Keep section spacing but never stack blank lines or start a file with one.
-                if ($lines !== [] && end($lines) !== '') {
-                    $lines[] = '';
-                }
-                continue;
-            }
-            if (isset($present[$line])) {
-                continue;
-            }
-
-            $lines[] = $line;
-            $present[$line] = true;
-        }
-
-        while ($lines !== [] && end($lines) === '') {
-            array_pop($lines);
-        }
-
-        $this->fs->dumpFile($destination, $lines === [] ? '' : implode("\n", $lines) . "\n");
+        $this->fs->dumpFile($destination, LineAppend::append($existing, (string) file_get_contents($source)));
     }
 
     /**
@@ -263,12 +235,5 @@ final readonly class Builder
             ...$existing,
         ]));
         $composer->scripts = $scripts;
-    }
-
-    /** @return list<string> */
-    private static function splitLines(string $text): array {
-        $lines = preg_split('/\R/', $text);
-
-        return $lines === false ? [] : $lines;
     }
 }

@@ -91,9 +91,8 @@ final readonly class SkeletonSync
         }
 
         $log('Formatting skeleton with Pint ...');
-        $this->fs->dumpFile($pintDir . '/composer.json', "{}\n");
-        $this->run(['composer', 'require', 'laravel/pint', '--working-dir=' . $pintDir, '--no-interaction', '--no-progress'], null, 'composer require laravel/pint');
-        $this->run([PHP_BINARY, $pintDir . '/vendor/bin/pint', '--config', $config], $skeletonFiles, 'pint');
+        $pint = new PintInstaller(new ProcessCommandRunner())->install($pintDir);
+        $this->run([PHP_BINARY, $pint, '--config', $config], $skeletonFiles, 'pint');
     }
 
     /** @param list<string> $command */

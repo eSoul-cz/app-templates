@@ -1,0 +1,1 @@
+- [Laravel Pulse](docs/pulse.md): the monitoring dashboard at `/pulse` and its `pulse:check` worker.

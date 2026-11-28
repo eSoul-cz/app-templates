@@ -1,0 +1,2 @@
+- Laravel Pulse (the `pulse` addon of the `laravel-cms` backend): `docker/nginx.example` passes `/pulse` of the backend's server (the subdomain layout) to php-fpm. In the commented path layout
+  (the backend under `/admin` of the site's domain) the session cookie only reaches `/admin`, so set `PULSE_PATH=admin/pulse` in the backend instead: `/admin/pulse` is covered by the `admin` path of that block.

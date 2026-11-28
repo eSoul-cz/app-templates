@@ -36,8 +36,11 @@ final readonly class Builder
 
     private AddonApplier $addons;
 
-    /** @param GuidelinesRenderer|null $guidelines renders the project guidelines after layering; null skips it (builder tests only) */
-    public function __construct(private Catalog $catalog, private ?GuidelinesRenderer $guidelines = null) {
+    /**
+     * @param GuidelinesRenderer|null $guidelines renders the project guidelines after layering; null skips it (builder tests only)
+     * @param PhpFormatter|null       $formatter  formats the PHP files that addons inserted into, with the build's own pint.json; null skips it
+     */
+    public function __construct(private Catalog $catalog, private ?GuidelinesRenderer $guidelines = null, private ?PhpFormatter $formatter = null) {
         $this->fs = new Filesystem();
         $this->addons = new AddonApplier($catalog);
     }
@@ -78,12 +81,17 @@ final readonly class Builder
         $this->stampComposer($variant, $target, $this->nestedComposerDirs($variant, $target));
 
         $record = $commit === null ? null : ProjectRecord::create($variant->name, $commit);
+        $inserted = [];
         foreach ($addons as $addon) {
             $workspace = new AddonWorkspace($target);
-            $this->addons->apply($addon, $variant->name, $workspace, true);
+            $report = $this->addons->apply($addon, $variant->name, $workspace, true);
             $workspace->flush();
+            $inserted = [...$inserted, ...$report->insertedFiles()];
             $record = $record?->withAddon($addon);
         }
+
+        // Once for all addons. The build has no vendor/, so this is a Pint of its own with the build's pint.json.
+        $this->formatter?->format($target, array_values(array_unique($inserted)));
 
         // After the addons, so the guidelines include the layers they merged into esoul-guidelines.json.
         $this->guidelines?->render($target);

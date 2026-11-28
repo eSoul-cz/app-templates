@@ -11,6 +11,7 @@ enum ChangeKind: string
     case Merged = 'merged';
     case Appended = 'appended';
     case Inserted = 'inserted';
+    case Formatted = 'formatted';
     case Kept = 'kept';
     case Skipped = 'skipped';
 
@@ -20,6 +21,7 @@ enum ChangeKind: string
             self::Merged => 'Merged',
             self::Appended => 'Appended',
             self::Inserted => 'Inserted',
+            self::Formatted => 'Formatted',
             self::Kept => 'Kept (differs)',
             self::Skipped => 'Skipped',
         };

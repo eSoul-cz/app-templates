@@ -287,3 +287,9 @@ src/pages/              pages, endpoints (healthz, robots.txt, sitemap.xml, llms
 tests/                  Vitest                                    e2e/      Playwright (starts the built server itself)
 scripts/verify-dist.mjs build output checks                       Dockerfile, docker-entrypoint.sh, docker-compose.yml, Jenkinsfile
 ```
+
+## Addons
+
+The addons this project took are listed in `.esoul/template.json`; their documentation is linked below.
+
+<!-- @esoul-slot addons -->

@@ -12,6 +12,7 @@ use ESoul\AppTemplates\AddonWorkspace;
 use ESoul\AppTemplates\Catalog;
 use ESoul\AppTemplates\ChangeKind;
 use ESoul\AppTemplates\CommandRunner;
+use ESoul\AppTemplates\PhpFormatter;
 use ESoul\AppTemplates\ProcessCommandRunner;
 use ESoul\AppTemplates\ProjectRecord;
 use ESoul\AppTemplates\SourceRepository;
@@ -52,6 +53,7 @@ final class AddonApplyCommand extends Command
         $io = new SymfonyStyle($input, $output);
         $catalog = new Catalog($this->root);
         $loader = new AddonLoader($catalog);
+        $formatter = new PhpFormatter($this->runner);
 
         try {
             $reference = $input->getArgument('addon');
@@ -78,6 +80,15 @@ final class AddonApplyCommand extends Command
             $report = new AddonApplier($catalog)->apply($addon, $variant, $workspace, false);
             $workspace->write(ProjectRecord::PATH, $record->withAddon($addon)->encode());
             $workspace->flush();
+
+            // Part of the file result, so `--no-install` does not skip it. Only files that received an insert in this run: a second run inserts nothing.
+            try {
+                foreach ($formatter->format($project, $report->insertedFiles()) as $file) {
+                    $report->add(ChangeKind::Formatted, $file);
+                }
+            } catch (TemplateException $e) {
+                throw new TemplateException('The addon was applied and recorded, but formatting the inserted PHP failed: ' . $e->getMessage(), 0, $e);
+            }
 
             $io->writeln(sprintf('Applied addon <info>%s</info> to %s (variant %s).', $addon->name, $project, $variant));
             $this->printReport($io, $report);
@@ -106,6 +117,7 @@ final class AddonApplyCommand extends Command
             return self::FAILURE;
         } finally {
             $loader->release();
+            $formatter->release();
         }
 
         return self::SUCCESS;

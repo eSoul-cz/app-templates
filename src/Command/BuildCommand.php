@@ -8,7 +8,10 @@ use ESoul\AppTemplates\Addon;
 use ESoul\AppTemplates\AddonLoader;
 use ESoul\AppTemplates\Builder;
 use ESoul\AppTemplates\Catalog;
+use ESoul\AppTemplates\CommandRunner;
 use ESoul\AppTemplates\GuidelinesRenderer;
+use ESoul\AppTemplates\PhpFormatter;
+use ESoul\AppTemplates\ProcessCommandRunner;
 use ESoul\AppTemplates\SourceRepository;
 use ESoul\AppTemplates\TemplateException;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -22,7 +25,10 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 #[AsCommand(name: 'build', description: 'Build one variant (or all with --all) into <out>/<variant>')]
 final class BuildCommand extends Command
 {
-    public function __construct(private readonly string $root) {
+    private readonly CommandRunner $runner;
+
+    public function __construct(private readonly string $root, ?CommandRunner $runner = null) {
+        $this->runner = $runner ?? new ProcessCommandRunner();
         parent::__construct();
     }
 
@@ -82,7 +88,8 @@ final class BuildCommand extends Command
         if ( ! str_starts_with($guidelinesBin, '/')) {
             $guidelinesBin = $this->root . '/' . $guidelinesBin;
         }
-        $builder = new Builder($catalog, new GuidelinesRenderer($guidelinesBin));
+        $formatter = new PhpFormatter($this->runner);
+        $builder = new Builder($catalog, new GuidelinesRenderer($guidelinesBin), $formatter);
 
         $loader = new AddonLoader($catalog);
 
@@ -110,6 +117,7 @@ final class BuildCommand extends Command
             return self::FAILURE;
         } finally {
             $loader->release();
+            $formatter->release();
         }
 
         return self::SUCCESS;

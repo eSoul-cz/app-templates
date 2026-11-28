@@ -29,6 +29,11 @@ final class AddonReport
         $this->addedPackages = array_values(array_unique([...$this->addedPackages, ...$packages]));
     }
 
+    /** @return list<string> the files that received an insert in this run (not the skipped blocks), in report order */
+    public function insertedFiles(): array {
+        return array_values(array_unique(array_map(static fn (array $entry): string => $entry['path'], $this->entries(ChangeKind::Inserted))));
+    }
+
     /** @return list<array{kind: ChangeKind, path: string, detail: string}> */
     public function entries(ChangeKind $kind): array {
         return array_values(array_filter($this->entries, static fn (array $entry): bool => $entry['kind'] === $kind));

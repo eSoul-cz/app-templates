@@ -52,6 +52,8 @@ bin/templates build laravel-inertia         # → build/laravel-inertia/
 bin/templates build --all --out=build       # every variant
 bin/templates build laravel-inertia --commit=<sha>    # record another source commit in .esoul/template.json (default: HEAD of this repository)
 bin/templates publish laravel-inertia --dry-run        # build and compare with template-laravel-inertia; `--repo=<url>` targets another repository (see "Publishing flow")
+bin/templates build laravel-inertia --addon=<name|path|url>   # build the variant and apply an addon on top (see "Addons")
+bin/templates addon:apply <name|path|url> <project-dir> [--no-install]   # take an addon in an existing project (see "Addons")
 bin/templates skeleton:sync                 # refresh laravel/skeleton from upstream (default ^13)
 vendor/bin/phpunit                          # builder tests (also: composer test)
 composer phpstan                            # PHPStan, level max with the phpunit, strict and deprecation rules
@@ -70,7 +72,7 @@ re-resolved the dependencies on that version. The builder supports PHP 8.4 and e
 
 ```
 bin/templates            builder CLI (Symfony Console)
-src/                     builder code (Catalog, Builder, JsonMerger, Glob, SkeletonSync, Publisher, commands)
+src/                     builder code (Catalog, Builder, JsonMerger, Glob, SkeletonSync, Publisher, the Addon* classes, commands)
 tests/                   PHPUnit tests (fixture layers are generated in a temp dir)
 layers/<group>/<name>/   a layer, or layers/<name>/ for top-level ones (e.g. `common`)
   layer.json             {"description": "..."}
@@ -79,6 +81,7 @@ layers/<group>/<name>/   a layer, or layers/<name>/ for top-level ones (e.g. `co
   append/**              lines appended to the same relative path, skipping lines already present
   delete.txt             globs removed from the target before this layer's files are applied
 variants/<variant>.json  ordered layer list
+addons/<name>.json       manifest of an addon (its layers live under layers/addons/<name>/, see "Addons")
 build/                   output (gitignored)
 ```
 
@@ -167,6 +170,147 @@ about `composer.json`, `package.json`, `.gitignore`, `.env.example`, ... goes th
 2. `bin/templates list` shows it; CI picks it up through `build --all` automatically.
 3. To publish it: create the empty target repo `eSoul-cz/template-<name>`, register it on Packagist and add the repository webhook (see
    "Publishing flow"), and add the variant to `publishable` at the top of the `Jenkinsfile` with the `kind` of checks its own CI runs.
+
+## Addons
+
+An **addon** is an optional capability a project takes on top of its variant, when it is created or later (Laravel Pulse, a connector,
+Socialite, ...). A variant is a fixed list of layers; an addon is a list of layers per variant that **only add** to the project, so applying
+it to a project that has changed the template's files keeps the project's changes. Design: [ADR-0005](https://github.com/eSoul-cz/esoul-infrastructure/blob/main/docs/adr/0005-template-addons.md).
+There is no addon in this repository yet; the mechanism comes first, the first addon (Pulse) and the slot lines in the layers follow.
+
+### Manifest
+
+`addons/<name>.json` (`name` must equal the file name, lowercase letters, digits and `-`):
+
+```json
+{
+    "name": "pulse",
+    "description": "Laravel Pulse: monitoring dashboard and the pulse:check worker.",
+    "variants": {
+        "laravel-inertia": ["addons/pulse/core"],
+        "laravel-filament": ["addons/pulse/core", "addons/pulse/filament"]
+    },
+    "steps": ["php artisan migrate", "Set PULSE_ENABLED in the stack"]
+}
+```
+
+- `variants` (required, non-empty): each supported variant (it must exist) mapped to a non-empty, ordered list of layers (it must exist under
+  `layers/`; by convention `layers/addons/<name>/<part>`). A part that belongs to one variant only is a layer that only that variant's list names.
+- `steps` (optional): manual steps, printed after applying.
+- `description` is a string; any other key is an error. Addons do not declare relations to other addons.
+
+An **external addon** (private or third-party) is a directory or git repository with `addon.json` (the same schema) and `layers/` at its root. Its
+variant map may name only its own layers (resolved under `<root>/layers/`); the variants must still exist in this repository. A git URL is
+shallow-cloned into a temp directory with `git`; a local path is used as it is.
+
+The whole addon is validated when it is loaded, before anything is written: manifest, variants, layers, and the restrictions below.
+
+### Operations
+
+A layer of an addon uses the layer contract with these restrictions, relative to the project root (no `into`). Per layer, in the variant's
+list order: `files/`, `merge/`, `append/`, then `insert/`.
+
+- **`delete.txt`**: forbidden (error).
+- **`files/**`**: new files only; the executable bit is kept. A file that exists and is identical is skipped silently; one that exists and
+  differs is kept and reported as "kept, differs". With `build --addon` an addon file that already exists in the build (it comes from the variant) is an
+  error naming the file.
+- **`merge/**/*.json`**: **fill only**. Missing keys are added recursively, lists of scalars are unioned (first-seen order, new values appended). An
+  existing scalar or list of objects is never overwritten: a different value is kept and reported as "kept, differs" with its JSON path
+  (`require.laravel/pulse`). `null` anywhere in the overlay is an error. The file keeps its own indentation unit (the first indented line: N spaces
+  or a tab; a new file gets 4 spaces), unescaped slashes, trailing newline. `merge/esoul-guidelines.json` targets the project root. In an external
+  addon the string value `"@addon"` is replaced with the URL or path the addon was applied from, so the addon can point a guideline source at its
+  own repository; in an addon of this repository it is an error.
+- **`append/**`**: as in the contract above.
+- **`insert/<slot>/<path>`**: the text of this file is inserted into `<path>` before the line that contains `@esoul-slot <slot>` (see "Slots and
+  markers"). A missing file, a missing slot or a slot on more than one line is an error that names the slot and the file; for a missing slot it says the
+  project has to be updated first, and names the changelog entry whose text mentions ``slot `<slot>` `` when there is one.
+
+### Slots and markers
+
+A **slot** is a line `@esoul-slot <name>` inside a comment (`// @esoul-slot providers`, `# @esoul-slot supervisor-programs`,
+`<!-- @esoul-slot addons -->`) in a file owned by a layer. The slot name is matched as a whole word. Slots belong to the variant (every layer that owns the
+file carries the line) and are a public contract: removing or renaming one is a breaking change with its own changelog entry. This README lists the
+slots once layers have them.
+
+An insert writes, immediately before the slot line, the addon's block:
+
+```php
+    // @esoul-addon pulse
+    \App\Domain\Providers\PulseServiceProvider::class,
+    // @esoul-addon-end pulse
+    // @esoul-slot providers
+```
+
+The marker lines take the slot line's text around the slot: its indentation and comment opener before `@esoul-slot`, and what follows the slot name
+(` -->`). Every line of the insert file gets the slot line's indentation (blank lines stay blank). The block is skipped, even when the project edited it, when
+scanning upward from the slot line to the previous slot line (or the file start) finds a line with `@esoul-addon <name>`; the report says "skipped, block
+exists". Inserted code uses fully qualified names, so no slot is needed for imports.
+
+### Applying
+
+```bash
+bin/templates addon:apply <name|path|url> <project-dir> [--no-install] [--guidelines-bin=...]
+bin/templates build <variant> --addon=<name|path|url>     # repeatable
+```
+
+`<addon>` is the name of an addon of this repository if `addons/<addon>.json` exists, else an existing directory, else a git URL.
+
+`addon:apply` runs from an `app-templates` checkout and **refuses** (exit 1, nothing written) a project without `.esoul/template.json`, a project whose
+variant the addon does not declare (the message lists the declared ones), and a project that lacks a slot the addon inserts into. The whole addon is planned
+before the first write, so these errors never leave a half-applied addon. It only **warns** when the project's recorded `commit` is not this checkout's
+HEAD and `CHANGELOG.md` changed since it (or the commit is unknown here): the template update may be needed first. The command does not read `Affects:`;
+deciding which entries concern the project is the update skill's job.
+
+Then it writes the record, and unless `--no-install` is given:
+
+| Condition | Command, run in the project |
+| --- | --- |
+| the merge added keys to `require` / `require-dev` of `composer.json` and `composer.lock` exists | `composer update <added packages> -W` (only the added keys, never packages the project already had; platform requirements such as `php` are left out) |
+| `package.json` changed and `pnpm-lock.yaml` exists | `pnpm install` |
+| `esoul-guidelines.json` exists | `esoul-guidelines sync --no-interaction` (the project's `vendor/bin/esoul-guidelines`, else this repository's) |
+
+It prints a report grouped as created, merged, appended, inserted, kept (differs) and skipped, then the manifest's `steps`. An addon never runs scripts
+of its own. Applying the same addon again changes nothing: the second run leaves the project byte-identical.
+
+`build --addon` builds the variant exactly as without it, then applies the addon with the same code but without the install step and with the strict `files/`
+rule, then renders the guidelines (so they include the guideline layers the addon merged) and writes `.esoul/template.json`. A build without `--addon` is
+unchanged. A build with addons needs a source commit, because the record carries it.
+
+### The record
+
+`.esoul/template.json` gains `addons`, after the existing keys:
+
+```json
+{
+    "variant": "laravel-inertia",
+    "commit": "<sha>",
+    "declined": [],
+    "addons": [
+        {"name": "pulse"},
+        {"name": "acme-sso", "source": "<git url or path>", "commit": "<sha>"}
+    ]
+}
+```
+
+An addon of this repository is covered by the top-level `commit`. An external addon carries its `source` (the URL or path as given) and the `commit` of its
+repository (the cloned HEAD; for a local directory its git HEAD, omitted when the directory is not a git checkout). Applying an addon again replaces the entry
+of the same name. The file is written with 4 spaces and a trailing newline, like the builder does.
+
+### Adding an addon
+
+1. Create `layers/addons/<name>/<part>/` for each part, with a `layer.json` description. Put new files under `files/`, JSON additions (`composer.json`,
+   `package.json`, `esoul-guidelines.json`, config) under `merge/`, line files under `append/`, and code or text for a file another layer owns under
+   `insert/<slot>/<path>`. Use no `delete.txt`, no `null`, and no file the variant already ships. Use fully qualified names in inserted code.
+2. If a slot you need does not exist in the file, add the slot line to the owning layers (every copy of the file) and write a changelog entry for it;
+   an addon cannot change a value or a line another layer owns.
+3. Add `addons/<name>.json` with the supported variants and the manual `steps` (migrations, secrets and environment keys).
+4. `bin/templates build <variant> --addon=<name>` for each declared variant, then run the variant's own checks in `build/<variant>/`. Also try
+   `addon:apply` on a copy of the plain build.
+5. Add a changelog entry that names the addon in `Affects:` and the migration for projects that already took it.
+
+An external addon has the same shape in its own repository (`addon.json`, `layers/`, a `CHANGELOG.md` in the format above), and checks itself in its own CI
+against `app-templates` `main`. Combinations of several addons are not checked: CI builds each addon alone on each variant it declares, and two addons in
+one project are untested together.
 
 ## Publishing flow
 
@@ -273,6 +417,10 @@ project's; the skill resolves conflicts with them, it does not overwrite them.
 - `skeleton:sync` option is `--constraint` (not `--version`, reserved by Symfony Console). It also strips files shipped by `common`
   and `laravel/base` (not only `laravel/base`), because `common` comes before the skeleton in the variant order and its
   `.editorconfig` / `.gitattributes` would otherwise be overwritten by the upstream ones.
+- Addons (ADR-0005): `AddonLoader` validates an addon without a project, `AddonApplier` plans it against an `AddonWorkspace` (pending writes, flushed only
+  when everything is valid), and `addon:apply` and `build --addon` share both. `merge/` of an addon is `FillMerger` (never `JsonMerger`, which overwrites
+  and deletes); `append/` is `LineAppend`, the code the builder uses too. When a slot is missing the error names the *oldest* changelog entry whose text
+  mentions ``slot `<name>` ``, because that is the entry that introduced it.
 - A layer directory is valid even when empty or without `layer.json`; only a missing directory is an "unknown layer". No schema
   validation of `layer.json`.
 - Glob matching is a small own implementation (no braces, no negation). `delete.txt` globs apply to the target relative to `into`.

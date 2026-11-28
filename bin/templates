@@ -3,6 +3,7 @@
 
 declare(strict_types=1);
 
+use ESoul\AppTemplates\Command\AddonApplyCommand;
 use ESoul\AppTemplates\Command\BuildCommand;
 use ESoul\AppTemplates\Command\ListCommand;
 use ESoul\AppTemplates\Command\PublishCommand;
@@ -24,5 +25,6 @@ $application->addCommands([
     new BuildCommand($root),
     new PublishCommand($root),
     new SkeletonSyncCommand($root),
+    new AddonApplyCommand($root),
 ]);
 $application->run();

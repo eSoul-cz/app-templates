@@ -17,6 +17,11 @@ final readonly class GuidelinesRenderer
     public function __construct(private string $binary) {
     }
 
+    /** @return list<string> */
+    public static function syncCommand(string $binary): array {
+        return [PHP_BINARY, $binary, 'sync', '--no-interaction'];
+    }
+
     public function render(string $target): void {
         if ( ! is_file($this->binary)) {
             throw new TemplateException(sprintf(
@@ -28,7 +33,7 @@ final readonly class GuidelinesRenderer
             throw new TemplateException(sprintf('%s has no %s; add the guideline layers through a layer\'s merge/.', $target, Builder::GUIDELINES_CONFIG));
         }
 
-        $process = new Process([PHP_BINARY, $this->binary, 'sync', '--no-interaction'], $target);
+        $process = new Process(self::syncCommand($this->binary), $target);
         $process->setTimeout(120);
         $process->run();
 

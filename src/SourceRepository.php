@@ -38,4 +38,20 @@ final readonly class SourceRepository
 
         return $log->isSuccessful() && $subject !== '' ? $subject : null;
     }
+
+    /** Whether the commit exists in this checkout. */
+    public function hasCommit(string $commit): bool {
+        $check = new Process(['git', 'cat-file', '-e', $commit . '^{commit}'], $this->root);
+        $check->run();
+
+        return $check->isSuccessful();
+    }
+
+    /** Whether `CHANGELOG.md` has a commit after `$commit` (up to HEAD). */
+    public function changelogChangedSince(string $commit): bool {
+        $log = new Process(['git', 'log', '--format=%H', $commit . '..HEAD', '--', 'CHANGELOG.md'], $this->root);
+        $log->run();
+
+        return $log->isSuccessful() && trim($log->getOutput()) !== '';
+    }
 }

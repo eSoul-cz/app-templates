@@ -26,6 +26,18 @@ Migration: what an existing project must do (or "none").
 
 ## Unreleased
 
+### 2026-11-28: Builder applies addons
+
+Affects: the builder itself.
+
+The builder learns addons (ADR-0005, part 1 of app-templates#5): optional capabilities with a manifest `addons/<name>.json` (or `addon.json` in an external
+repository) that add files, fill-only JSON merges, appended lines and `insert/<slot>/<path>` blocks to a project, in the layers the addon declares for the
+project's variant. `bin/templates addon:apply <name|path|url> <project>` applies an addon to an existing project and records it in `.esoul/template.json`
+(`addons`); `bin/templates build <variant> --addon=<name>` builds the variant and applies the addon with the same code. See the README, "Addons".
+There is no addon and no `@esoul-slot` line in any layer yet, and a build without `--addon` is byte-identical to before.
+
+Migration: none for existing projects; nothing changes until a project takes an addon. The record gains `addons` only then.
+
 ### 2026-11-26: Render guidelines 0.6.2
 
 Affects: every variant / every layer that renders the guidelines (`general`, `framework/laravel`, `framework/lsr`, `framework/astro`); the builder.

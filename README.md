@@ -48,6 +48,7 @@ React: eSoul keeps one frontend stack. A project that already uses React keeps i
 ```bash
 composer install
 bin/templates list                          # variants and their layers
+bin/templates addons [--json]               # the addons of this repository and the variants each declares (the CI reads --json)
 bin/templates build laravel-inertia         # → build/laravel-inertia/
 bin/templates build --all --out=build       # every variant
 bin/templates build laravel-inertia --commit=<sha>    # record another source commit in .esoul/template.json (default: HEAD of this repository)
@@ -176,7 +177,7 @@ about `composer.json`, `package.json`, `.gitignore`, `.env.example`, ... goes th
 An **addon** is an optional capability a project takes on top of its variant, when it is created or later (Laravel Pulse, a connector,
 Socialite, ...). A variant is a fixed list of layers; an addon is a list of layers per variant that **only add** to the project, so applying
 it to a project that has changed the template's files keeps the project's changes. Design: [ADR-0005](https://github.com/eSoul-cz/esoul-infrastructure/blob/main/docs/adr/0005-template-addons.md).
-There is no addon in this repository yet; the mechanism comes first, the first addon (Pulse) and the slot lines in the layers follow.
+The first addon is Laravel Pulse (`addons/pulse.json`, layers `layers/addons/pulse/{core,filament,nginx}`).
 
 ### Manifest
 
@@ -229,14 +230,31 @@ list order: `files/`, `merge/`, `append/`, then `insert/`.
 
 A **slot** is a line `@esoul-slot <name>` inside a comment (`// @esoul-slot providers`, `# @esoul-slot supervisor-programs`,
 `<!-- @esoul-slot addons -->`) in a file owned by a layer. The slot name is matched as a whole word. Slots belong to the variant (every layer that owns the
-file carries the line) and are a public contract: removing or renaming one is a breaking change with its own changelog entry. This README lists the
-slots once layers have them.
+file carries the line) and are a public contract: removing or renaming one is a breaking change with its own changelog entry; so is moving one to another file.
+Slots are never placed in `laravel/skeleton` files, which `skeleton:sync` replaces verbatim: `laravel/base` ships `routes/web.php` itself for that reason. The slots:
+
+| Slot | File | Comment syntax | Owning layers (every copy of the file carries the line) |
+| --- | --- | --- | --- |
+| `providers` | `bootstrap/providers.php` (last line inside the returned array) | `// @esoul-slot providers` | `laravel/base`, `laravel/filament`, `laravel/cms`, `laravel/lunar` |
+| `routes` | `routes/web.php` (end of the file) | `// @esoul-slot routes` | `laravel/base` (takes the file over from the skeleton), `laravel/inertia-vue` |
+| `user-traits` | `app/Infrastructure/Models/User.php` (after `use HasFactory, ...;`) | `// @esoul-slot user-traits` | `laravel/base`, `laravel/filament`, `laravel/lunar` |
+| `user-interfaces` | `app/Infrastructure/Models/User.php` (first line of the multi-line `implements` list; its last entry is always present) | `// @esoul-slot user-interfaces` | `laravel/base`, `laravel/filament`, `laravel/lunar` |
+| `pipeline-options` | `Jenkinsfile` (last line inside the pipeline call's argument list) | `// @esoul-slot pipeline-options` | `laravel/base`, `laravel/inertia-vue`, `lsr/base`, `astro/static`, `astro/ssr`, `astro/cms-client` |
+| `supervisor-programs` | `docker/production/Dockerfile` (after the Supervisor `COPY` lines) | `# @esoul-slot supervisor-programs` | `laravel/base` |
+| `php-locations` | `docker/nginx.example` (in the active server, the one of the backend, after the PHP `location`; **not** in the commented path layout) | `# @esoul-slot php-locations` | `astro-cms/root` |
+| `addons` | `README.md` (the `## Addons` section) | `<!-- @esoul-slot addons -->` | `laravel/base`, `lsr/base`, `astro/static`, `astro/ssr`, `astro/cms-client`, `astro-cms/root` (every layer that ships `files/README.md`) |
+
+Notes on the shapes: the `user-interfaces` list is multi-line because PHP allows no trailing comma in an `implements` list and an empty list is invalid, so addons
+insert `X,` lines before the slot and the entry after it stays last. Pint would pull that list onto one line and sort it, so `laravel/base`'s `pint.json` turns off
+`ordered_interfaces` and takes `implements` out of `single_space_around_construct`'s list. The `pipeline-options` slot sits after an entry that ends with a comma, so
+inserted `key: value,` lines stay valid Groovy. The `routes` slot of `laravel/base` is not in the skeleton copy of `routes/web.php`: that file is the skeleton's content
+plus the slot, and the skeleton keeps its own copy until the next `skeleton:sync`, which strips it because `laravel/base` ships the file.
 
 An insert writes, immediately before the slot line, the addon's block:
 
 ```php
     // @esoul-addon pulse
-    \App\Domain\Providers\PulseServiceProvider::class,
+    'App\Domain\Providers\PulseServiceProvider',
     // @esoul-addon-end pulse
     // @esoul-slot providers
 ```
@@ -244,7 +262,9 @@ An insert writes, immediately before the slot line, the addon's block:
 The marker lines take the slot line's text around the slot: its indentation and comment opener before `@esoul-slot`, and what follows the slot name
 (` -->`). Every line of the insert file gets the slot line's indentation (blank lines stay blank). The block is skipped, even when the project edited it, when
 scanning upward from the slot line to the previous slot line (or the file start) finds a line with `@esoul-addon <name>`; the report says "skipped, block
-exists". Inserted code uses fully qualified names, so no slot is needed for imports.
+exists". Inserted PHP uses fully qualified names, so no slot is needed for imports. The result has to pass the project's code style check (the CI runs `composer cs`
+on every variant + addon): Pint's `fully_qualified_strict_types` turns an inserted `\Vendor\Class::class` into an import, so an addon inserting a class into a
+PHP file writes the name as a string (`'App\Domain\Providers\PulseServiceProvider',` in the `providers` slot).
 
 ### Applying
 
@@ -300,7 +320,8 @@ of the same name. The file is written with 4 spaces and a trailing newline, like
 
 1. Create `layers/addons/<name>/<part>/` for each part, with a `layer.json` description. Put new files under `files/`, JSON additions (`composer.json`,
    `package.json`, `esoul-guidelines.json`, config) under `merge/`, line files under `append/`, and code or text for a file another layer owns under
-   `insert/<slot>/<path>`. Use no `delete.txt`, no `null`, and no file the variant already ships. Use fully qualified names in inserted code.
+   `insert/<slot>/<path>`. Use no `delete.txt`, no `null`, and no file the variant already ships. Use fully qualified names in inserted code, in a form the
+   variant's code style check keeps as it is (a class name as a string in a PHP file).
 2. If a slot you need does not exist in the file, add the slot line to the owning layers (every copy of the file) and write a changelog entry for it;
    an addon cannot change a value or a line another layer owns.
 3. Add `addons/<name>.json` with the supported variants and the manual `steps` (migrations, secrets and environment keys).
@@ -321,8 +342,11 @@ There are no template version tags: **the `main` HEAD of a variant repository is
 2. A PR build runs the builder checks and `bin/templates build --all` (every variant must build); it runs no variant checks and
    publishes nothing.
 3. On `main` the `Jenkinsfile` has a second part after the builder checks (stages `Publish: checkout`, `Publish: prepare`, `Check <variant>`,
-   `Publish variants`): for each variant in `publishable` (the first lines of the `Jenkinsfile`: every variant) it builds the variant, runs
-   the checks the variant's own CI runs, and only when **every** variant passed it runs `bin/templates publish <variant>` for each. The
+   `Addons: list`, `Check <variant> + <addon>`, `Publish variants`): for each variant in `publishable` (the first lines of the `Jenkinsfile`: every variant) it
+   builds the variant and runs the checks the variant's own CI runs. Then, for each addon of `addons/*.json` (`bin/templates addons --json`) and each variant
+   it declares that is in `publishable`, it builds the variant with the addon (`bin/templates build <variant> --addon=<addon>`) and runs the same checks of the
+   variant's `kind` (stage `Check <variant> + <addon>`); each addon alone, never combinations. Only when **every** check passed it runs
+   `bin/templates publish <variant>` for each variant; a failure of an addon stage blocks it like a failure of a variant. The
    checks depend on the variant's `kind` (one function, `variantChecks`, in the `Jenkinsfile`; pnpm installs with `--no-frozen-lockfile`
    because a template has no lock file):
 
@@ -421,6 +445,14 @@ project's; the skill resolves conflicts with them, it does not overwrite them.
   when everything is valid), and `addon:apply` and `build --addon` share both. `merge/` of an addon is `FillMerger` (never `JsonMerger`, which overwrites
   and deletes); `append/` is `LineAppend`, the code the builder uses too. When a slot is missing the error names the *oldest* changelog entry whose text
   mentions ``slot `<name>` ``, because that is the entry that introduced it.
+- Pulse addon (`addons/pulse.json`): `core` (every Laravel variant) requires `laravel/pulse ^1.11`, ships the published `config/pulse.php` (Pint-formatted, plus a
+  `viewers` key read from `PULSE_VIEWERS`), the migration (fixed timestamp `2026_11_28_000001`), `App\Domain\Providers\PulseServiceProvider` with the `viewPulse` gate
+  (a true `is_admin` attribute, read raw because variants without the Filament column must not fail, or an email in `pulse.viewers`; everyone else gets 403), the `laravel-pulse`
+  Supervisor program (`php artisan pulse:check`, picked up by the healthcheck as any other program), `docs/pulse.md` and a feature test (SQLite, the tests run with
+  `PULSE_ENABLED=false` from `phpunit.xml`). `filament` adds the `Pulse` navigation item as a page (`/admin/pulse-dashboard` forwards to `route('pulse')`; the slug differs from
+  Pulse's own path so that `PULSE_PATH=admin/pulse` does not collide) and its test. `nginx` (`astro-cms` only) adds the `/pulse` location to the backend server. The provider
+  line is a string because Pint rewrites an inserted `::class` reference (see "Slots and markers"). In the CMS path layout (`CMS_ADMIN_PATH_MODE=true`, the cookie only
+  reaches `/admin`) the backend sets `PULSE_PATH=admin/pulse`.
 - A layer directory is valid even when empty or without `layer.json`; only a missing directory is an "unknown layer". No schema
   validation of `layer.json`.
 - Glob matching is a small own implementation (no braces, no negation). `delete.txt` globs apply to the target relative to `into`.

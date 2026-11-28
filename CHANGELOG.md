@@ -26,6 +26,61 @@ Migration: what an existing project must do (or "none").
 
 ## Unreleased
 
+### 2026-11-28: Check every addon in CI
+
+Affects: the builder and the `Jenkinsfile` of this repository.
+
+`bin/templates addons [--json]` lists the addons of `addons/*.json` and the variants each declares. On `main` the `Jenkinsfile` reads that list and, after the checks of
+the variants, runs the stage `Check <variant> + <addon>` for each addon on each of its variants that is published: `build <variant> --addon=<addon> --out=build/checks`
+and the checks of the variant's `kind` (ADR-0005, Decision 8). A failure blocks `Publish variants` like a failing variant. Each addon is checked alone, not in combinations.
+
+Migration: none for projects.
+
+### 2026-11-28: Add the Pulse addon
+
+Affects: addon `pulse` / layers `addons/pulse/core`, `addons/pulse/filament`, `addons/pulse/nginx`
+
+The first addon (ADR-0005, Decision 9; app-templates#5): Laravel Pulse, the monitoring dashboard at `/pulse`. It supports `laravel-inertia`, `laravel-filament`,
+`laravel-inertia-filament`, `laravel-cms` and `astro-cms`. For a Laravel backend it adds `laravel/pulse ^1.11`, `config/pulse.php` (the published configuration plus a `viewers`
+key), the migration of the `pulse_*` tables, `App\Domain\Providers\PulseServiceProvider` with the `viewPulse` gate (administrators, a true `is_admin`, and the emails of
+`PULSE_VIEWERS`; others get 403), the `PULSE_ENABLED` and `PULSE_VIEWERS` keys in `.env.example`, the Supervisor program `laravel-pulse` (`php artisan pulse:check`) in
+the production image, `docs/pulse.md` linked from the README, a feature test and, in the Filament variants, a `Pulse` navigation item. For `astro-cms` it adds the `/pulse`
+location to `docker/nginx.example`. Needs the slots of the entry "Add addon slots" below; the `pulse` addon of a project that lacks them is refused.
+
+Migration: none: only projects that take the addon. In a project of one of those variants, from an `app-templates` checkout: `bin/templates addon:apply pulse <project>`
+(for `laravel-cms` and its `astro-cms` root: once in each repository), then the steps it prints (`php artisan migrate`, `PULSE_VIEWERS` in the stack's environment, rebuild
+the image, reload NGINX; a backend served under `/admin` of the site's domain sets `PULSE_PATH=admin/pulse`).
+
+### 2026-11-28: Add addon slots
+
+Affects: every variant / layers `laravel/base`, `laravel/filament`, `laravel/cms`, `laravel/lunar`, `laravel/inertia-vue`, `lsr/base`, `astro/static`, `astro/ssr`, `astro/cms-client`, `astro-cms/root`
+
+The files that addons extend carry slot lines now (ADR-0005, Decision 4; the list is in the README, "Slots and markers", and it is a public contract: removing or renaming a slot
+is a breaking change). A slot is a comment line `@esoul-slot <name>`; an addon inserts its block before it. Nothing changes at run time. `laravel/base` now ships
+`routes/web.php` itself (the skeleton's file plus the slot line: the skeleton copy is not touched, and the next `skeleton:sync` strips it because `laravel/base` ships it).
+`laravel/base`'s `pint.json` has two more rules, so that the multi-line `implements` list of the `User` model is not reformatted.
+
+Migration: a project needs these lines before it can take an addon (`bin/templates addon:apply` refuses a project without the slot it inserts into and names this entry).
+Add each line once, exactly as written, where the file exists:
+
+- slot `providers`: `bootstrap/providers.php` of every Laravel variant: as the last line inside the returned array, before `];`: `    // @esoul-slot providers`.
+- slot `routes`: `routes/web.php` of every Laravel variant: at the end of the file, after a blank line: `// @esoul-slot routes`.
+- slot `user-traits`: `app/Infrastructure/Models/User.php` of every Laravel variant: after the `use HasFactory, ...;` line (the trait `use` of the class), after a blank line: `    // @esoul-slot user-traits`.
+- slot `user-interfaces`: the same file: make the class line a multi-line `implements` list whose first line is the slot and whose last entry is an existing interface:
+  `class User extends Authenticatable implements` / `    // @esoul-slot user-interfaces` / `    FilamentUser` / `{` in `laravel-filament`, `laravel-inertia-filament` and
+  `laravel-cms`; `    LunarUserInterface` (the alias the file imports) in `laravel-lunar`; `    \Illuminate\Contracts\Auth\Authenticatable` in `laravel-inertia`. A project that
+  implements more interfaces keeps them after the slot line, comma separated, the last one without a comma.
+- `pint.json` of every Laravel variant (needed by the two slots above): add `"ordered_interfaces": false,` and a `"single_space_around_construct"` rule whose
+  `constructs_followed_by_a_single_space` list is the rule's default list without `implements` (copy it from `layers/laravel/base/files/pint.json` of this repository).
+- slot `pipeline-options`: `Jenkinsfile` of every variant, as the last line inside the pipeline call's argument list, before the closing `)`, after an entry that ends with a comma:
+  `    // @esoul-slot pipeline-options`.
+- slot `supervisor-programs`: `docker/production/Dockerfile` of every Laravel variant, on the line after the `COPY docker/production/supervisor-scheduler.conf ...` line and before the
+  `RUN sed` that sets `autostart`: `# @esoul-slot supervisor-programs`.
+- slot `php-locations`: `docker/nginx.example` of `astro-cms`, in the active server (the backend's, in the default layout), after the `location ~ ^/(admin|cms-api|forms|livewire[^/]*)...` block:
+  `    # @esoul-slot php-locations`. The commented path layout has no slot.
+- slot `addons`: `README.md` of every variant: a section `## Addons` with the sentence "The addons this project took are listed in `.esoul/template.json`; their documentation
+  is linked below.", a blank line and `<!-- @esoul-slot addons -->`; before `## Troubleshooting` in the Laravel and LSR variants, at the end of the file in the others.
+
 ### 2026-11-28: Builder applies addons
 
 Affects: the builder itself.

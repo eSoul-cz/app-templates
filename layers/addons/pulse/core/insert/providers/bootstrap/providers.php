@@ -1,1 +1,1 @@
-'App\Domain\Providers\PulseServiceProvider',
+\App\Domain\Providers\PulseServiceProvider::class,
